@@ -3,55 +3,137 @@
  * Handles dashboard functionality, data loading, and filtering
  */
 
+// ============================================
+// SUPABASE CONFIGURATION
+// ============================================
+
+const SUPABASE_URL = 'https://pkxcwfkfaaorwnbdmylg.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBreGN3ZmtmYWFvcnduYmRteWxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3NTE1ODUsImV4cCI6MjA3OTMyNzU4NX0.xBDHKKXA9DFFwcTO18aDH_VHJr9BZyI__lv-L4Apryo';
+
+let supabaseClient = null;
+
+function getSupabase() {
+    if (!supabaseClient) {
+        if (typeof window.supabase !== 'undefined') {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else {
+            throw new Error('Supabase library not loaded');
+        }
+    }
+    return supabaseClient;
+}
+
+// ============================================
+// DATA FETCHING FUNCTIONS
+// ============================================
+
+async function fetchSettlements() {
+    const client = getSupabase();
+    const { data, error } = await client
+        .from('settlements')
+        .select('*')
+        .order('week', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching settlements:', error);
+        throw error;
+    }
+    return data || [];
+}
+
+async function fetchFilteredSettlements(week = null, driverSearch = '') {
+    const client = getSupabase();
+    let query = client
+        .from('settlements')
+        .select('*');
+
+    if (week) {
+        query = query.eq('week', week);
+    }
+
+    if (driverSearch) {
+        query = query.ilike('driver_name', `%${driverSearch}%`);
+    }
+
+    query = query.order('week', { ascending: false });
+
+    const { data, error } = await query;
+
+    if (error) {
+        console.error('Error fetching filtered settlements:', error);
+        throw error;
+    }
+    return data || [];
+}
+
+async function fetchUniqueWeeks() {
+    const client = getSupabase();
+    const { data, error } = await client
+        .from('settlements')
+        .select('week')
+        .order('week', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching weeks:', error);
+        throw error;
+    }
+
+    const weeks = [...new Set(data.map(item => item.week))];
+    return weeks;
+}
+
+// ============================================
+// DASHBOARD LOGIC
+// ============================================
+
 let allSettlements = [];
 let filteredSettlements = [];
 
-/**
- * Initialize the dashboard
- */
 async function initDashboard() {
     initDarkMode();
     initEventListeners();
     await loadData();
 }
 
-/**
- * Initialize event listeners
- */
 function initEventListeners() {
     // Week filter
-    document.getElementById('weekFilter').addEventListener('change', applyFilters);
+    const weekFilter = document.getElementById('weekFilter');
+    if (weekFilter) {
+        weekFilter.addEventListener('change', applyFilters);
+    }
 
     // Driver search with debounce
     let searchTimeout;
-    document.getElementById('driverSearch').addEventListener('input', (e) => {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => applyFilters(), 300);
-    });
+    const driverSearch = document.getElementById('driverSearch');
+    if (driverSearch) {
+        driverSearch.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => applyFilters(), 300);
+        });
+    }
 
     // Refresh button
-    document.getElementById('refreshBtn').addEventListener('click', loadData);
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', loadData);
+    }
 
     // Dark mode toggle
-    document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    if (darkModeToggle) {
+        darkModeToggle.addEventListener('click', toggleDarkMode);
+    }
 }
 
-/**
- * Load all data from Supabase
- */
 async function loadData() {
     showLoading(true);
     hideError();
 
     try {
-        // Fetch settlements
         allSettlements = await fetchSettlements();
         filteredSettlements = allSettlements;
 
-        // Populate week filter
         await populateWeekFilter();
-
-        // Update display
         updateStats(filteredSettlements);
         renderSettlements(filteredSettlements);
 
@@ -63,14 +145,11 @@ async function loadData() {
     }
 }
 
-/**
- * Populate the week filter dropdown
- */
 async function populateWeekFilter() {
     const weekFilter = document.getElementById('weekFilter');
-    const currentValue = weekFilter.value;
+    if (!weekFilter) return;
 
-    // Clear existing options except "All"
+    const currentValue = weekFilter.value;
     weekFilter.innerHTML = '<option value="">Alle Wochen</option>';
 
     try {
@@ -82,7 +161,6 @@ async function populateWeekFilter() {
             weekFilter.appendChild(option);
         });
 
-        // Restore selection if still valid
         if (currentValue && weeks.includes(currentValue)) {
             weekFilter.value = currentValue;
         }
@@ -91,12 +169,12 @@ async function populateWeekFilter() {
     }
 }
 
-/**
- * Apply filters and update display
- */
 async function applyFilters() {
-    const week = document.getElementById('weekFilter').value;
-    const driverSearch = document.getElementById('driverSearch').value.trim();
+    const weekFilter = document.getElementById('weekFilter');
+    const driverSearchInput = document.getElementById('driverSearch');
+
+    const week = weekFilter ? weekFilter.value : '';
+    const driverSearch = driverSearchInput ? driverSearchInput.value.trim() : '';
 
     showLoading(true);
 
@@ -111,19 +189,13 @@ async function applyFilters() {
     }
 }
 
-/**
- * Update statistics cards
- */
 function updateStats(settlements) {
-    // Count unique drivers
     const uniqueDrivers = new Set(settlements.map(s => s.driver_name || s.driver_id)).size;
 
-    // Calculate totals
     const totalGross = settlements.reduce((sum, s) => sum + (parseFloat(s.gross_revenue) || parseFloat(s.bruttoumsatz) || 0), 0);
     const totalDeduction = settlements.reduce((sum, s) => sum + (parseFloat(s.deduction) || parseFloat(s.abzug) || 0), 0);
     const totalPayout = settlements.reduce((sum, s) => sum + (parseFloat(s.payout) || parseFloat(s.auszahlung) || 0), 0);
 
-    // Count problems (assuming there's a status or problem field)
     const problems = settlements.filter(s =>
         s.status === 'problem' ||
         s.has_problem === true ||
@@ -131,37 +203,39 @@ function updateStats(settlements) {
         s.problems > 0
     ).length;
 
-    // Update DOM
-    document.getElementById('statDrivers').textContent = uniqueDrivers;
-    document.getElementById('statGross').textContent = formatCurrency(totalGross);
-    document.getElementById('statDeduction').textContent = formatCurrency(totalDeduction);
-    document.getElementById('statPayout').textContent = formatCurrency(totalPayout);
-    document.getElementById('statProblems').textContent = problems;
+    const statDrivers = document.getElementById('statDrivers');
+    const statGross = document.getElementById('statGross');
+    const statDeduction = document.getElementById('statDeduction');
+    const statPayout = document.getElementById('statPayout');
+    const statProblems = document.getElementById('statProblems');
+    const resultCount = document.getElementById('resultCount');
 
-    // Update result count
-    document.getElementById('resultCount').textContent = `${settlements.length} Einträge`;
+    if (statDrivers) statDrivers.textContent = uniqueDrivers;
+    if (statGross) statGross.textContent = formatCurrency(totalGross);
+    if (statDeduction) statDeduction.textContent = formatCurrency(totalDeduction);
+    if (statPayout) statPayout.textContent = formatCurrency(totalPayout);
+    if (statProblems) statProblems.textContent = problems;
+    if (resultCount) resultCount.textContent = `${settlements.length} Einträge`;
 }
 
-/**
- * Render settlements table
- */
 function renderSettlements(settlements) {
     const tbody = document.getElementById('settlementsBody');
     const noData = document.getElementById('noData');
     const table = document.getElementById('settlementsTable');
 
+    if (!tbody || !table) return;
+
     if (settlements.length === 0) {
         tbody.innerHTML = '';
         table.style.display = 'none';
-        noData.style.display = 'block';
+        if (noData) noData.style.display = 'block';
         return;
     }
 
     table.style.display = 'table';
-    noData.style.display = 'none';
+    if (noData) noData.style.display = 'none';
 
     tbody.innerHTML = settlements.map(settlement => {
-        // Handle different possible field names
         const week = settlement.week || settlement.woche || '-';
         const driver = settlement.driver_name || settlement.fahrer || settlement.driver || '-';
         const gross = parseFloat(settlement.gross_revenue) || parseFloat(settlement.bruttoumsatz) || 0;
@@ -182,9 +256,6 @@ function renderSettlements(settlements) {
     }).join('');
 }
 
-/**
- * Get status badge HTML
- */
 function getStatus(settlement) {
     const hasProblem = settlement.status === 'problem' ||
                        settlement.has_problem === true ||
@@ -204,9 +275,6 @@ function getStatus(settlement) {
     }
 }
 
-/**
- * Format number as currency (EUR)
- */
 function formatCurrency(amount) {
     return new Intl.NumberFormat('de-DE', {
         style: 'currency',
@@ -214,41 +282,30 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
-/**
- * Escape HTML to prevent XSS
- */
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
-/**
- * Show/hide loading indicator
- */
 function showLoading(show) {
-    document.getElementById('loadingIndicator').style.display = show ? 'flex' : 'none';
+    const loading = document.getElementById('loadingIndicator');
+    if (loading) loading.style.display = show ? 'flex' : 'none';
 }
 
-/**
- * Show error message
- */
 function showError(message) {
     const errorDiv = document.getElementById('errorMessage');
-    errorDiv.textContent = message;
-    errorDiv.style.display = 'block';
+    if (errorDiv) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+    }
 }
 
-/**
- * Hide error message
- */
 function hideError() {
-    document.getElementById('errorMessage').style.display = 'none';
+    const errorDiv = document.getElementById('errorMessage');
+    if (errorDiv) errorDiv.style.display = 'none';
 }
 
-/**
- * Initialize dark mode from localStorage
- */
 function initDarkMode() {
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
     if (isDarkMode) {
@@ -257,21 +314,15 @@ function initDarkMode() {
     }
 }
 
-/**
- * Toggle dark mode
- */
 function toggleDarkMode() {
     const isDarkMode = document.body.classList.toggle('dark-mode');
     localStorage.setItem('darkMode', isDarkMode);
     updateDarkModeIcon(isDarkMode);
 }
 
-/**
- * Update dark mode button icon
- */
 function updateDarkModeIcon(isDarkMode) {
     const icon = document.getElementById('darkModeIcon');
-    icon.textContent = isDarkMode ? '☀️' : '🌙';
+    if (icon) icon.textContent = isDarkMode ? '☀️' : '🌙';
 }
 
 // Initialize dashboard when DOM is ready

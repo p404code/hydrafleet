@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HydraFleet - Dashboard</title>
+    <title>HydraFleet - Settlements Dashboard</title>
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="dashboard-container">
@@ -16,19 +17,11 @@
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active">
                     <span class="nav-icon">📊</span>
-                    Dashboard
-                </a>
-                <a href="#" class="nav-item">
-                    <span class="nav-icon">🚗</span>
-                    Fahrzeuge
+                    Settlements
                 </a>
                 <a href="#" class="nav-item">
                     <span class="nav-icon">👥</span>
                     Fahrer
-                </a>
-                <a href="#" class="nav-item">
-                    <span class="nav-icon">📍</span>
-                    Routen
                 </a>
                 <a href="#" class="nav-item">
                     <span class="nav-icon">📈</span>
@@ -40,6 +33,9 @@
                 </a>
             </nav>
             <div class="sidebar-footer">
+                <button id="darkModeToggle" class="btn-dark-mode">
+                    <span id="darkModeIcon">🌙</span> Dark Mode
+                </button>
                 <button id="logoutBtn" class="btn-logout">
                     <span>🚪</span> Abmelden
                 </button>
@@ -51,7 +47,7 @@
             <!-- Header -->
             <header class="header">
                 <div class="header-left">
-                    <h1>Dashboard</h1>
+                    <h1>Settlements Dashboard</h1>
                 </div>
                 <div class="header-right">
                     <div class="user-info">
@@ -66,129 +62,95 @@
                 <!-- Stats Cards -->
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-icon blue">🚗</div>
-                        <div class="stat-info">
-                            <h3>Fahrzeuge</h3>
-                            <p class="stat-number">24</p>
-                            <span class="stat-label">Aktiv: 18</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon green">👥</div>
+                        <div class="stat-icon blue">👥</div>
                         <div class="stat-info">
                             <h3>Fahrer</h3>
-                            <p class="stat-number">32</p>
-                            <span class="stat-label">Im Einsatz: 15</span>
+                            <p class="stat-number" id="statDrivers">-</p>
+                            <span class="stat-label">Aktive Fahrer</span>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon orange">📍</div>
+                        <div class="stat-icon green">💰</div>
                         <div class="stat-info">
-                            <h3>Aktive Routen</h3>
-                            <p class="stat-number">12</p>
-                            <span class="stat-label">Heute abgeschlossen: 8</span>
+                            <h3>Bruttoumsatz</h3>
+                            <p class="stat-number" id="statGross">-</p>
+                            <span class="stat-label">Gesamt</span>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon purple">⛽</div>
+                        <div class="stat-icon orange">📉</div>
                         <div class="stat-info">
-                            <h3>Kraftstoff</h3>
-                            <p class="stat-number">2.450 L</p>
-                            <span class="stat-label">Diese Woche verbraucht</span>
+                            <h3>Abzug</h3>
+                            <p class="stat-number" id="statDeduction">-</p>
+                            <span class="stat-label">Gesamt</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">💵</div>
+                        <div class="stat-info">
+                            <h3>Auszahlung</h3>
+                            <p class="stat-number" id="statPayout">-</p>
+                            <span class="stat-label">Netto</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red">⚠️</div>
+                        <div class="stat-info">
+                            <h3>Probleme</h3>
+                            <p class="stat-number" id="statProblems">-</p>
+                            <span class="stat-label">Offene Fälle</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Recent Activity & Vehicle Status -->
-                <div class="content-grid">
-                    <!-- Recent Activity -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h2>Letzte Aktivitäten</h2>
-                        </div>
-                        <div class="card-body">
-                            <ul class="activity-list">
-                                <li class="activity-item">
-                                    <span class="activity-icon">🚗</span>
-                                    <div class="activity-info">
-                                        <p>Fahrzeug B-HF 2024 hat Route beendet</p>
-                                        <span class="activity-time">Vor 5 Minuten</span>
-                                    </div>
-                                </li>
-                                <li class="activity-item">
-                                    <span class="activity-icon">⛽</span>
-                                    <div class="activity-info">
-                                        <p>Tankung: B-HF 1892 - 45L Diesel</p>
-                                        <span class="activity-time">Vor 23 Minuten</span>
-                                    </div>
-                                </li>
-                                <li class="activity-item">
-                                    <span class="activity-icon">🔧</span>
-                                    <div class="activity-info">
-                                        <p>Wartung abgeschlossen: B-HF 1456</p>
-                                        <span class="activity-time">Vor 1 Stunde</span>
-                                    </div>
-                                </li>
-                                <li class="activity-item">
-                                    <span class="activity-icon">👤</span>
-                                    <div class="activity-info">
-                                        <p>Neuer Fahrer hinzugefügt: Max Müller</p>
-                                        <span class="activity-time">Vor 2 Stunden</span>
-                                    </div>
-                                </li>
-                                <li class="activity-item">
-                                    <span class="activity-icon">📍</span>
-                                    <div class="activity-info">
-                                        <p>Route Berlin-Hamburg gestartet</p>
-                                        <span class="activity-time">Vor 3 Stunden</span>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
+                <!-- Filters -->
+                <div class="filters-section">
+                    <div class="filter-group">
+                        <label for="weekFilter">Woche:</label>
+                        <select id="weekFilter" class="filter-select">
+                            <option value="">Alle Wochen</option>
+                        </select>
                     </div>
+                    <div class="filter-group">
+                        <label for="driverSearch">Fahrer suchen:</label>
+                        <input type="text" id="driverSearch" class="filter-input" placeholder="Name eingeben...">
+                    </div>
+                    <button id="refreshBtn" class="btn-refresh">
+                        🔄 Aktualisieren
+                    </button>
+                </div>
 
-                    <!-- Vehicle Status -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h2>Fahrzeugstatus</h2>
+                <!-- Settlements Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Settlements</h2>
+                        <span id="resultCount" class="result-count"></span>
+                    </div>
+                    <div class="card-body">
+                        <div id="loadingIndicator" class="loading">
+                            <div class="spinner"></div>
+                            <p>Daten werden geladen...</p>
                         </div>
-                        <div class="card-body">
-                            <table class="status-table">
+                        <div id="errorMessage" class="error-box" style="display: none;"></div>
+                        <div class="table-wrapper">
+                            <table class="settlements-table" id="settlementsTable">
                                 <thead>
                                     <tr>
-                                        <th>Kennzeichen</th>
+                                        <th>Woche</th>
                                         <th>Fahrer</th>
+                                        <th>Bruttoumsatz</th>
+                                        <th>Abzug</th>
+                                        <th>Auszahlung</th>
                                         <th>Status</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>B-HF 2024</td>
-                                        <td>Thomas Schmidt</td>
-                                        <td><span class="status-badge active">Unterwegs</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>B-HF 1892</td>
-                                        <td>Lisa Weber</td>
-                                        <td><span class="status-badge active">Unterwegs</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>B-HF 1456</td>
-                                        <td>-</td>
-                                        <td><span class="status-badge maintenance">Wartung</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>B-HF 1789</td>
-                                        <td>-</td>
-                                        <td><span class="status-badge idle">Verfügbar</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>B-HF 2001</td>
-                                        <td>Michael Braun</td>
-                                        <td><span class="status-badge active">Unterwegs</span></td>
-                                    </tr>
+                                <tbody id="settlementsBody">
+                                    <!-- Data will be loaded here -->
                                 </tbody>
                             </table>
+                        </div>
+                        <div id="noData" class="no-data" style="display: none;">
+                            <p>Keine Settlements gefunden.</p>
                         </div>
                     </div>
                 </div>
@@ -197,6 +159,7 @@
     </div>
 
     <script src="js/auth.js"></script>
+    <script src="js/supabase-config.js"></script>
     <script src="js/dashboard.js"></script>
 </body>
 </html>

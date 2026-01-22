@@ -1,120 +1,278 @@
 /**
- * HydraFleet Dashboard Module
- * Handles dashboard functionality and interactions
+ * HydraFleet Settlements Dashboard
+ * Handles dashboard functionality, data loading, and filtering
  */
+
+let allSettlements = [];
+let filteredSettlements = [];
 
 /**
- * Initialize dashboard navigation
+ * Initialize the dashboard
  */
-function initNavigation() {
-    const navItems = document.querySelectorAll('.nav-item');
+async function initDashboard() {
+    initDarkMode();
+    initEventListeners();
+    await loadData();
+}
 
-    navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            // Remove active class from all items
-            navItems.forEach(nav => nav.classList.remove('active'));
-            // Add active class to clicked item
-            this.classList.add('active');
+/**
+ * Initialize event listeners
+ */
+function initEventListeners() {
+    // Week filter
+    document.getElementById('weekFilter').addEventListener('change', applyFilters);
 
-            // In a real app, this would load different content
-            // For now, we just show the visual feedback
-        });
+    // Driver search with debounce
+    let searchTimeout;
+    document.getElementById('driverSearch').addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => applyFilters(), 300);
     });
+
+    // Refresh button
+    document.getElementById('refreshBtn').addEventListener('click', loadData);
+
+    // Dark mode toggle
+    document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
 }
 
 /**
- * Animate stat numbers on load
+ * Load all data from Supabase
  */
-function animateStats() {
-    const statNumbers = document.querySelectorAll('.stat-number');
+async function loadData() {
+    showLoading(true);
+    hideError();
 
-    statNumbers.forEach(stat => {
-        const finalValue = stat.textContent;
-        const isNumber = /^\d+$/.test(finalValue.replace(/[.,\s]/g, '').replace(/L$/, ''));
+    try {
+        // Fetch settlements
+        allSettlements = await fetchSettlements();
+        filteredSettlements = allSettlements;
 
-        if (isNumber) {
-            const numericValue = parseInt(finalValue.replace(/[.,\s]/g, '').replace(/L$/, ''));
-            const suffix = finalValue.includes('L') ? ' L' : '';
-            let current = 0;
-            const increment = numericValue / 30;
-            const duration = 1000;
-            const stepTime = duration / 30;
+        // Populate week filter
+        await populateWeekFilter();
 
-            stat.textContent = '0' + suffix;
+        // Update display
+        updateStats(filteredSettlements);
+        renderSettlements(filteredSettlements);
 
-            const counter = setInterval(() => {
-                current += increment;
-                if (current >= numericValue) {
-                    stat.textContent = finalValue;
-                    clearInterval(counter);
-                } else {
-                    stat.textContent = Math.floor(current).toLocaleString('de-DE') + suffix;
-                }
-            }, stepTime);
-        }
-    });
-}
-
-/**
- * Update activity timestamps (simulated real-time)
- */
-function updateTimestamps() {
-    // In a real app, this would fetch actual timestamps from a server
-    // This is just a placeholder for demonstration
-}
-
-/**
- * Initialize mobile sidebar toggle
- */
-function initMobileMenu() {
-    // Add mobile menu button if on mobile
-    if (window.innerWidth <= 768) {
-        const sidebar = document.querySelector('.sidebar');
-        const header = document.querySelector('.header-left');
-
-        if (header && !document.querySelector('.menu-toggle')) {
-            const menuBtn = document.createElement('button');
-            menuBtn.className = 'menu-toggle';
-            menuBtn.innerHTML = '☰';
-            menuBtn.style.cssText = `
-                background: none;
-                border: none;
-                font-size: 24px;
-                cursor: pointer;
-                margin-right: 16px;
-            `;
-
-            menuBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('open');
-            });
-
-            header.insertBefore(menuBtn, header.firstChild);
-        }
+        showLoading(false);
+    } catch (error) {
+        showLoading(false);
+        showError('Fehler beim Laden der Daten: ' + error.message);
+        console.error('Load error:', error);
     }
 }
 
 /**
- * Refresh dashboard data (placeholder for real API calls)
+ * Populate the week filter dropdown
  */
-function refreshDashboard() {
-    // In a production environment, this would:
-    // 1. Fetch updated vehicle data
-    // 2. Fetch latest activities
-    // 3. Update statistics
-    // 4. Refresh map positions
+async function populateWeekFilter() {
+    const weekFilter = document.getElementById('weekFilter');
+    const currentValue = weekFilter.value;
 
-    console.log('Dashboard refreshed at:', new Date().toLocaleTimeString('de-DE'));
+    // Clear existing options except "All"
+    weekFilter.innerHTML = '<option value="">Alle Wochen</option>';
+
+    try {
+        const weeks = await fetchUniqueWeeks();
+        weeks.forEach(week => {
+            const option = document.createElement('option');
+            option.value = week;
+            option.textContent = `KW ${week}`;
+            weekFilter.appendChild(option);
+        });
+
+        // Restore selection if still valid
+        if (currentValue && weeks.includes(currentValue)) {
+            weekFilter.value = currentValue;
+        }
+    } catch (error) {
+        console.error('Error populating weeks:', error);
+    }
 }
 
-// Initialize dashboard on load
-document.addEventListener('DOMContentLoaded', function() {
-    initNavigation();
-    animateStats();
-    initMobileMenu();
+/**
+ * Apply filters and update display
+ */
+async function applyFilters() {
+    const week = document.getElementById('weekFilter').value;
+    const driverSearch = document.getElementById('driverSearch').value.trim();
 
-    // Auto-refresh every 5 minutes (in production)
-    // setInterval(refreshDashboard, 5 * 60 * 1000);
-});
+    showLoading(true);
 
-// Handle window resize for mobile menu
-window.addEventListener('resize', initMobileMenu);
+    try {
+        filteredSettlements = await fetchFilteredSettlements(week, driverSearch);
+        updateStats(filteredSettlements);
+        renderSettlements(filteredSettlements);
+        showLoading(false);
+    } catch (error) {
+        showLoading(false);
+        showError('Fehler beim Filtern: ' + error.message);
+    }
+}
+
+/**
+ * Update statistics cards
+ */
+function updateStats(settlements) {
+    // Count unique drivers
+    const uniqueDrivers = new Set(settlements.map(s => s.driver_name || s.driver_id)).size;
+
+    // Calculate totals
+    const totalGross = settlements.reduce((sum, s) => sum + (parseFloat(s.gross_revenue) || parseFloat(s.bruttoumsatz) || 0), 0);
+    const totalDeduction = settlements.reduce((sum, s) => sum + (parseFloat(s.deduction) || parseFloat(s.abzug) || 0), 0);
+    const totalPayout = settlements.reduce((sum, s) => sum + (parseFloat(s.payout) || parseFloat(s.auszahlung) || 0), 0);
+
+    // Count problems (assuming there's a status or problem field)
+    const problems = settlements.filter(s =>
+        s.status === 'problem' ||
+        s.has_problem === true ||
+        s.probleme > 0 ||
+        s.problems > 0
+    ).length;
+
+    // Update DOM
+    document.getElementById('statDrivers').textContent = uniqueDrivers;
+    document.getElementById('statGross').textContent = formatCurrency(totalGross);
+    document.getElementById('statDeduction').textContent = formatCurrency(totalDeduction);
+    document.getElementById('statPayout').textContent = formatCurrency(totalPayout);
+    document.getElementById('statProblems').textContent = problems;
+
+    // Update result count
+    document.getElementById('resultCount').textContent = `${settlements.length} Einträge`;
+}
+
+/**
+ * Render settlements table
+ */
+function renderSettlements(settlements) {
+    const tbody = document.getElementById('settlementsBody');
+    const noData = document.getElementById('noData');
+    const table = document.getElementById('settlementsTable');
+
+    if (settlements.length === 0) {
+        tbody.innerHTML = '';
+        table.style.display = 'none';
+        noData.style.display = 'block';
+        return;
+    }
+
+    table.style.display = 'table';
+    noData.style.display = 'none';
+
+    tbody.innerHTML = settlements.map(settlement => {
+        // Handle different possible field names
+        const week = settlement.week || settlement.woche || '-';
+        const driver = settlement.driver_name || settlement.fahrer || settlement.driver || '-';
+        const gross = parseFloat(settlement.gross_revenue) || parseFloat(settlement.bruttoumsatz) || 0;
+        const deduction = parseFloat(settlement.deduction) || parseFloat(settlement.abzug) || 0;
+        const payout = parseFloat(settlement.payout) || parseFloat(settlement.auszahlung) || 0;
+        const status = getStatus(settlement);
+
+        return `
+            <tr>
+                <td><span class="week-badge">KW ${week}</span></td>
+                <td>${escapeHtml(driver)}</td>
+                <td class="amount">${formatCurrency(gross)}</td>
+                <td class="amount deduction">${formatCurrency(deduction)}</td>
+                <td class="amount payout">${formatCurrency(payout)}</td>
+                <td>${status}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+/**
+ * Get status badge HTML
+ */
+function getStatus(settlement) {
+    const hasProblem = settlement.status === 'problem' ||
+                       settlement.has_problem === true ||
+                       settlement.probleme > 0 ||
+                       settlement.problems > 0;
+
+    const isPaid = settlement.status === 'paid' ||
+                   settlement.paid === true ||
+                   settlement.bezahlt === true;
+
+    if (hasProblem) {
+        return '<span class="status-badge problem">Problem</span>';
+    } else if (isPaid) {
+        return '<span class="status-badge paid">Bezahlt</span>';
+    } else {
+        return '<span class="status-badge pending">Ausstehend</span>';
+    }
+}
+
+/**
+ * Format number as currency (EUR)
+ */
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('de-DE', {
+        style: 'currency',
+        currency: 'EUR'
+    }).format(amount);
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
+ * Show/hide loading indicator
+ */
+function showLoading(show) {
+    document.getElementById('loadingIndicator').style.display = show ? 'flex' : 'none';
+}
+
+/**
+ * Show error message
+ */
+function showError(message) {
+    const errorDiv = document.getElementById('errorMessage');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+}
+
+/**
+ * Hide error message
+ */
+function hideError() {
+    document.getElementById('errorMessage').style.display = 'none';
+}
+
+/**
+ * Initialize dark mode from localStorage
+ */
+function initDarkMode() {
+    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+        updateDarkModeIcon(true);
+    }
+}
+
+/**
+ * Toggle dark mode
+ */
+function toggleDarkMode() {
+    const isDarkMode = document.body.classList.toggle('dark-mode');
+    localStorage.setItem('darkMode', isDarkMode);
+    updateDarkModeIcon(isDarkMode);
+}
+
+/**
+ * Update dark mode button icon
+ */
+function updateDarkModeIcon(isDarkMode) {
+    const icon = document.getElementById('darkModeIcon');
+    icon.textContent = isDarkMode ? '☀️' : '🌙';
+}
+
+// Initialize dashboard when DOM is ready
+document.addEventListener('DOMContentLoaded', initDashboard);

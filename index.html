@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HydraFleet - Login</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="logo">
+                <h1>HydraFleet</h1>
+                <p>Fleet Management System</p>
+            </div>
+
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="email">E-Mail</label>
+                    <input type="email" id="email" name="email" required placeholder="name@firma.de">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Passwort</label>
+                    <input type="password" id="password" name="password" required placeholder="Ihr Passwort">
+                </div>
+
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="remember" name="remember">
+                        <span>Angemeldet bleiben</span>
+                    </label>
+                    <a href="#" class="forgot-password">Passwort vergessen?</a>
+                </div>
+
+                <button type="submit" class="btn-login">Anmelden</button>
+
+                <div id="errorMessage" class="error-message"></div>
+            </form>
+
+            <div class="demo-info">
+                <p>Demo-Zugangsdaten:</p>
+                <code>admin@hydrafleet.de / admin123</code>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HydraFleet - Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>HydraFleet</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active">
+                    <span class="nav-icon">📊</span>
+                    Dashboard
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="nav-icon">🚗</span>
+                    Fahrzeuge
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="nav-icon">👥</span>
+                    Fahrer
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="nav-icon">📍</span>
+                    Routen
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="nav-icon">📈</span>
+                    Berichte
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="nav-icon">⚙️</span>
+                    Einstellungen
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="btn-logout">
+                    <span>🚪</span> Abmelden
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1>Dashboard</h1>
+                </div>
+                <div class="header-right">
+                    <div class="user-info">
+                        <span class="user-avatar">👤</span>
+                        <span id="userName">Admin</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-content">
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">🚗</div>
+                        <div class="stat-info">
+                            <h3>Fahrzeuge</h3>
+                            <p class="stat-number">24</p>
+                            <span class="stat-label">Aktiv: 18</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">👥</div>
+                        <div class="stat-info">
+                            <h3>Fahrer</h3>
+                            <p class="stat-number">32</p>
+                            <span class="stat-label">Im Einsatz: 15</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">📍</div>
+                        <div class="stat-info">
+                            <h3>Aktive Routen</h3>
+                            <p class="stat-number">12</p>
+                            <span class="stat-label">Heute abgeschlossen: 8</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">⛽</div>
+                        <div class="stat-info">
+                            <h3>Kraftstoff</h3>
+                            <p class="stat-number">2.450 L</p>
+                            <span class="stat-label">Diese Woche verbraucht</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity & Vehicle Status -->
+                <div class="content-grid">
+                    <!-- Recent Activity -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Letzte Aktivitäten</h2>
+                        </div>
+                        <div class="card-body">
+                            <ul class="activity-list">
+                                <li class="activity-item">
+                                    <span class="activity-icon">🚗</span>
+                                    <div class="activity-info">
+                                        <p>Fahrzeug B-HF 2024 hat Route beendet</p>
+                                        <span class="activity-time">Vor 5 Minuten</span>
+                                    </div>
+                                </li>
+                                <li class="activity-item">
+                                    <span class="activity-icon">⛽</span>
+                                    <div class="activity-info">
+                                        <p>Tankung: B-HF 1892 - 45L Diesel</p>
+                                        <span class="activity-time">Vor 23 Minuten</span>
+                                    </div>
+                                </li>
+                                <li class="activity-item">
+                                    <span class="activity-icon">🔧</span>
+                                    <div class="activity-info">
+                                        <p>Wartung abgeschlossen: B-HF 1456</p>
+                                        <span class="activity-time">Vor 1 Stunde</span>
+                                    </div>
+                                </li>
+                                <li class="activity-item">
+                                    <span class="activity-icon">👤</span>
+                                    <div class="activity-info">
+                                        <p>Neuer Fahrer hinzugefügt: Max Müller</p>
+                                        <span class="activity-time">Vor 2 Stunden</span>
+                                    </div>
+                                </li>
+                                <li class="activity-item">
+                                    <span class="activity-icon">📍</span>
+                                    <div class="activity-info">
+                                        <p>Route Berlin-Hamburg gestartet</p>
+                                        <span class="activity-time">Vor 3 Stunden</span>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Vehicle Status -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Fahrzeugstatus</h2>
+                        </div>
+                        <div class="card-body">
+                            <table class="status-table">
+                                <thead>
+                                    <tr>
+                                        <th>Kennzeichen</th>
+                                        <th>Fahrer</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>B-HF 2024</td>
+                                        <td>Thomas Schmidt</td>
+                                        <td><span class="status-badge active">Unterwegs</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>B-HF 1892</td>
+                                        <td>Lisa Weber</td>
+                                        <td><span class="status-badge active">Unterwegs</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>B-HF 1456</td>
+                                        <td>-</td>
+                                        <td><span class="status-badge maintenance">Wartung</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>B-HF 1789</td>
+                                        <td>-</td>
+                                        <td><span class="status-badge idle">Verfügbar</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>B-HF 2001</td>
+                                        <td>Michael Braun</td>
+                                        <td><span class="status-badge active">Unterwegs</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

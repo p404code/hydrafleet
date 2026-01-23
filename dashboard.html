@@ -68,6 +68,10 @@
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 14px 20px; font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg-table-head); }
         th.right { text-align: right; }
+        th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+        th.sortable:hover { background: var(--bg-hover); }
+        th.sortable .sort-icon { opacity: 0.4; margin-left: 4px; font-size: 12px; }
+        th.sortable.active .sort-icon { opacity: 1; color: var(--blue); }
         th.center { text-align: center; }
         td { padding: 16px 20px; font-size: 14px; border-top: 1px solid var(--border-light); }
         td.right { text-align: right; }
@@ -159,12 +163,6 @@
         <div class="filters">
             <select id="weekFilter"><option value="">Laden...</option></select>
             <input type="text" id="searchInput" placeholder="Fahrer suchen...">
-            <select id="sortFilter">
-                <option value="name_asc">Name A-Z</option>
-                <option value="name_desc">Name Z-A</option>
-                <option value="payout_desc">Auszahlung ↓</option>
-                <option value="payout_asc">Auszahlung ↑</option>
-            </select>
             <button class="filter-btn" id="warningFilter">⚠️ Nur Probleme</button>
             <button class="filter-btn" id="excludedFilter">🚫 Ausgeschlossen (<span id="excludedCount">0</span>)</button>
         </div>
@@ -191,7 +189,7 @@
                 </div>
             </div>
             <table>
-                <thead><tr><th>Fahrer</th><th class="right">Auszahlung</th><th>Status</th><th>Modell</th><th class="right">Bolt</th><th class="right">Uber</th><th class="right">MyPOS</th><th class="right">Gesamt</th><th class="right">Abzug</th><th class="center">Aktion</th></tr></thead>
+                <thead><tr><th class="sortable" id="sortName">Fahrer <span class="sort-icon">↕</span></th><th class="right sortable" id="sortPayout">Auszahlung <span class="sort-icon">↕</span></th><th>Status</th><th>Modell</th><th class="right">Bolt</th><th class="right">Uber</th><th class="right">MyPOS</th><th class="right">Gesamt</th><th class="right">Abzug</th><th class="center">Aktion</th></tr></thead>
                 <tbody id="tableBody">
                     <tr><td colspan="10" class="loading"><div class="spinner"></div>Daten werden geladen...</td></tr>
                 </tbody>
@@ -318,6 +316,39 @@
             }
         }
 
+        function toggleSort(col) {
+            if (col === 'name') {
+                sortBy = sortBy === 'name_asc' ? 'name_desc' : 'name_asc';
+            } else if (col === 'payout') {
+                sortBy = sortBy === 'payout_desc' ? 'payout_asc' : 'payout_desc';
+            }
+            updateSortUI();
+            render();
+        }
+
+        function updateSortUI() {
+            const nameEl = document.getElementById('sortName');
+            const payoutEl = document.getElementById('sortPayout');
+            nameEl.classList.remove('active');
+            payoutEl.classList.remove('active');
+            nameEl.querySelector('.sort-icon').textContent = '↕';
+            payoutEl.querySelector('.sort-icon').textContent = '↕';
+
+            if (sortBy === 'name_asc') {
+                nameEl.classList.add('active');
+                nameEl.querySelector('.sort-icon').textContent = '↑';
+            } else if (sortBy === 'name_desc') {
+                nameEl.classList.add('active');
+                nameEl.querySelector('.sort-icon').textContent = '↓';
+            } else if (sortBy === 'payout_desc') {
+                payoutEl.classList.add('active');
+                payoutEl.querySelector('.sort-icon').textContent = '↓';
+            } else if (sortBy === 'payout_asc') {
+                payoutEl.classList.add('active');
+                payoutEl.querySelector('.sort-icon').textContent = '↑';
+            }
+        }
+
         function initTheme() {
             const saved = localStorage.getItem('theme');
             const html = document.documentElement;
@@ -333,10 +364,12 @@
         document.addEventListener('DOMContentLoaded', function() {
             initTheme();
             updateExcludedUI();
+            updateSortUI();
             document.getElementById('themeToggle').addEventListener('click', toggleTheme);
             document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); });
             document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); render(); });
-            document.getElementById('sortFilter').addEventListener('change', function(e) { sortBy = e.target.value; render(); });
+            document.getElementById('sortName').addEventListener('click', function() { toggleSort('name'); });
+            document.getElementById('sortPayout').addEventListener('click', function() { toggleSort('payout'); });
             document.getElementById('warningFilter').addEventListener('click', function() { warn = !warn; this.classList.toggle('active', warn); render(); });
             document.getElementById('excludedFilter').addEventListener('click', function() {
                 showExcluded = !showExcluded;

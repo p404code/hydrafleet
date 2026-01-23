@@ -152,7 +152,7 @@
                 </div>
             </div>
             <table>
-                <thead><tr><th>Fahrer</th><th>Modell</th><th class="right">Bolt</th><th class="right">Uber</th><th class="right">MyPOS</th><th class="right">Gesamt</th><th class="right">Abzug</th><th class="right">Auszahlung</th><th>Status</th><th class="center">Aktion</th></tr></thead>
+                <thead><tr><th>Fahrer</th><th class="right">Auszahlung</th><th>Status</th><th>Modell</th><th class="right">Bolt</th><th class="right">Uber</th><th class="right">MyPOS</th><th class="right">Gesamt</th><th class="right">Abzug</th><th class="center">Aktion</th></tr></thead>
                 <tbody id="tableBody">
                     <tr><td colspan="10" class="loading"><div class="spinner"></div>Daten werden geladen...</td></tr>
                 </tbody>
@@ -339,14 +339,14 @@
                 const escapedName = esc(s.fahrer_name).replace(/'/g, "\\'");
                 return '<tr class="'+(isWarn?'warning':'')+'">' +
                     '<td><div class="fahrer-name">'+esc(s.fahrer_name)+'</div><div class="fahrer-tel">'+(s.telefon||'-')+'</div></td>' +
+                    '<td class="right"><span class="money '+(s.auszahlung>=0?'pos':'neg')+'">'+fmt(s.auszahlung)+'</span></td>' +
+                    '<td>'+st+'</td>' +
                     '<td><span class="badge '+mc+'">'+(s.mietmodell||'-')+'</span></td>' +
                     '<td class="right">'+fmt(s.bolt_brutto)+'</td>' +
                     '<td class="right">'+fmt(s.uber_fahrpreis)+'</td>' +
                     '<td class="right">'+fmt(s.mypos_summe)+'</td>' +
                     '<td class="right">'+fmt(s.bruttoumsatz_gesamt)+'</td>' +
                     '<td class="right">'+fmt(s.abzug_gesamt)+'</td>' +
-                    '<td class="right"><span class="money '+(s.auszahlung>=0?'pos':'neg')+'">'+fmt(s.auszahlung)+'</span></td>' +
-                    '<td>'+st+'</td>' +
                     '<td class="center"><button class="btn-exclude" onclick="excludeDriver(\''+escapedName+'\')" title="Aus Berechnung ausschließen">🚫</button></td>' +
                     '</tr>';
             }).join('');
@@ -366,8 +366,8 @@
 
         function exportCSV() {
             const data = getData();
-            const csv = [['Fahrer','Telefon','Modell','Miete','Bolt','Uber','MyPOS','Gesamt','Abzug','Prozent','Auszahlung','Status']]
-                .concat(data.map(function(s) { return [s.fahrer_name,s.telefon||'',s.mietmodell,s.miete,s.bolt_brutto,s.uber_fahrpreis,s.mypos_summe,s.bruttoumsatz_gesamt,s.abzug_gesamt,s.prozent_abzug,s.auszahlung,s.status]; }))
+            const csv = [['Fahrer','Telefon','Auszahlung','Status','Modell','Miete','Bolt','Uber','MyPOS','Gesamt','Abzug','Prozent']]
+                .concat(data.map(function(s) { return [s.fahrer_name,s.telefon||'',s.auszahlung,s.status,s.mietmodell,s.miete,s.bolt_brutto,s.uber_fahrpreis,s.mypos_summe,s.bruttoumsatz_gesamt,s.abzug_gesamt,s.prozent_abzug]; }))
                 .map(function(r) { return r.join(';'); }).join('\n');
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));

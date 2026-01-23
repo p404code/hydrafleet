@@ -25,7 +25,7 @@
             --status-err-bg: #4a2828; --status-err: #f87171; --warning-row: #3b2828; --warning-row-hover: #4a3333;
         }
         body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-        .container { max-width: 1300px; margin: 0 auto; padding: 32px 24px; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
         .header-left h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
         .header-left p { color: var(--text-secondary); font-size: 15px; }
@@ -39,6 +39,7 @@
         .filter-btn { padding: 12px 18px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--text-secondary); cursor: pointer; }
         .filter-btn:hover { background: var(--bg-hover); }
         .filter-btn.active { background: var(--status-warn-bg); border-color: var(--orange); color: var(--orange); }
+        .filter-btn.excluded { background: var(--status-err-bg); border-color: var(--red); color: var(--red); }
         .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
         .stat-card { background: var(--bg-card); border-radius: 16px; padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
         .stat-card.highlight { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
@@ -60,8 +61,10 @@
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 14px 20px; font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg-table-head); }
         th.right { text-align: right; }
+        th.center { text-align: center; }
         td { padding: 16px 20px; font-size: 14px; border-top: 1px solid var(--border-light); }
         td.right { text-align: right; }
+        td.center { text-align: center; }
         tr:hover td { background: var(--bg-hover); }
         tr.warning td { background: var(--warning-row); }
         tr.warning:hover td { background: var(--warning-row-hover); }
@@ -84,6 +87,22 @@
         .loading { text-align: center; padding: 60px; color: var(--text-muted); }
         .loading .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Exclude Button */
+        .btn-exclude { padding: 6px 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
+        .btn-exclude:hover { background: var(--status-err-bg); border-color: var(--red); color: var(--red); }
+        .btn-include { padding: 6px 10px; background: var(--status-ok-bg); border: 1px solid var(--green); border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--status-ok); }
+        .btn-include:hover { background: var(--green); color: white; }
+
+        /* Excluded drivers panel */
+        .excluded-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: none; }
+        .excluded-panel.show { display: block; }
+        .excluded-panel h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--red); }
+        .excluded-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .excluded-tag { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--status-err-bg); border-radius: 20px; font-size: 13px; color: var(--red); }
+        .excluded-tag button { background: none; border: none; cursor: pointer; color: var(--red); font-size: 14px; padding: 0; line-height: 1; }
+        .excluded-tag button:hover { color: var(--text); }
+
         @media (max-width: 768px) {
             .container { padding: 20px 16px; }
             .header { flex-direction: column; gap: 16px; }
@@ -91,7 +110,7 @@
             select, input[type="text"], .filter-btn { width: 100%; }
             .stats { grid-template-columns: repeat(2, 1fr); }
             .table-card { overflow-x: auto; }
-            table { min-width: 800px; }
+            table { min-width: 900px; }
         }
     </style>
 </head>
@@ -108,7 +127,15 @@
             <select id="weekFilter"><option value="">Laden...</option></select>
             <input type="text" id="searchInput" placeholder="Fahrer suchen...">
             <button class="filter-btn" id="warningFilter">⚠️ Nur Probleme</button>
+            <button class="filter-btn" id="excludedFilter">🚫 Ausgeschlossen (<span id="excludedCount">0</span>)</button>
         </div>
+
+        <!-- Excluded drivers panel -->
+        <div class="excluded-panel" id="excludedPanel">
+            <h3>🚫 Ausgeschlossene Fahrer (werden nicht in Statistiken gezählt)</h3>
+            <div class="excluded-list" id="excludedList"></div>
+        </div>
+
         <div class="stats">
             <div class="stat-card"><div class="stat-label">Fahrer</div><div class="stat-value" id="statFahrer">--</div></div>
             <div class="stat-card"><div class="stat-label">Bruttoumsatz</div><div class="stat-value blue" id="statBrutto">--</div></div>
@@ -125,9 +152,9 @@
                 </div>
             </div>
             <table>
-                <thead><tr><th>Fahrer</th><th>Modell</th><th class="right">Bolt</th><th class="right">Uber</th><th class="right">MyPOS</th><th class="right">Gesamt</th><th class="right">Abzug</th><th class="right">Auszahlung</th><th>Status</th></tr></thead>
+                <thead><tr><th>Fahrer</th><th>Modell</th><th class="right">Bolt</th><th class="right">Uber</th><th class="right">MyPOS</th><th class="right">Gesamt</th><th class="right">Abzug</th><th class="right">Auszahlung</th><th>Status</th><th class="center">Aktion</th></tr></thead>
                 <tbody id="tableBody">
-                    <tr><td colspan="9" class="loading"><div class="spinner"></div>Daten werden geladen...</td></tr>
+                    <tr><td colspan="10" class="loading"><div class="spinner"></div>Daten werden geladen...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -142,7 +169,10 @@
         let supabaseClient = null;
         let SETTLEMENTS = [];
         let WEEKS = [];
-        let week = '', search = '', warn = false;
+        let week = '', search = '', warn = false, showExcluded = false;
+
+        // Excluded drivers (stored in localStorage)
+        let excludedDrivers = JSON.parse(localStorage.getItem('excludedDrivers') || '[]');
 
         function getSupabase() {
             if (!supabaseClient) {
@@ -151,29 +181,51 @@
             return supabaseClient;
         }
 
+        function saveExcluded() {
+            localStorage.setItem('excludedDrivers', JSON.stringify(excludedDrivers));
+            updateExcludedUI();
+        }
+
+        function excludeDriver(name) {
+            if (!excludedDrivers.includes(name)) {
+                excludedDrivers.push(name);
+                saveExcluded();
+                render();
+            }
+        }
+
+        function includeDriver(name) {
+            excludedDrivers = excludedDrivers.filter(n => n !== name);
+            saveExcluded();
+            render();
+        }
+
+        function updateExcludedUI() {
+            document.getElementById('excludedCount').textContent = excludedDrivers.length;
+            const list = document.getElementById('excludedList');
+            if (excludedDrivers.length === 0) {
+                list.innerHTML = '<span style="color: var(--text-muted)">Keine Fahrer ausgeschlossen</span>';
+            } else {
+                list.innerHTML = excludedDrivers.map(name =>
+                    `<span class="excluded-tag">${esc(name)} <button onclick="includeDriver('${esc(name.replace(/'/g, "\\'"))}')">✕</button></span>`
+                ).join('');
+            }
+        }
+
         async function loadData() {
             try {
-                console.log('Loading data from Supabase...');
                 const client = getSupabase();
-                console.log('Supabase client:', client);
-
                 const { data, error } = await client
                     .from('settlements')
                     .select('*');
-
-                console.log('Response - data:', data, 'error:', error);
 
                 if (error) throw error;
 
                 if (!data || data.length === 0) {
                     document.getElementById('tableBody').innerHTML =
-                        '<tr><td colspan="9" class="empty">Keine Daten in der Tabelle gefunden. Bitte prüfe ob die Tabelle "settlements" Daten enthält.</td></tr>';
+                        '<tr><td colspan="10" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>';
                     return;
                 }
-
-                // Log first row to see field names
-                console.log('First row fields:', Object.keys(data[0]));
-                console.log('First row data:', data[0]);
 
                 SETTLEMENTS = data.map(s => {
                     const clean = {};
@@ -188,19 +240,8 @@
                 });
 
                 WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse();
-                console.log('Found weeks:', WEEKS);
                 week = WEEKS[0] || '';
 
-                if (WEEKS.length === 0) {
-                    // Try to find week field with different name
-                    const firstRow = SETTLEMENTS[0];
-                    console.log('Available fields:', Object.keys(firstRow));
-                    document.getElementById('tableBody').innerHTML =
-                        '<tr><td colspan="9" class="empty">Feld "woche" nicht gefunden. Verfügbare Felder: ' + Object.keys(firstRow).join(', ') + '</td></tr>';
-                    return;
-                }
-
-                // Populate week filter
                 document.getElementById('weekFilter').innerHTML = WEEKS.map(w =>
                     '<option value="'+w+'">'+w+'</option>'
                 ).join('');
@@ -209,7 +250,7 @@
             } catch (err) {
                 console.error('Load error:', err);
                 document.getElementById('tableBody').innerHTML =
-                    '<tr><td colspan="9" class="empty">Fehler beim Laden: ' + err.message + '</td></tr>';
+                    '<tr><td colspan="10" class="empty">Fehler beim Laden: ' + err.message + '</td></tr>';
             }
         }
 
@@ -242,10 +283,16 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             initTheme();
+            updateExcludedUI();
             document.getElementById('themeToggle').addEventListener('click', toggleTheme);
             document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); });
             document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); render(); });
             document.getElementById('warningFilter').addEventListener('click', function() { warn = !warn; this.classList.toggle('active', warn); render(); });
+            document.getElementById('excludedFilter').addEventListener('click', function() {
+                showExcluded = !showExcluded;
+                this.classList.toggle('excluded', showExcluded);
+                document.getElementById('excludedPanel').classList.toggle('show', showExcluded);
+            });
             document.getElementById('exportBtn').addEventListener('click', exportCSV);
             document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); });
             loadData();
@@ -254,13 +301,20 @@
         function getData() {
             return SETTLEMENTS.filter(function(s) {
                 const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0;
-                return s.woche === week && s.fahrer_name && s.fahrer_name.toLowerCase().indexOf(search) >= 0 && (!warn || isWarn);
+                const isExcluded = excludedDrivers.includes(s.fahrer_name);
+                return s.woche === week &&
+                       s.fahrer_name &&
+                       s.fahrer_name.toLowerCase().indexOf(search) >= 0 &&
+                       (!warn || isWarn) &&
+                       !isExcluded;  // Always exclude from main view
             });
         }
 
         function render() {
             const data = getData();
-            const all = SETTLEMENTS.filter(function(s) { return s.woche === week; });
+            const all = SETTLEMENTS.filter(function(s) {
+                return s.woche === week && !excludedDrivers.includes(s.fahrer_name);
+            });
             const warnCount = all.filter(function(s) { return (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; }).length;
             const totalAbzug = data.reduce(function(a,s) { return a + (s.abzug_gesamt || 0); }, 0);
             const totalMieten = data.reduce(function(a,s) { return a + (s.miete || 0); }, 0);
@@ -276,13 +330,25 @@
             document.getElementById('tableCount').textContent = ' (' + data.length + ')';
 
             const tbody = document.getElementById('tableBody');
-            if (!data.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty">Keine Eintraege</td></tr>'; return; }
+            if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">Keine Eintraege</td></tr>'; return; }
 
             tbody.innerHTML = data.map(function(s) {
                 const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0;
                 const mc = s.mietmodell === 'fix' ? 'fix' : s.mietmodell === 'f11' ? 'f11' : s.mietmodell === 'f12' ? 'f12' : 'unknown';
                 const st = s.status && s.status.indexOf('WARNUNG') >= 0 ? '<span class="status warn">Unbekannt</span>' : s.auszahlung < 0 ? '<span class="status err">Schuldet</span>' : '<span class="status ok">OK</span>';
-                return '<tr class="'+(isWarn?'warning':'')+'">'+'<td><div class="fahrer-name">'+esc(s.fahrer_name)+'</div><div class="fahrer-tel">'+(s.telefon||'-')+'</div></td>'+'<td><span class="badge '+mc+'">'+(s.mietmodell||'-')+'</span></td>'+'<td class="right">'+fmt(s.bolt_brutto)+'</td>'+'<td class="right">'+fmt(s.uber_fahrpreis)+'</td>'+'<td class="right">'+fmt(s.mypos_summe)+'</td>'+'<td class="right">'+fmt(s.bruttoumsatz_gesamt)+'</td>'+'<td class="right">'+fmt(s.abzug_gesamt)+'</td>'+'<td class="right"><span class="money '+(s.auszahlung>=0?'pos':'neg')+'">'+fmt(s.auszahlung)+'</span></td>'+'<td>'+st+'</td></tr>';
+                const escapedName = esc(s.fahrer_name).replace(/'/g, "\\'");
+                return '<tr class="'+(isWarn?'warning':'')+'">' +
+                    '<td><div class="fahrer-name">'+esc(s.fahrer_name)+'</div><div class="fahrer-tel">'+(s.telefon||'-')+'</div></td>' +
+                    '<td><span class="badge '+mc+'">'+(s.mietmodell||'-')+'</span></td>' +
+                    '<td class="right">'+fmt(s.bolt_brutto)+'</td>' +
+                    '<td class="right">'+fmt(s.uber_fahrpreis)+'</td>' +
+                    '<td class="right">'+fmt(s.mypos_summe)+'</td>' +
+                    '<td class="right">'+fmt(s.bruttoumsatz_gesamt)+'</td>' +
+                    '<td class="right">'+fmt(s.abzug_gesamt)+'</td>' +
+                    '<td class="right"><span class="money '+(s.auszahlung>=0?'pos':'neg')+'">'+fmt(s.auszahlung)+'</span></td>' +
+                    '<td>'+st+'</td>' +
+                    '<td class="center"><button class="btn-exclude" onclick="excludeDriver(\''+escapedName+'\')" title="Aus Berechnung ausschließen">🚫</button></td>' +
+                    '</tr>';
             }).join('');
         }
 

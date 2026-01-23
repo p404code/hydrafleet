@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Abrechnungen</title>
+    <title>Login - Hydralink</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -20,8 +20,11 @@
         .login-container { width: 100%; max-width: 420px; }
         .login-card { background: var(--bg-card); border-radius: 20px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
         .logo { text-align: center; margin-bottom: 32px; }
-        .logo h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .logo p { color: var(--text-secondary); font-size: 15px; }
+        .logo-icon { width: 80px; height: 80px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; }
+        .logo-icon svg { width: 80px; height: 80px; }
+        .logo h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; color: #1e293b; letter-spacing: 1px; }
+        [data-theme="dark"] .logo h1 { color: #f1f5f9; }
+        .logo p { color: var(--text-secondary); font-size: 14px; }
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-secondary); }
         .form-group input { width: 100%; padding: 14px 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 12px; font-size: 15px; color: var(--text); outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
@@ -47,14 +50,25 @@
     <div class="login-container">
         <div class="login-card">
             <div class="logo">
-                <h1>HydraFleet</h1>
+                <div class="logo-icon">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Hydralink triangle network logo -->
+                        <line x1="50" y1="20" x2="25" y2="70" stroke="#F5B51B" stroke-width="6" stroke-linecap="round"/>
+                        <line x1="25" y1="70" x2="75" y2="70" stroke="#F5B51B" stroke-width="6" stroke-linecap="round"/>
+                        <line x1="75" y1="70" x2="50" y2="20" stroke="#F5B51B" stroke-width="6" stroke-linecap="round"/>
+                        <circle cx="50" cy="20" r="10" fill="#F5B51B"/>
+                        <circle cx="25" cy="70" r="10" fill="#F5B51B"/>
+                        <circle cx="75" cy="70" r="10" fill="#F5B51B"/>
+                    </svg>
+                </div>
+                <h1>Hydralink</h1>
                 <p>Abrechnungs-Dashboard</p>
             </div>
 
             <form id="loginForm">
                 <div class="form-group">
                     <label for="email">E-Mail</label>
-                    <input type="email" id="email" placeholder="admin@hydrafleet.de" required>
+                    <input type="email" id="email" placeholder="admin@hydralink.at" required>
                 </div>
                 <div class="form-group">
                     <label for="password">Passwort</label>
@@ -66,7 +80,7 @@
 
             <div class="demo-info">
                 <p>Demo-Zugangsdaten:</p>
-                <code>admin@hydrafleet.de / admin123</code>
+                <code>admin@hydralink.at / admin123</code>
             </div>
         </div>
     </div>
@@ -74,7 +88,7 @@
     <script>
         // Demo credentials
         const DEMO_USERS = [
-            { email: 'admin@hydrafleet.de', password: 'admin123', name: 'Administrator' }
+            { email: 'admin@hydralink.at', password: 'admin123', name: 'Administrator' }
         ];
 
         function toggleTheme() {
@@ -105,7 +119,7 @@
         }
 
         function checkSession() {
-            const session = localStorage.getItem('hydrafleet_session');
+            const session = localStorage.getItem('hydralink_session');
             if (session) {
                 try {
                     const s = JSON.parse(session);
@@ -136,7 +150,7 @@
                 );
 
                 if (user) {
-                    localStorage.setItem('hydrafleet_session', JSON.stringify({
+                    localStorage.setItem('hydralink_session', JSON.stringify({
                         email: user.email,
                         name: user.name,
                         timestamp: Date.now()

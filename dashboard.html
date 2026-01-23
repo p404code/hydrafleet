@@ -1,164 +1,288 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HydraFleet - Settlements Dashboard</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>Abrechnungen</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #f8fafc; --bg-card: #ffffff; --bg-hover: #f8fafc; --bg-table-head: #f8fafc;
+            --border: #e2e8f0; --border-light: #f1f5f9; --text: #1e293b; --text-secondary: #64748b; --text-muted: #94a3b8;
+            --blue: #3b82f6; --green: #10b981; --orange: #f59e0b; --red: #ef4444;
+            --badge-fix-bg: #dbeafe; --badge-fix: #1d4ed8; --badge-f11-bg: #ede9fe; --badge-f11: #6d28d9;
+            --badge-f12-bg: #d1fae5; --badge-f12: #047857; --badge-unknown-bg: #f1f5f9; --badge-unknown: #64748b;
+            --status-ok-bg: #d1fae5; --status-ok: #047857; --status-warn-bg: #fef3c7; --status-warn: #b45309;
+            --status-err-bg: #fee2e2; --status-err: #b91c1c; --warning-row: #fef2f2; --warning-row-hover: #fee2e2;
+        }
+        [data-theme="dark"] {
+            --bg: #0f172a; --bg-card: #1e293b; --bg-hover: #334155; --bg-table-head: #1e293b;
+            --border: #334155; --border-light: #334155; --text: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b;
+            --badge-fix-bg: #1e3a5f; --badge-fix: #60a5fa; --badge-f11-bg: #3b2f63; --badge-f11: #a78bfa;
+            --badge-f12-bg: #134e3a; --badge-f12: #34d399; --badge-unknown-bg: #334155; --badge-unknown: #94a3b8;
+            --status-ok-bg: #134e3a; --status-ok: #34d399; --status-warn-bg: #4a3728; --status-warn: #fbbf24;
+            --status-err-bg: #4a2828; --status-err: #f87171; --warning-row: #3b2828; --warning-row-hover: #4a3333;
+        }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        .container { max-width: 1300px; margin: 0 auto; padding: 32px 24px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+        .header-left h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+        .header-left p { color: var(--text-secondary); font-size: 15px; }
+        .theme-toggle { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; font-size: 20px; cursor: pointer; }
+        .theme-toggle:hover { background: var(--bg-hover); }
+        .filters { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+        select, input[type="text"] { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-size: 14px; color: var(--text); outline: none; }
+        select:focus, input[type="text"]:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+        input[type="text"] { min-width: 220px; }
+        input[type="text"]::placeholder { color: var(--text-muted); }
+        .filter-btn { padding: 12px 18px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--text-secondary); cursor: pointer; }
+        .filter-btn:hover { background: var(--bg-hover); }
+        .filter-btn.active { background: var(--status-warn-bg); border-color: var(--orange); color: var(--orange); }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+        .stat-card { background: var(--bg-card); border-radius: 16px; padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .stat-card.highlight { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .stat-card.highlight .stat-label { color: rgba(255,255,255,0.85); }
+        .stat-card.highlight .stat-value { color: white; }
+        .stat-card.highlight .stat-sub { color: rgba(255,255,255,0.7); }
+        .stat-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; }
+        .stat-value { font-size: 32px; font-weight: 700; }
+        .stat-value.blue { color: var(--blue); }
+        .stat-value.green { color: var(--green); }
+        .stat-value.orange { color: var(--orange); }
+        .stat-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+        .table-card { background: var(--bg-card); border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden; }
+        .table-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border-light); }
+        .table-header h2 { font-size: 16px; font-weight: 600; }
+        .table-header span { color: var(--text-muted); font-size: 14px; margin-left: 8px; font-weight: 400; }
+        .btn { padding: 10px 16px; background: var(--bg-hover); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; }
+        .btn:hover { background: var(--border); }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 14px 20px; font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg-table-head); }
+        th.right { text-align: right; }
+        td { padding: 16px 20px; font-size: 14px; border-top: 1px solid var(--border-light); }
+        td.right { text-align: right; }
+        tr:hover td { background: var(--bg-hover); }
+        tr.warning td { background: var(--warning-row); }
+        tr.warning:hover td { background: var(--warning-row-hover); }
+        .fahrer-name { font-weight: 600; }
+        .fahrer-tel { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .badge.fix { background: var(--badge-fix-bg); color: var(--badge-fix); }
+        .badge.f11 { background: var(--badge-f11-bg); color: var(--badge-f11); }
+        .badge.f12 { background: var(--badge-f12-bg); color: var(--badge-f12); }
+        .badge.unknown { background: var(--badge-unknown-bg); color: var(--badge-unknown); }
+        .money { font-weight: 500; }
+        .money.pos { color: var(--green); }
+        .money.neg { color: var(--red); }
+        .status { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .status.ok { background: var(--status-ok-bg); color: var(--status-ok); }
+        .status.warn { background: var(--status-warn-bg); color: var(--status-warn); }
+        .status.err { background: var(--status-err-bg); color: var(--status-err); }
+        .status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .empty { text-align: center; padding: 60px; color: var(--text-muted); }
+        .loading { text-align: center; padding: 60px; color: var(--text-muted); }
+        .loading .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+            .container { padding: 20px 16px; }
+            .header { flex-direction: column; gap: 16px; }
+            .filters { flex-direction: column; }
+            select, input[type="text"], .filter-btn { width: 100%; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            .table-card { overflow-x: auto; }
+            table { min-width: 800px; }
+        }
+    </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>HydraFleet</h2>
+    <div class="container">
+        <header class="header">
+            <div class="header-left">
+                <h1>Abrechnungen</h1>
+                <p>Wochentliche Ubersicht aller Fahrer-Settlements</p>
             </div>
-            <nav class="sidebar-nav">
-                <a href="#" class="nav-item active">
-                    <span class="nav-icon">📊</span>
-                    Settlements
-                </a>
-                <a href="#" class="nav-item">
-                    <span class="nav-icon">👥</span>
-                    Fahrer
-                </a>
-                <a href="#" class="nav-item">
-                    <span class="nav-icon">📈</span>
-                    Berichte
-                </a>
-                <a href="#" class="nav-item">
-                    <span class="nav-icon">⚙️</span>
-                    Einstellungen
-                </a>
-            </nav>
-            <div class="sidebar-footer">
-                <button id="darkModeToggle" class="btn-dark-mode">
-                    <span id="darkModeIcon">🌙</span> Dark Mode
-                </button>
-                <button id="logoutBtn" class="btn-logout">
-                    <span>🚪</span> Abmelden
-                </button>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Header -->
-            <header class="header">
-                <div class="header-left">
-                    <h1>Settlements Dashboard</h1>
-                </div>
-                <div class="header-right">
-                    <div class="user-info">
-                        <span class="user-avatar">👤</span>
-                        <span id="userName">Admin</span>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Dashboard Content -->
-            <div class="dashboard-content">
-                <!-- Stats Cards -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon blue">👥</div>
-                        <div class="stat-info">
-                            <h3>Fahrer</h3>
-                            <p class="stat-number" id="statDrivers">-</p>
-                            <span class="stat-label">Aktive Fahrer</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon green">💰</div>
-                        <div class="stat-info">
-                            <h3>Bruttoumsatz</h3>
-                            <p class="stat-number" id="statGross">-</p>
-                            <span class="stat-label">Gesamt</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange">📉</div>
-                        <div class="stat-info">
-                            <h3>Abzug</h3>
-                            <p class="stat-number" id="statDeduction">-</p>
-                            <span class="stat-label">Gesamt</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon purple">💵</div>
-                        <div class="stat-info">
-                            <h3>Auszahlung</h3>
-                            <p class="stat-number" id="statPayout">-</p>
-                            <span class="stat-label">Netto</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon red">⚠️</div>
-                        <div class="stat-info">
-                            <h3>Probleme</h3>
-                            <p class="stat-number" id="statProblems">-</p>
-                            <span class="stat-label">Offene Fälle</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Filters -->
-                <div class="filters-section">
-                    <div class="filter-group">
-                        <label for="weekFilter">Woche:</label>
-                        <select id="weekFilter" class="filter-select">
-                            <option value="">Alle Wochen</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="driverSearch">Fahrer suchen:</label>
-                        <input type="text" id="driverSearch" class="filter-input" placeholder="Name eingeben...">
-                    </div>
-                    <button id="refreshBtn" class="btn-refresh">
-                        🔄 Aktualisieren
-                    </button>
-                </div>
-
-                <!-- Settlements Table -->
-                <div class="card">
-                    <div class="card-header">
-                        <h2>Settlements</h2>
-                        <span id="resultCount" class="result-count"></span>
-                    </div>
-                    <div class="card-body">
-                        <div id="loadingIndicator" class="loading">
-                            <div class="spinner"></div>
-                            <p>Daten werden geladen...</p>
-                        </div>
-                        <div id="errorMessage" class="error-box" style="display: none;"></div>
-                        <div class="table-wrapper">
-                            <table class="settlements-table" id="settlementsTable">
-                                <thead>
-                                    <tr>
-                                        <th>Woche</th>
-                                        <th>Fahrer</th>
-                                        <th>Bruttoumsatz</th>
-                                        <th>Abzug</th>
-                                        <th>Auszahlung</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="settlementsBody">
-                                    <!-- Data will be loaded here -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <div id="noData" class="no-data" style="display: none;">
-                            <p>Keine Settlements gefunden.</p>
-                        </div>
-                    </div>
+            <button class="theme-toggle" id="themeToggle" title="Theme wechseln">☀️</button>
+        </header>
+        <div class="filters">
+            <select id="weekFilter"><option value="">Laden...</option></select>
+            <input type="text" id="searchInput" placeholder="Fahrer suchen...">
+            <button class="filter-btn" id="warningFilter">⚠️ Nur Probleme</button>
+        </div>
+        <div class="stats">
+            <div class="stat-card"><div class="stat-label">Fahrer</div><div class="stat-value" id="statFahrer">--</div></div>
+            <div class="stat-card"><div class="stat-label">Bruttoumsatz</div><div class="stat-value blue" id="statBrutto">--</div></div>
+            <div class="stat-card highlight"><div class="stat-label">💰 Bei uns bleibt</div><div class="stat-value" id="statBleibt">--</div><div class="stat-sub" id="statBleibtSub">Mieten + Prozent</div></div>
+            <div class="stat-card"><div class="stat-label">Auszahlung (Fahrer)</div><div class="stat-value green" id="statAuszahlung">--</div></div>
+            <div class="stat-card"><div class="stat-label">Probleme</div><div class="stat-value orange" id="statProbleme">--</div></div>
+        </div>
+        <div class="table-card">
+            <div class="table-header">
+                <h2>Alle Fahrer<span id="tableCount"></span></h2>
+                <div>
+                    <button class="btn" id="exportBtn">📥 Export</button>
+                    <button class="btn" id="refreshBtn" style="margin-left:8px">🔄</button>
                 </div>
             </div>
-        </main>
+            <table>
+                <thead><tr><th>Fahrer</th><th>Modell</th><th class="right">Bolt</th><th class="right">Uber</th><th class="right">MyPOS</th><th class="right">Gesamt</th><th class="right">Abzug</th><th class="right">Auszahlung</th><th>Status</th></tr></thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="9" class="loading"><div class="spinner"></div>Daten werden geladen...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <script src="js/auth.js?v=2"></script>
-    <script src="js/dashboard.js?v=2"></script>
+    <script>
+        // Supabase Config
+        const SUPABASE_URL = 'https://pkxcwfkfaaorwnbdmylg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBreGN3ZmtmYWFvcnduYmRteWxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3NTE1ODUsImV4cCI6MjA3OTMyNzU4NX0.xBDHKKXA9DFFwcTO18aDH_VHJr9BZyI__lv-L4Apryo';
+
+        let supabaseClient = null;
+        let SETTLEMENTS = [];
+        let WEEKS = [];
+        let week = '', search = '', warn = false;
+
+        function getSupabase() {
+            if (!supabaseClient) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            }
+            return supabaseClient;
+        }
+
+        async function loadData() {
+            try {
+                const { data, error } = await getSupabase()
+                    .from('settlements')
+                    .select('*')
+                    .order('woche', { ascending: false });
+
+                if (error) throw error;
+
+                SETTLEMENTS = (data || []).map(s => {
+                    const clean = {};
+                    for (const [key, val] of Object.entries(s)) {
+                        if (typeof val === 'string') {
+                            clean[key] = val.replace(/[\r\n\t]/g, ' ').trim();
+                        } else {
+                            clean[key] = val;
+                        }
+                    }
+                    return clean;
+                });
+
+                WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse();
+                week = WEEKS[0] || '';
+
+                // Populate week filter
+                document.getElementById('weekFilter').innerHTML = WEEKS.map(w =>
+                    '<option value="'+w+'">'+w+'</option>'
+                ).join('');
+
+                render();
+            } catch (err) {
+                console.error('Load error:', err);
+                document.getElementById('tableBody').innerHTML =
+                    '<tr><td colspan="9" class="empty">Fehler beim Laden: ' + err.message + '</td></tr>';
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById('themeToggle');
+            if (html.getAttribute('data-theme') === 'dark') {
+                html.removeAttribute('data-theme');
+                btn.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                btn.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const html = document.documentElement;
+            const btn = document.getElementById('themeToggle');
+            if (saved === 'light') {
+                html.removeAttribute('data-theme');
+                btn.textContent = '🌙';
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                btn.textContent = '☀️';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initTheme();
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); });
+            document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); render(); });
+            document.getElementById('warningFilter').addEventListener('click', function() { warn = !warn; this.classList.toggle('active', warn); render(); });
+            document.getElementById('exportBtn').addEventListener('click', exportCSV);
+            document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); });
+            loadData();
+        });
+
+        function getData() {
+            return SETTLEMENTS.filter(function(s) {
+                const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0;
+                return s.woche === week && s.fahrer_name && s.fahrer_name.toLowerCase().indexOf(search) >= 0 && (!warn || isWarn);
+            });
+        }
+
+        function render() {
+            const data = getData();
+            const all = SETTLEMENTS.filter(function(s) { return s.woche === week; });
+            const warnCount = all.filter(function(s) { return (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; }).length;
+            const totalAbzug = data.reduce(function(a,s) { return a + (s.abzug_gesamt || 0); }, 0);
+            const totalMieten = data.reduce(function(a,s) { return a + (s.miete || 0); }, 0);
+            const totalProzent = data.reduce(function(a,s) { return a + (s.prozent_abzug || 0); }, 0);
+            const totalAuszahlung = data.reduce(function(a,s) { return a + (s.auszahlung || 0); }, 0);
+
+            document.getElementById('statFahrer').textContent = data.length;
+            document.getElementById('statBrutto').textContent = fmt(data.reduce(function(a,s) { return a + (s.bruttoumsatz_gesamt||0); }, 0));
+            document.getElementById('statBleibt').textContent = fmt(totalAbzug);
+            document.getElementById('statBleibtSub').textContent = fmt(totalMieten) + ' Mieten + ' + fmt(totalProzent) + ' %';
+            document.getElementById('statAuszahlung').textContent = fmt(totalAuszahlung);
+            document.getElementById('statProbleme').textContent = warnCount;
+            document.getElementById('tableCount').textContent = ' (' + data.length + ')';
+
+            const tbody = document.getElementById('tableBody');
+            if (!data.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty">Keine Eintraege</td></tr>'; return; }
+
+            tbody.innerHTML = data.map(function(s) {
+                const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0;
+                const mc = s.mietmodell === 'fix' ? 'fix' : s.mietmodell === 'f11' ? 'f11' : s.mietmodell === 'f12' ? 'f12' : 'unknown';
+                const st = s.status && s.status.indexOf('WARNUNG') >= 0 ? '<span class="status warn">Unbekannt</span>' : s.auszahlung < 0 ? '<span class="status err">Schuldet</span>' : '<span class="status ok">OK</span>';
+                return '<tr class="'+(isWarn?'warning':'')+'">'+'<td><div class="fahrer-name">'+esc(s.fahrer_name)+'</div><div class="fahrer-tel">'+(s.telefon||'-')+'</div></td>'+'<td><span class="badge '+mc+'">'+(s.mietmodell||'-')+'</span></td>'+'<td class="right">'+fmt(s.bolt_brutto)+'</td>'+'<td class="right">'+fmt(s.uber_fahrpreis)+'</td>'+'<td class="right">'+fmt(s.mypos_summe)+'</td>'+'<td class="right">'+fmt(s.bruttoumsatz_gesamt)+'</td>'+'<td class="right">'+fmt(s.abzug_gesamt)+'</td>'+'<td class="right"><span class="money '+(s.auszahlung>=0?'pos':'neg')+'">'+fmt(s.auszahlung)+'</span></td>'+'<td>'+st+'</td></tr>';
+            }).join('');
+        }
+
+        function fmt(v) {
+            if (v == null) return '-';
+            const n = parseFloat(v);
+            if (isNaN(n)) return '-';
+            return (n<0?'-':'') + Math.abs(n).toLocaleString('de-AT',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+        }
+
+        function esc(str) {
+            if (!str) return '';
+            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function exportCSV() {
+            const data = getData();
+            const csv = [['Fahrer','Telefon','Modell','Miete','Bolt','Uber','MyPOS','Gesamt','Abzug','Prozent','Auszahlung','Status']]
+                .concat(data.map(function(s) { return [s.fahrer_name,s.telefon||'',s.mietmodell,s.miete,s.bolt_brutto,s.uber_fahrpreis,s.mypos_summe,s.bruttoumsatz_gesamt,s.abzug_gesamt,s.prozent_abzug,s.auszahlung,s.status]; }))
+                .map(function(r) { return r.join(';'); }).join('\n');
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+            a.download = 'abrechnungen_'+week+'.csv';
+            a.click();
+        }
+    </script>
 </body>
 </html>

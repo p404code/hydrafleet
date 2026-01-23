@@ -32,8 +32,11 @@
         .header-logo svg { width: 48px; height: 48px; }
         .header-text h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; letter-spacing: 1px; }
         .header-left p { color: var(--text-secondary); font-size: 15px; }
+        .header-actions { display: flex; gap: 8px; align-items: center; }
         .theme-toggle { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; font-size: 20px; cursor: pointer; }
         .theme-toggle:hover { background: var(--bg-hover); }
+        .btn-logout { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; font-size: 14px; font-weight: 500; color: var(--text-secondary); cursor: pointer; }
+        .btn-logout:hover { background: var(--status-err-bg); border-color: var(--red); color: var(--red); }
         .filters { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
         select, input[type="text"] { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-size: 14px; color: var(--text); outline: none; }
         select:focus, input[type="text"]:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
@@ -136,7 +139,10 @@
                     <p>Wochentliche Ubersicht aller Fahrer-Settlements</p>
                 </div>
             </div>
-            <button class="theme-toggle" id="themeToggle" title="Theme wechseln">☀️</button>
+            <div class="header-actions">
+                <button class="theme-toggle" id="themeToggle" title="Theme wechseln">☀️</button>
+                <button class="btn-logout" id="logoutBtn" title="Abmelden">Abmelden</button>
+            </div>
         </header>
         <div class="filters">
             <select id="weekFilter"><option value="">Laden...</option></select>
@@ -310,6 +316,10 @@
             });
             document.getElementById('exportBtn').addEventListener('click', exportCSV);
             document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); });
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                localStorage.removeItem('hydralink_session');
+                window.location.href = 'index.html';
+            });
             loadData();
         });
 

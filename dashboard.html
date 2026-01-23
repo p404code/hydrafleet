@@ -159,6 +159,12 @@
         <div class="filters">
             <select id="weekFilter"><option value="">Laden...</option></select>
             <input type="text" id="searchInput" placeholder="Fahrer suchen...">
+            <select id="sortFilter">
+                <option value="name_asc">Name A-Z</option>
+                <option value="name_desc">Name Z-A</option>
+                <option value="payout_desc">Auszahlung ↓</option>
+                <option value="payout_asc">Auszahlung ↑</option>
+            </select>
             <button class="filter-btn" id="warningFilter">⚠️ Nur Probleme</button>
             <button class="filter-btn" id="excludedFilter">🚫 Ausgeschlossen (<span id="excludedCount">0</span>)</button>
         </div>
@@ -202,7 +208,7 @@
         let supabaseClient = null;
         let SETTLEMENTS = [];
         let WEEKS = [];
-        let week = '', search = '', warn = false, showExcluded = false;
+        let week = '', search = '', warn = false, showExcluded = false, sortBy = 'name_asc';
 
         // Excluded drivers (stored in localStorage)
         let excludedDrivers = JSON.parse(localStorage.getItem('excludedDrivers') || '[]');
@@ -330,6 +336,7 @@
             document.getElementById('themeToggle').addEventListener('click', toggleTheme);
             document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); });
             document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); render(); });
+            document.getElementById('sortFilter').addEventListener('change', function(e) { sortBy = e.target.value; render(); });
             document.getElementById('warningFilter').addEventListener('click', function() { warn = !warn; this.classList.toggle('active', warn); render(); });
             document.getElementById('excludedFilter').addEventListener('click', function() {
                 showExcluded = !showExcluded;
@@ -346,15 +353,26 @@
         });
 
         function getData() {
-            return SETTLEMENTS.filter(function(s) {
+            let data = SETTLEMENTS.filter(function(s) {
                 const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0;
                 const isExcluded = excludedDrivers.includes(s.fahrer_name);
                 return s.woche === week &&
                        s.fahrer_name &&
                        s.fahrer_name.toLowerCase().indexOf(search) >= 0 &&
                        (!warn || isWarn) &&
-                       !isExcluded;  // Always exclude from main view
+                       !isExcluded;
             });
+
+            // Sorting
+            data.sort(function(a, b) {
+                if (sortBy === 'name_asc') return (a.fahrer_name || '').localeCompare(b.fahrer_name || '');
+                if (sortBy === 'name_desc') return (b.fahrer_name || '').localeCompare(a.fahrer_name || '');
+                if (sortBy === 'payout_desc') return (b.auszahlung || 0) - (a.auszahlung || 0);
+                if (sortBy === 'payout_asc') return (a.auszahlung || 0) - (b.auszahlung || 0);
+                return 0;
+            });
+
+            return data;
         }
 
         function render() {

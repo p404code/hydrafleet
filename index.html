@@ -34,9 +34,6 @@
         .btn-login:hover { box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
         .btn-login:active { transform: scale(0.98); }
         .error-message { color: var(--red); font-size: 14px; text-align: center; margin-bottom: 16px; min-height: 20px; }
-        .demo-info { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; }
-        .demo-info p { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
-        .demo-info code { display: block; background: var(--bg); padding: 12px 16px; border-radius: 10px; font-size: 13px; color: var(--text-secondary); font-family: 'SF Mono', Consolas, monospace; }
         .theme-toggle { position: fixed; top: 20px; right: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 18px; cursor: pointer; }
         .theme-toggle:hover { background: var(--bg-hover); }
         @media (max-width: 480px) {
@@ -67,8 +64,8 @@
 
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="email">E-Mail</label>
-                    <input type="email" id="email" placeholder="admin@hydralink.at" required>
+                    <label for="username">Benutzer</label>
+                    <input type="text" id="username" placeholder="Benutzername" required>
                 </div>
                 <div class="form-group">
                     <label for="password">Passwort</label>
@@ -78,17 +75,15 @@
                 <button type="submit" class="btn-login">Anmelden</button>
             </form>
 
-            <div class="demo-info">
-                <p>Demo-Zugangsdaten:</p>
-                <code>admin@hydralink.at / admin123</code>
-            </div>
         </div>
     </div>
 
     <script>
-        // Demo credentials
-        const DEMO_USERS = [
-            { email: 'admin@hydralink.at', password: 'admin123', name: 'Administrator' }
+        // User credentials
+        const USERS = [
+            { username: 'Boyko', password: '1607', name: 'Boyko' },
+            { username: 'Bislan', password: '1607', name: 'Bislan' },
+            { username: 'Musa', password: '1607', name: 'Musa' }
         ];
 
         function toggleTheme() {
@@ -139,25 +134,25 @@
             document.getElementById('loginForm').addEventListener('submit', function(e) {
                 e.preventDefault();
 
-                const email = document.getElementById('email').value;
+                const username = document.getElementById('username').value;
                 const password = document.getElementById('password').value;
                 const errorEl = document.getElementById('errorMessage');
 
                 errorEl.textContent = '';
 
-                const user = DEMO_USERS.find(u =>
-                    u.email.toLowerCase() === email.toLowerCase() && u.password === password
+                const user = USERS.find(u =>
+                    u.username.toLowerCase() === username.toLowerCase() && u.password === password
                 );
 
                 if (user) {
                     localStorage.setItem('hydralink_session', JSON.stringify({
-                        email: user.email,
+                        username: user.username,
                         name: user.name,
                         timestamp: Date.now()
                     }));
                     window.location.href = 'dashboard.html';
                 } else {
-                    errorEl.textContent = 'Ungültige E-Mail oder Passwort';
+                    errorEl.textContent = 'Ungültiger Benutzer oder Passwort';
                 }
             });
         });

@@ -153,14 +153,29 @@
 
         async function loadData() {
             try {
-                const { data, error } = await getSupabase()
+                console.log('Loading data from Supabase...');
+                const client = getSupabase();
+                console.log('Supabase client:', client);
+
+                const { data, error } = await client
                     .from('settlements')
-                    .select('*')
-                    .order('woche', { ascending: false });
+                    .select('*');
+
+                console.log('Response - data:', data, 'error:', error);
 
                 if (error) throw error;
 
-                SETTLEMENTS = (data || []).map(s => {
+                if (!data || data.length === 0) {
+                    document.getElementById('tableBody').innerHTML =
+                        '<tr><td colspan="9" class="empty">Keine Daten in der Tabelle gefunden. Bitte prüfe ob die Tabelle "settlements" Daten enthält.</td></tr>';
+                    return;
+                }
+
+                // Log first row to see field names
+                console.log('First row fields:', Object.keys(data[0]));
+                console.log('First row data:', data[0]);
+
+                SETTLEMENTS = data.map(s => {
                     const clean = {};
                     for (const [key, val] of Object.entries(s)) {
                         if (typeof val === 'string') {
@@ -173,7 +188,17 @@
                 });
 
                 WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse();
+                console.log('Found weeks:', WEEKS);
                 week = WEEKS[0] || '';
+
+                if (WEEKS.length === 0) {
+                    // Try to find week field with different name
+                    const firstRow = SETTLEMENTS[0];
+                    console.log('Available fields:', Object.keys(firstRow));
+                    document.getElementById('tableBody').innerHTML =
+                        '<tr><td colspan="9" class="empty">Feld "woche" nicht gefunden. Verfügbare Felder: ' + Object.keys(firstRow).join(', ') + '</td></tr>';
+                    return;
+                }
 
                 // Populate week filter
                 document.getElementById('weekFilter').innerHTML = WEEKS.map(w =>

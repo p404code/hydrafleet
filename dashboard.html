@@ -107,53 +107,97 @@
         .btn-include { padding: 6px 10px; background: var(--status-ok-bg); border: 1px solid var(--green); border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--status-ok); }
         .btn-include:hover { background: var(--green); color: white; }
 
-        /* Print Modal */
-        .print-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; display: none; }
+        /* Print Modal - Professional Design */
+        .print-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
         .print-overlay.show { display: flex; }
-        .print-modal { background: white; color: #1e293b; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-        .print-content { padding: 40px; }
-        .print-header { text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e2e8f0; }
-        .print-header h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
-        .print-header p { color: #64748b; font-size: 14px; }
-        .print-driver { margin-bottom: 24px; }
-        .print-driver h2 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
-        .print-driver p { color: #64748b; font-size: 14px; }
-        .print-section { margin-bottom: 24px; }
-        .print-section h3 { font-size: 14px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+        .print-modal { background: white; color: #1e293b; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        .print-content { padding: 32px; }
+        .print-header { text-align: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #e2e8f0; }
+        .print-header h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; color: #0f172a; }
+        .print-header p { color: #64748b; font-size: 13px; font-weight: 500; }
+        .print-driver { margin-bottom: 20px; padding: 16px; background: #f8fafc; border-radius: 10px; border-left: 4px solid #3b82f6; }
+        .print-driver h2 { font-size: 18px; font-weight: 700; margin-bottom: 2px; color: #0f172a; }
+        .print-driver p { color: #64748b; font-size: 13px; }
+        .print-section { margin-bottom: 20px; }
+        .print-section h3 { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         .print-table { width: 100%; border-collapse: collapse; }
-        .print-table td { padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
-        .print-table td:last-child { text-align: right; font-weight: 500; }
+        .print-table td { padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155; }
+        .print-table td:last-child { text-align: right; font-weight: 600; color: #0f172a; }
         .print-table tr:last-child td { border-bottom: none; }
-        .print-table .total td { font-weight: 700; font-size: 16px; border-top: 2px solid #1e293b; border-bottom: none; padding-top: 12px; }
-        .print-payout { text-align: center; margin-top: 32px; padding: 24px; border-radius: 12px; }
-        .print-payout.positive { background: #d1fae5; }
-        .print-payout.negative { background: #fee2e2; }
-        .print-payout-label { font-size: 14px; color: #64748b; margin-bottom: 8px; }
-        .print-payout-value { font-size: 36px; font-weight: 700; }
+        .print-table .total td { font-weight: 700; font-size: 15px; border-top: 2px solid #e2e8f0; border-bottom: none; padding-top: 10px; color: #0f172a; }
+        .print-payout { text-align: center; margin-top: 24px; padding: 20px; border-radius: 12px; }
+        .print-payout.positive { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border: 1px solid #6ee7b7; }
+        .print-payout.negative { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 1px solid #fca5a5; }
+        .print-payout-label { font-size: 12px; color: #64748b; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .print-payout-value { font-size: 32px; font-weight: 800; }
         .print-payout.positive .print-payout-value { color: #047857; }
         .print-payout.negative .print-payout-value { color: #b91c1c; }
-        .print-actions { display: flex; gap: 12px; padding: 20px 40px; border-top: 1px solid #e2e8f0; background: #f8fafc; border-radius: 0 0 16px 16px; }
-        .print-actions button { flex: 1; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
-        .print-actions .btn-cancel { background: white; border: 1px solid #e2e8f0; color: #64748b; }
-        .print-actions .btn-cancel:hover { background: #f1f5f9; }
+        .print-actions { display: flex; gap: 10px; padding: 16px 32px 24px; background: white; }
+        .print-actions button { flex: 1; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+        .print-actions .btn-cancel { background: #f1f5f9; border: none; color: #64748b; }
+        .print-actions .btn-cancel:hover { background: #e2e8f0; color: #475569; }
         .print-actions .btn-print-now { background: #3b82f6; border: none; color: white; }
-        .print-actions .btn-print-now:hover { background: #2563eb; }
+        .print-actions .btn-print-now:hover { background: #2563eb; transform: translateY(-1px); }
 
         /* Share Button */
         .print-actions .btn-share { background: #25D366; border: none; color: white; }
-        .print-actions .btn-share:hover { background: #128C7E; }
+        .print-actions .btn-share:hover { background: #128C7E; transform: translateY(-1px); }
 
-        /* Print styles */
+        /* Print styles - Single page output */
         @media print {
-            @page { size: A4; margin: 15mm; }
-            html, body { width: 210mm; height: 297mm; }
-            body * { visibility: hidden; }
-            .print-modal, .print-modal * { visibility: visible; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .print-modal { position: absolute; left: 0; top: 0; width: 100%; max-width: none; box-shadow: none; border-radius: 0; max-height: none; overflow: visible; }
-            .print-actions { display: none !important; }
-            .print-overlay { background: white !important; }
-            .print-content { padding: 0; page-break-inside: avoid; }
-            a[href]:after { content: none !important; }
+            @page {
+                size: A4 portrait;
+                margin: 10mm;
+            }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                background: white !important;
+            }
+            body > *:not(.print-overlay) {
+                display: none !important;
+            }
+            .print-overlay {
+                display: block !important;
+                position: static !important;
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .print-modal {
+                position: static !important;
+                width: 100% !important;
+                max-width: none !important;
+                max-height: none !important;
+                height: auto !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                margin: 0 !important;
+                overflow: visible !important;
+            }
+            .print-content {
+                padding: 5mm !important;
+                page-break-inside: avoid !important;
+            }
+            .print-actions {
+                display: none !important;
+            }
+            .print-header {
+                margin-bottom: 15px !important;
+                padding-bottom: 10px !important;
+            }
+            .print-header h1 { font-size: 20px !important; }
+            .print-section { margin-bottom: 12px !important; }
+            .print-section h3 { margin-bottom: 6px !important; font-size: 12px !important; }
+            .print-table td { padding: 6px 0 !important; font-size: 13px !important; }
+            .print-payout { margin-top: 15px !important; padding: 15px !important; }
+            .print-payout-value { font-size: 28px !important; }
         }
 
         /* Excluded drivers panel */

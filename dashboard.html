@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hydralink - Abrechnungen</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #f8fafc; --bg-card: #ffffff; --bg-hover: #f8fafc; --bg-table-head: #f8fafc;
+            --border: #e2e8f0; --border-light: #f1f5f9; --text: #1e293b; --text-secondary: #64748b; --text-muted: #94a3b8;
+            --blue: #3b82f6; --green: #10b981; --orange: #f59e0b; --red: #ef4444;
+            --badge-fix-bg: #dbeafe; --badge-fix: #1d4ed8; --badge-f11-bg: #ede9fe; --badge-f11: #6d28d9;
+            --badge-f12-bg: #d1fae5; --badge-f12: #047857; --badge-unknown-bg: #f1f5f9; --badge-unknown: #64748b;
+            --status-ok-bg: #d1fae5; --status-ok: #047857; --status-warn-bg: #fef3c7; --status-warn: #b45309;
+            --status-err-bg: #fee2e2; --status-err: #b91c1c; --warning-row: #fef2f2; --warning-row-hover: #fee2e2;
+        }
+        [data-theme="dark"] {
+            --bg: #0f172a; --bg-card: #1e293b; --bg-hover: #334155; --bg-table-head: #1e293b;
+            --border: #334155; --border-light: #334155; --text: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b;
+            --badge-fix-bg: #1e3a5f; --badge-fix: #60a5fa; --badge-f11-bg: #3b2f63; --badge-f11: #a78bfa;
+            --badge-f12-bg: #134e3a; --badge-f12: #34d399; --badge-unknown-bg: #334155; --badge-unknown: #94a3b8;
+            --status-ok-bg: #134e3a; --status-ok: #34d399; --status-warn-bg: #4a3728; --status-warn: #fbbf24;
+            --status-err-bg: #4a2828; --status-err: #f87171; --warning-row: #3b2828; --warning-row-hover: #4a3333;
+        }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .header-logo { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .header-logo svg { width: 48px; height: 48px; }
+        .header-text h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; letter-spacing: 1px; }
+        .header-left p { color: var(--text-secondary); font-size: 15px; }
+        .header-actions { display: flex; gap: 0; align-items: center; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        .header-actions button { background: transparent; border: none; padding: 12px 16px; font-size: 14px; font-weight: 500; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+        .header-actions button:hover { background: var(--bg-hover); color: var(--text); }
+        .header-actions button svg { width: 18px; height: 18px; }
+        .header-actions .divider { width: 1px; height: 24px; background: var(--border); }
+        .header-actions .btn-logout:hover { background: var(--status-err-bg); color: var(--red); }
+        .filters { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+        select, input[type="text"] { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-size: 14px; color: var(--text); outline: none; }
+        select:focus, input[type="text"]:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+        input[type="text"] { min-width: 220px; }
+        input[type="text"]::placeholder { color: var(--text-muted); }
+        .filter-btn { padding: 12px 18px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--text-secondary); cursor: pointer; }
+        .filter-btn:hover { background: var(--bg-hover); }
+        .filter-btn.active { background: var(--status-warn-bg); border-color: var(--orange); color: var(--orange); }
+        .filter-btn.excluded { background: var(--status-err-bg); border-color: var(--red); color: var(--red); }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+        .stat-card { background: var(--bg-card); border-radius: 16px; padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .stat-card.highlight { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .stat-card.highlight .stat-label { color: rgba(255,255,255,0.85); }
+        .stat-card.highlight .stat-value { color: white; }
+        .stat-card.highlight .stat-sub { color: rgba(255,255,255,0.7); }
+        .stat-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; }
+        .stat-value { font-size: 32px; font-weight: 700; }
+        .stat-value.blue { color: var(--blue); }
+        .stat-value.green { color: var(--green); }
+        .stat-value.orange { color: var(--orange); }
+        .stat-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+        .table-card { background: var(--bg-card); border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden; }
+        .table-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border-light); }
+        .table-header h2 { font-size: 16px; font-weight: 600; }
+        .table-header span { color: var(--text-muted); font-size: 14px; margin-left: 8px; font-weight: 400; }
+        .btn { padding: 10px 16px; background: var(--bg-hover); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; }
+        .btn:hover { background: var(--border); }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 14px 20px; font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg-table-head); }
+        th.right { text-align: right; }
+        th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+        th.sortable:hover { background: var(--bg-hover); }
+        th.sortable .sort-icon { opacity: 0.4; margin-left: 4px; font-size: 12px; }
+        th.sortable.active .sort-icon { opacity: 1; color: var(--blue); }
+        th.center { text-align: center; }
+        td { padding: 16px 20px; font-size: 14px; border-top: 1px solid var(--border-light); }
+        td.right { text-align: right; }
+        td.center { text-align: center; }
+        tr:hover td { background: var(--bg-hover); }
+        tr.warning td { background: var(--warning-row); }
+        tr.warning:hover td { background: var(--warning-row-hover); }
+        .fahrer-name { font-weight: 600; }
+        .fahrer-tel { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .badge.fix { background: var(--badge-fix-bg); color: var(--badge-fix); }
+        .badge.f11 { background: var(--badge-f11-bg); color: var(--badge-f11); }
+        .badge.f12 { background: var(--badge-f12-bg); color: var(--badge-f12); }
+        .badge.unknown { background: var(--badge-unknown-bg); color: var(--badge-unknown); }
+        .money { font-weight: 500; }
+        .money.pos { color: var(--green); }
+        .money.neg { color: var(--red); }
+        .status { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .status.ok { background: var(--status-ok-bg); color: var(--status-ok); }
+        .status.warn { background: var(--status-warn-bg); color: var(--status-warn); }
+        .status.err { background: var(--status-err-bg); color: var(--status-err); }
+        .status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .empty { text-align: center; padding: 60px; color: var(--text-muted); }
+        .loading { text-align: center; padding: 60px; color: var(--text-muted); }
+        .loading .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Exclude Button */
+        .btn-exclude { padding: 6px 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
+        .btn-exclude:hover { background: var(--status-err-bg); border-color: var(--red); color: var(--red); }
+        .btn-print { padding: 6px 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; margin-right: 6px; }
+        .btn-print:hover { background: var(--badge-fix-bg); border-color: var(--blue); color: var(--blue); }
+        .btn-include { padding: 6px 10px; background: var(--status-ok-bg); border: 1px solid var(--green); border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--status-ok); }
+        .btn-include:hover { background: var(--green); color: white; }
+
+        /* Print Modal */
+        .print-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; display: none; }
+        .print-overlay.show { display: flex; }
+        .print-modal { background: white; color: #1e293b; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .print-content { padding: 40px; }
+        .print-header { text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e2e8f0; }
+        .print-header h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .print-header p { color: #64748b; font-size: 14px; }
+        .print-driver { margin-bottom: 24px; }
+        .print-driver h2 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+        .print-driver p { color: #64748b; font-size: 14px; }
+        .print-section { margin-bottom: 24px; }
+        .print-section h3 { font-size: 14px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+        .print-table { width: 100%; border-collapse: collapse; }
+        .print-table td { padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+        .print-table td:last-child { text-align: right; font-weight: 500; }
+        .print-table tr:last-child td { border-bottom: none; }
+        .print-table .total td { font-weight: 700; font-size: 16px; border-top: 2px solid #1e293b; border-bottom: none; padding-top: 12px; }
+        .print-payout { text-align: center; margin-top: 32px; padding: 24px; border-radius: 12px; }
+        .print-payout.positive { background: #d1fae5; }
+        .print-payout.negative { background: #fee2e2; }
+        .print-payout-label { font-size: 14px; color: #64748b; margin-bottom: 8px; }
+        .print-payout-value { font-size: 36px; font-weight: 700; }
+        .print-payout.positive .print-payout-value { color: #047857; }
+        .print-payout.negative .print-payout-value { color: #b91c1c; }
+        .print-actions { display: flex; gap: 12px; padding: 20px 40px; border-top: 1px solid #e2e8f0; background: #f8fafc; border-radius: 0 0 16px 16px; }
+        .print-actions button { flex: 1; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .print-actions .btn-cancel { background: white; border: 1px solid #e2e8f0; color: #64748b; }
+        .print-actions .btn-cancel:hover { background: #f1f5f9; }
+        .print-actions .btn-print-now { background: #3b82f6; border: none; color: white; }
+        .print-actions .btn-print-now:hover { background: #2563eb; }
+
+        /* Print styles */
+        @media print {
+            body * { visibility: hidden; }
+            .print-modal, .print-modal * { visibility: visible; }
+            .print-modal { position: absolute; left: 0; top: 0; width: 100%; max-width: none; box-shadow: none; border-radius: 0; }
+            .print-actions { display: none; }
+            .print-content { padding: 20px; }
+        }
+
+        /* Excluded drivers panel */
+        .excluded-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: none; }
+        .excluded-panel.show { display: block; }
+        .excluded-panel h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--red); }
+        .excluded-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .excluded-tag { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--status-err-bg); border-radius: 20px; font-size: 13px; color: var(--red); }
+        .excluded-tag button { background: none; border: none; cursor: pointer; color: var(--red); font-size: 14px; padding: 0; line-height: 1; }
+        .excluded-tag button:hover { color: var(--text); }
+
+        @media (max-width: 768px) {
+            .container { padding: 20px 16px; }
+            .header { flex-direction: column; gap: 16px; }
+            .filters { flex-direction: column; }
+            select, input[type="text"], .filter-btn { width: 100%; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            .table-card { overflow-x: auto; }
+            table { min-width: 900px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-left">
+                <div class="header-logo">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="50" y1="20" x2="25" y2="70" stroke="#F5B51B" stroke-width="6" stroke-linecap="round"/>
+                        <line x1="25" y1="70" x2="75" y2="70" stroke="#F5B51B" stroke-width="6" stroke-linecap="round"/>
+                        <line x1="75" y1="70" x2="50" y2="20" stroke="#F5B51B" stroke-width="6" stroke-linecap="round"/>
+                        <circle cx="50" cy="20" r="10" fill="#F5B51B"/>
+                        <circle cx="25" cy="70" r="10" fill="#F5B51B"/>
+                        <circle cx="75" cy="70" r="10" fill="#F5B51B"/>
+                    </svg>
+                </div>
+                <div class="header-text">
+                    <h1>HYDRALINK</h1>
+                    <p>Wochentliche Ubersicht aller Fahrer-Settlements</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="theme-toggle" id="themeToggle" title="Theme wechseln">
+                    <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                    </svg>
+                    <span id="themeText">Light</span>
+                </button>
+                <div class="divider"></div>
+                <button class="btn-logout" id="logoutBtn" title="Abmelden">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+                    </svg>
+                    <span>Abmelden</span>
+                </button>
+            </div>
+        </header>
+        <div class="filters">
+            <select id="weekFilter"><option value="">Laden...</option></select>
+            <input type="text" id="searchInput" placeholder="Fahrer suchen...">
+            <button class="filter-btn" id="warningFilter">⚠️ Nur Probleme</button>
+            <button class="filter-btn" id="excludedFilter">🚫 Ausgeschlossen (<span id="excludedCount">0</span>)</button>
+        </div>
+
+        <!-- Excluded drivers panel -->
+        <div class="excluded-panel" id="excludedPanel">
+            <h3>🚫 Ausgeschlossene Fahrer (werden nicht in Statistiken gezählt)</h3>
+            <div class="excluded-list" id="excludedList"></div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card"><div class="stat-label">Fahrer</div><div class="stat-value" id="statFahrer">--</div></div>
+            <div class="stat-card"><div class="stat-label">Bruttoumsatz</div><div class="stat-value blue" id="statBrutto">--</div></div>
+            <div class="stat-card highlight"><div class="stat-label">💰 Bei uns bleibt</div><div class="stat-value" id="statBleibt">--</div><div class="stat-sub" id="statBleibtSub">Mieten + Prozent</div></div>
+            <div class="stat-card"><div class="stat-label">Auszahlung (Fahrer)</div><div class="stat-value green" id="statAuszahlung">--</div></div>
+            <div class="stat-card"><div class="stat-label">Probleme</div><div class="stat-value orange" id="statProbleme">--</div></div>
+        </div>
+        <div class="table-card">
+            <div class="table-header">
+                <h2>Alle Fahrer<span id="tableCount"></span></h2>
+                <div>
+                    <button class="btn" id="exportBtn">📥 Export</button>
+                    <button class="btn" id="refreshBtn" style="margin-left:8px">🔄</button>
+                </div>
+            </div>
+            <table>
+                <thead><tr><th class="sortable" id="sortName">Fahrer <span class="sort-icon">↕</span></th><th class="right sortable" id="sortPayout">Auszahlung <span class="sort-icon">↕</span></th><th>Status</th><th>Modell</th><th class="right">Bolt</th><th class="right">Uber</th><th class="right">MyPOS</th><th class="right">Gesamt</th><th class="right">Abzug</th><th class="center">Aktion</th></tr></thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="10" class="loading"><div class="spinner"></div>Daten werden geladen...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Print Modal -->
+    <div class="print-overlay" id="printOverlay">
+        <div class="print-modal">
+            <div class="print-content" id="printContent">
+                <div class="print-header">
+                    <h1>Abrechnung</h1>
+                    <p id="printWeek"></p>
+                </div>
+                <div class="print-driver">
+                    <h2 id="printName"></h2>
+                    <p id="printPhone"></p>
+                </div>
+                <div class="print-section">
+                    <h3>Einnahmen</h3>
+                    <table class="print-table">
+                        <tr><td>Bolt Brutto</td><td id="printBolt"></td></tr>
+                        <tr><td>Uber Fahrpreis</td><td id="printUber"></td></tr>
+                        <tr><td>MyPOS Summe</td><td id="printMypos"></td></tr>
+                        <tr class="total"><td>Gesamt Brutto</td><td id="printGesamt"></td></tr>
+                    </table>
+                </div>
+                <div class="print-section">
+                    <h3>Abzüge</h3>
+                    <table class="print-table">
+                        <tr><td>Miete</td><td id="printMiete"></td></tr>
+                        <tr><td>Prozent-Abzug</td><td id="printProzent"></td></tr>
+                        <tr class="total"><td>Gesamt Abzug</td><td id="printAbzug"></td></tr>
+                    </table>
+                </div>
+                <div class="print-payout" id="printPayoutBox">
+                    <div class="print-payout-label">Auszahlung</div>
+                    <div class="print-payout-value" id="printPayout"></div>
+                </div>
+            </div>
+            <div class="print-actions">
+                <button class="btn-cancel" onclick="closePrintModal()">Abbrechen</button>
+                <button class="btn-print-now" onclick="doPrint()">🖨️ Drucken</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script>
+        // Supabase Config
+        const SUPABASE_URL = 'https://pkxcwfkfaaorwnbdmylg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBreGN3ZmtmYWFvcnduYmRteWxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3NTE1ODUsImV4cCI6MjA3OTMyNzU4NX0.xBDHKKXA9DFFwcTO18aDH_VHJr9BZyI__lv-L4Apryo';
+
+        let supabaseClient = null;
+        let SETTLEMENTS = [];
+        let WEEKS = [];
+        let week = '', search = '', warn = false, showExcluded = false, sortBy = 'name_asc';
+
+        // Excluded drivers (stored in localStorage)
+        let excludedDrivers = JSON.parse(localStorage.getItem('excludedDrivers') || '[]');
+
+        function getSupabase() {
+            if (!supabaseClient) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            }
+            return supabaseClient;
+        }
+
+        function saveExcluded() {
+            localStorage.setItem('excludedDrivers', JSON.stringify(excludedDrivers));
+            updateExcludedUI();
+        }
+
+        function excludeDriver(name) {
+            if (!excludedDrivers.includes(name)) {
+                excludedDrivers.push(name);
+                saveExcluded();
+                render();
+            }
+        }
+
+        function includeDriver(name) {
+            excludedDrivers = excludedDrivers.filter(n => n !== name);
+            saveExcluded();
+            render();
+        }
+
+        function updateExcludedUI() {
+            document.getElementById('excludedCount').textContent = excludedDrivers.length;
+            const list = document.getElementById('excludedList');
+            if (excludedDrivers.length === 0) {
+                list.innerHTML = '<span style="color: var(--text-muted)">Keine Fahrer ausgeschlossen</span>';
+            } else {
+                list.innerHTML = excludedDrivers.map(name =>
+                    `<span class="excluded-tag">${esc(name)} <button onclick="includeDriver('${esc(name.replace(/'/g, "\\'"))}')">✕</button></span>`
+                ).join('');
+            }
+        }
+
+        async function loadData() {
+            try {
+                const client = getSupabase();
+                const { data, error } = await client
+                    .from('settlements')
+                    .select('*');
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    document.getElementById('tableBody').innerHTML =
+                        '<tr><td colspan="10" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>';
+                    return;
+                }
+
+                SETTLEMENTS = data.map(s => {
+                    const clean = {};
+                    for (const [key, val] of Object.entries(s)) {
+                        if (typeof val === 'string') {
+                            clean[key] = val.replace(/[\r\n\t]/g, ' ').trim();
+                        } else {
+                            clean[key] = val;
+                        }
+                    }
+                    return clean;
+                });
+
+                WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse();
+                week = WEEKS[0] || '';
+
+                document.getElementById('weekFilter').innerHTML = WEEKS.map(w =>
+                    '<option value="'+w+'">'+w+'</option>'
+                ).join('');
+
+                render();
+            } catch (err) {
+                console.error('Load error:', err);
+                document.getElementById('tableBody').innerHTML =
+                    '<tr><td colspan="10" class="empty">Fehler beim Laden: ' + err.message + '</td></tr>';
+            }
+        }
+
+        function updateThemeUI(isDark) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            if (isDark) {
+                icon.innerHTML = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
+                text.textContent = 'Light';
+            } else {
+                icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+                text.textContent = 'Dark';
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.getAttribute('data-theme') === 'dark') {
+                html.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+                updateThemeUI(false);
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                updateThemeUI(true);
+            }
+        }
+
+        function toggleSort(col) {
+            if (col === 'name') {
+                sortBy = sortBy === 'name_asc' ? 'name_desc' : 'name_asc';
+            } else if (col === 'payout') {
+                sortBy = sortBy === 'payout_desc' ? 'payout_asc' : 'payout_desc';
+            }
+            updateSortUI();
+            render();
+        }
+
+        function updateSortUI() {
+            const nameEl = document.getElementById('sortName');
+            const payoutEl = document.getElementById('sortPayout');
+            nameEl.classList.remove('active');
+            payoutEl.classList.remove('active');
+            nameEl.querySelector('.sort-icon').textContent = '↕';
+            payoutEl.querySelector('.sort-icon').textContent = '↕';
+
+            if (sortBy === 'name_asc') {
+                nameEl.classList.add('active');
+                nameEl.querySelector('.sort-icon').textContent = '↑';
+            } else if (sortBy === 'name_desc') {
+                nameEl.classList.add('active');
+                nameEl.querySelector('.sort-icon').textContent = '↓';
+            } else if (sortBy === 'payout_desc') {
+                payoutEl.classList.add('active');
+                payoutEl.querySelector('.sort-icon').textContent = '↓';
+            } else if (sortBy === 'payout_asc') {
+                payoutEl.classList.add('active');
+                payoutEl.querySelector('.sort-icon').textContent = '↑';
+            }
+        }
+
+        function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const html = document.documentElement;
+            if (saved === 'light') {
+                html.removeAttribute('data-theme');
+                updateThemeUI(false);
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                updateThemeUI(true);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initTheme();
+            updateExcludedUI();
+            updateSortUI();
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); });
+            document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); render(); });
+            document.getElementById('sortName').addEventListener('click', function() { toggleSort('name'); });
+            document.getElementById('sortPayout').addEventListener('click', function() { toggleSort('payout'); });
+            document.getElementById('warningFilter').addEventListener('click', function() { warn = !warn; this.classList.toggle('active', warn); render(); });
+            document.getElementById('excludedFilter').addEventListener('click', function() {
+                showExcluded = !showExcluded;
+                this.classList.toggle('excluded', showExcluded);
+                document.getElementById('excludedPanel').classList.toggle('show', showExcluded);
+            });
+            document.getElementById('exportBtn').addEventListener('click', exportCSV);
+            document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); });
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                localStorage.removeItem('hydralink_session');
+                window.location.href = 'index.html';
+            });
+            loadData();
+        });
+
+        function getData() {
+            let data = SETTLEMENTS.filter(function(s) {
+                const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0;
+                const isExcluded = excludedDrivers.includes(s.fahrer_name);
+                return s.woche === week &&
+                       s.fahrer_name &&
+                       s.fahrer_name.toLowerCase().indexOf(search) >= 0 &&
+                       (!warn || isWarn) &&
+                       !isExcluded;
+            });
+
+            // Sorting
+            data.sort(function(a, b) {
+                if (sortBy === 'name_asc') return (a.fahrer_name || '').localeCompare(b.fahrer_name || '');
+                if (sortBy === 'name_desc') return (b.fahrer_name || '').localeCompare(a.fahrer_name || '');
+                if (sortBy === 'payout_desc') return (b.auszahlung || 0) - (a.auszahlung || 0);
+                if (sortBy === 'payout_asc') return (a.auszahlung || 0) - (b.auszahlung || 0);
+                return 0;
+            });
+
+            return data;
+        }
+
+        function render() {
+            const data = getData();
+            const all = SETTLEMENTS.filter(function(s) {
+                return s.woche === week && !excludedDrivers.includes(s.fahrer_name);
+            });
+            const warnCount = all.filter(function(s) { return (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; }).length;
+            const totalAbzug = data.reduce(function(a,s) { return a + (s.abzug_gesamt || 0); }, 0);
+            const totalMieten = data.reduce(function(a,s) { return a + (s.miete || 0); }, 0);
+            const totalProzent = data.reduce(function(a,s) { return a + (s.prozent_abzug || 0); }, 0);
+            const totalAuszahlung = data.reduce(function(a,s) { return a + (s.auszahlung || 0); }, 0);
+
+            document.getElementById('statFahrer').textContent = data.length;
+            document.getElementById('statBrutto').textContent = fmt(data.reduce(function(a,s) { return a + (s.bruttoumsatz_gesamt||0); }, 0));
+            document.getElementById('statBleibt').textContent = fmt(totalAbzug);
+            document.getElementById('statBleibtSub').textContent = fmt(totalMieten) + ' Mieten + ' + fmt(totalProzent) + ' %';
+            document.getElementById('statAuszahlung').textContent = fmt(totalAuszahlung);
+            document.getElementById('statProbleme').textContent = warnCount;
+            document.getElementById('tableCount').textContent = ' (' + data.length + ')';
+
+            const tbody = document.getElementById('tableBody');
+            if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">Keine Eintraege</td></tr>'; return; }
+
+            tbody.innerHTML = data.map(function(s) {
+                const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0;
+                const mc = s.mietmodell === 'fix' ? 'fix' : s.mietmodell === 'f11' ? 'f11' : s.mietmodell === 'f12' ? 'f12' : 'unknown';
+                const st = s.status && s.status.indexOf('WARNUNG') >= 0 ? '<span class="status warn">Unbekannt</span>' : s.auszahlung < 0 ? '<span class="status err">Schuldet</span>' : '<span class="status ok">OK</span>';
+                const escapedName = esc(s.fahrer_name).replace(/'/g, "\\'");
+                return '<tr class="'+(isWarn?'warning':'')+'">' +
+                    '<td><div class="fahrer-name">'+esc(s.fahrer_name)+'</div><div class="fahrer-tel">'+(s.telefon||'-')+'</div></td>' +
+                    '<td class="right"><span class="money '+(s.auszahlung>=0?'pos':'neg')+'">'+fmt(s.auszahlung)+'</span></td>' +
+                    '<td>'+st+'</td>' +
+                    '<td><span class="badge '+mc+'">'+(s.mietmodell||'-')+'</span></td>' +
+                    '<td class="right">'+fmt(s.bolt_brutto)+'</td>' +
+                    '<td class="right">'+fmt(s.uber_fahrpreis)+'</td>' +
+                    '<td class="right">'+fmt(s.mypos_summe)+'</td>' +
+                    '<td class="right">'+fmt(s.bruttoumsatz_gesamt)+'</td>' +
+                    '<td class="right">'+fmt(s.abzug_gesamt)+'</td>' +
+                    '<td class="center"><button class="btn-print" onclick="printDriver(\''+escapedName+'\')" title="Abrechnung drucken">🖨️</button><button class="btn-exclude" onclick="excludeDriver(\''+escapedName+'\')" title="Aus Berechnung ausschließen">🚫</button></td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        function fmt(v) {
+            if (v == null) return '-';
+            const n = parseFloat(v);
+            if (isNaN(n)) return '-';
+            return (n<0?'-':'') + Math.abs(n).toLocaleString('de-AT',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+        }
+
+        function esc(str) {
+            if (!str) return '';
+            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function exportCSV() {
+            const data = getData();
+            const csv = [['Fahrer','Telefon','Auszahlung','Status','Modell','Miete','Bolt','Uber','MyPOS','Gesamt','Abzug','Prozent']]
+                .concat(data.map(function(s) { return [s.fahrer_name,s.telefon||'',s.auszahlung,s.status,s.mietmodell,s.miete,s.bolt_brutto,s.uber_fahrpreis,s.mypos_summe,s.bruttoumsatz_gesamt,s.abzug_gesamt,s.prozent_abzug]; }))
+                .map(function(r) { return r.join(';'); }).join('\n');
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+            a.download = 'abrechnungen_'+week+'.csv';
+            a.click();
+        }
+
+        function printDriver(name) {
+            const driver = SETTLEMENTS.find(s => s.fahrer_name === name && s.woche === week);
+            if (!driver) return;
+
+            document.getElementById('printWeek').textContent = 'Abrechnungswoche: ' + week;
+            document.getElementById('printName').textContent = driver.fahrer_name;
+            document.getElementById('printPhone').textContent = driver.telefon ? 'Tel: ' + driver.telefon : '';
+            document.getElementById('printBolt').textContent = fmt(driver.bolt_brutto);
+            document.getElementById('printUber').textContent = fmt(driver.uber_fahrpreis);
+            document.getElementById('printMypos').textContent = fmt(driver.mypos_summe);
+            document.getElementById('printGesamt').textContent = fmt(driver.bruttoumsatz_gesamt);
+            document.getElementById('printMiete').textContent = fmt(driver.miete);
+            document.getElementById('printProzent').textContent = fmt(driver.prozent_abzug);
+            document.getElementById('printAbzug').textContent = fmt(driver.abzug_gesamt);
+            document.getElementById('printPayout').textContent = fmt(driver.auszahlung);
+
+            const payoutBox = document.getElementById('printPayoutBox');
+            payoutBox.classList.remove('positive', 'negative');
+            payoutBox.classList.add(driver.auszahlung >= 0 ? 'positive' : 'negative');
+
+            document.getElementById('printOverlay').classList.add('show');
+        }
+
+        function closePrintModal() {
+            document.getElementById('printOverlay').classList.remove('show');
+        }
+
+        function doPrint() {
+            window.print();
+        }
+
+        // Close modal on overlay click
+        document.getElementById('printOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closePrintModal();
+        });
+    </script>
+</body>
+</html>

@@ -107,86 +107,80 @@
         .btn-include { padding: 6px 10px; background: var(--status-ok-bg); border: 1px solid var(--green); border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--status-ok); }
         .btn-include:hover { background: var(--green); color: white; }
 
-        /* Print Modal - Professional Design */
-        .print-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+        /* Print Modal - Modern Card Design */
+        .print-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
         .print-overlay.show { display: flex; }
-        .print-modal { background: white; color: #1e293b; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-        .print-content { padding: 32px; }
-        .print-header { text-align: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #e2e8f0; }
-        .print-header h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; color: #0f172a; }
+        .print-modal { background: #f1f5f9; color: #1e293b; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.3); }
+        .print-content { padding: 20px; }
+        .print-header { text-align: center; margin-bottom: 16px; }
+        .print-header h1 { font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
         .print-header p { color: #64748b; font-size: 13px; font-weight: 500; }
-        .print-driver { margin-bottom: 20px; padding: 16px; background: #f8fafc; border-radius: 10px; border-left: 4px solid #3b82f6; }
-        .print-driver h2 { font-size: 18px; font-weight: 700; margin-bottom: 2px; color: #0f172a; }
+        .print-driver { margin-bottom: 16px; padding: 16px; background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .print-driver h2 { font-size: 17px; font-weight: 700; color: #0f172a; margin-bottom: 2px; }
         .print-driver p { color: #64748b; font-size: 13px; }
-        .print-section { margin-bottom: 20px; }
-        .print-section h3 { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .print-section { margin-bottom: 12px; background: white; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .print-section h3 { font-size: 12px; font-weight: 700; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
         .print-table { width: 100%; border-collapse: collapse; }
-        .print-table td { padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155; }
-        .print-table td:last-child { text-align: right; font-weight: 600; color: #0f172a; }
-        .print-table tr:last-child td { border-bottom: none; }
-        .print-table .total td { font-weight: 700; font-size: 15px; border-top: 2px solid #e2e8f0; border-bottom: none; padding-top: 10px; color: #0f172a; }
-        .print-payout { text-align: center; margin-top: 24px; padding: 20px; border-radius: 12px; }
-        .print-payout.positive { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border: 1px solid #6ee7b7; }
-        .print-payout.negative { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 1px solid #fca5a5; }
-        .print-payout-label { font-size: 12px; color: #64748b; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        .print-payout-value { font-size: 32px; font-weight: 800; }
-        .print-payout.positive .print-payout-value { color: #047857; }
-        .print-payout.negative .print-payout-value { color: #b91c1c; }
+        .print-table tr { display: flex; justify-content: space-between; align-items: center; }
+        .print-table td { padding: 10px 0; font-size: 15px; color: #475569; border: none; flex: 1; }
+        .print-table td:last-child { text-align: right; font-weight: 700; color: #0f172a; font-size: 15px; min-width: 100px; }
+        .print-table tr:not(:last-child) { border-bottom: 1px solid #f1f5f9; }
+        .print-table .total { margin-top: 8px; padding-top: 12px; border-top: 2px solid #e2e8f0; }
+        .print-table .total td { font-weight: 800; font-size: 16px; color: #0f172a; }
+        .print-payout { text-align: center; padding: 20px; border-radius: 16px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .print-payout.positive { background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); }
+        .print-payout.negative { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
+        .print-payout-label { font-size: 13px; color: #64748b; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .print-payout-value { font-size: 36px; font-weight: 800; }
+        .print-payout.positive .print-payout-value { color: #059669; }
+        .print-payout.negative .print-payout-value { color: #dc2626; }
         /* Modern Button Design */
         .print-actions {
             display: flex;
-            gap: 12px;
-            padding: 20px 24px 28px;
-            background: linear-gradient(to top, #f8fafc 0%, #ffffff 100%);
-            border-top: 1px solid #f1f5f9;
+            flex-direction: column;
+            gap: 10px;
+            padding: 16px 20px 24px;
+            background: #f1f5f9;
         }
         .print-actions button {
-            flex: 1;
-            padding: 14px 20px;
-            border-radius: 14px;
-            font-size: 15px;
+            width: 100%;
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
             border: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 10px;
         }
-        .print-actions button svg { width: 18px; height: 18px; }
-        .print-actions button:active { transform: scale(0.97); }
+        .print-actions button svg { width: 20px; height: 20px; }
+        .print-actions button:active { transform: scale(0.98); opacity: 0.9; }
 
-        /* Abbrechen - Subtle */
-        .print-actions .btn-cancel {
-            background: #f1f5f9;
-            color: #64748b;
-        }
-        .print-actions .btn-cancel:hover {
-            background: #e2e8f0;
-            color: #475569;
-        }
-
-        /* Teilen - WhatsApp Gradient */
+        /* Teilen - WhatsApp Grün - OBEN */
         .print-actions .btn-share {
-            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            order: 1;
+            background: #25D366;
             color: white;
-            box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
-        }
-        .print-actions .btn-share:hover {
-            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.45);
-            transform: translateY(-2px);
+            font-size: 17px;
+            padding: 18px;
         }
 
-        /* Drucken - Blue Gradient */
+        /* Drucken - Blau */
         .print-actions .btn-print-now {
-            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            order: 2;
+            background: #3b82f6;
             color: white;
-            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
         }
-        .print-actions .btn-print-now:hover {
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
-            transform: translateY(-2px);
+
+        /* Abbrechen - Dezent */
+        .print-actions .btn-cancel {
+            order: 3;
+            background: transparent;
+            color: #64748b;
+            padding: 12px;
         }
 
         /* Print styles - Single page output */
@@ -276,8 +270,8 @@
             .table-header { padding: 14px 16px; flex-direction: column; gap: 10px; align-items: flex-start; }
             table { min-width: 800px; }
             th, td { padding: 12px 10px; font-size: 13px; }
-            /* Print Modal Mobile - Full screen scrollable */
-            .print-overlay { padding: 0; align-items: stretch; }
+            /* Print Modal Mobile - Full screen */
+            .print-overlay { padding: 0; align-items: stretch; justify-content: stretch; }
             .print-modal {
                 max-width: 100%;
                 max-height: 100%;
@@ -292,32 +286,26 @@
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
             }
-            .print-header { margin-bottom: 16px; padding-bottom: 12px; }
+            .print-header { margin-bottom: 12px; }
             .print-header h1 { font-size: 18px; }
             .print-header p { font-size: 12px; }
-            .print-driver { padding: 12px; margin-bottom: 16px; }
+            .print-driver { padding: 14px; margin-bottom: 12px; }
             .print-driver h2 { font-size: 16px; }
             .print-driver p { font-size: 12px; }
-            .print-section { margin-bottom: 16px; }
-            .print-section h3 { font-size: 10px; margin-bottom: 8px; }
-            .print-table td { padding: 6px 0; font-size: 13px; }
-            .print-table .total td { font-size: 14px; }
-            .print-payout { margin-top: 16px; padding: 16px; }
-            .print-payout-label { font-size: 11px; }
-            .print-payout-value { font-size: 26px; }
+            .print-section { margin-bottom: 10px; padding: 14px; }
+            .print-section h3 { font-size: 11px; margin-bottom: 10px; padding-bottom: 6px; }
+            .print-table td { padding: 8px 0; font-size: 14px; }
+            .print-table td:last-child { font-size: 14px; }
+            .print-table .total td { font-size: 15px; }
+            .print-payout { padding: 16px; border-radius: 12px; }
+            .print-payout-label { font-size: 12px; }
+            .print-payout-value { font-size: 32px; }
             .print-actions {
-                flex-direction: row;
-                flex-wrap: wrap;
-                padding: 12px;
-                gap: 8px;
                 flex-shrink: 0;
-                border-top: 1px solid #e2e8f0;
-                background: white;
+                padding: 12px 16px 20px;
+                gap: 8px;
             }
-            .print-actions .btn-cancel { flex: 0 0 100%; order: 3; background: transparent; color: #64748b; padding: 10px; }
-            .print-actions .btn-share { flex: 1; order: 1; }
-            .print-actions .btn-print-now { flex: 1; order: 2; }
-            .print-actions button { padding: 14px 12px; font-size: 14px; border-radius: 10px; }
+            .print-actions button { padding: 14px; font-size: 15px; border-radius: 10px; }
         }
         @media (max-width: 400px) {
             .stats { grid-template-columns: 1fr; }

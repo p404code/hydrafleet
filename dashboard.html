@@ -336,9 +336,10 @@
             .print-driver p { font-size: 11px; }
             .print-section { margin-bottom: 8px; padding: 10px 12px; }
             .print-section h3 { font-size: 10px; margin-bottom: 6px; padding-bottom: 4px; }
-            .print-table td { padding: 5px 0; font-size: 13px; }
-            .print-table td:first-child { width: 50%; }
-            .print-table td:last-child { font-size: 13px; width: 50%; min-width: 90px; display: table-cell !important; visibility: visible !important; }
+            .print-table { table-layout: auto !important; }
+            .print-table td { padding: 5px 0; font-size: 12px; }
+            .print-table td:first-child { width: 40%; white-space: nowrap; }
+            .print-table td:last-child { font-size: 12px; width: 60%; text-align: right; display: table-cell !important; visibility: visible !important; }
             .print-table .total td { font-size: 14px; padding-top: 8px; }
             .print-payout { padding: 12px; border-radius: 10px; margin-top: 0; }
             .print-payout-label { font-size: 10px; margin-bottom: 2px; }

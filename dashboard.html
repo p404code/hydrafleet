@@ -269,42 +269,34 @@
             .table-header { padding: 14px 16px; flex-direction: column; gap: 10px; align-items: flex-start; }
             table { min-width: 800px; }
             th, td { padding: 12px 10px; font-size: 13px; }
-            /* Print Modal Mobile - Full screen */
-            .print-overlay { padding: 0; align-items: stretch; justify-content: stretch; }
+            /* Print Modal Mobile - Compact like print preview */
+            .print-overlay { padding: 0; align-items: center; justify-content: center; }
             .print-modal {
                 max-width: 100%;
-                max-height: 100%;
-                height: 100%;
+                max-height: 100vh;
+                height: auto;
                 border-radius: 0;
-                display: flex;
-                flex-direction: column;
-            }
-            .print-content {
-                padding: 16px;
-                flex: 1;
                 overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
             }
-            .print-header { margin-bottom: 12px; }
-            .print-header h1 { font-size: 18px; }
-            .print-header p { font-size: 12px; }
-            .print-driver { padding: 14px; margin-bottom: 12px; }
-            .print-driver h2 { font-size: 16px; }
-            .print-driver p { font-size: 12px; }
-            .print-section { margin-bottom: 10px; padding: 14px; }
-            .print-section h3 { font-size: 11px; margin-bottom: 10px; padding-bottom: 6px; }
-            .print-table td { padding: 8px 0; font-size: 14px; }
-            .print-table td:last-child { font-size: 14px; }
-            .print-table .total td { font-size: 15px; }
-            .print-payout { padding: 16px; border-radius: 12px; }
-            .print-payout-label { font-size: 12px; }
-            .print-payout-value { font-size: 32px; }
-            .print-actions {
-                flex-shrink: 0;
-                padding: 12px 16px 20px;
-                gap: 8px;
-            }
-            .print-actions button { padding: 14px; font-size: 15px; border-radius: 10px; }
+            .print-content { padding: 12px; }
+            .print-header { margin-bottom: 8px; }
+            .print-header h1 { font-size: 16px; margin-bottom: 2px; }
+            .print-header p { font-size: 11px; }
+            .print-driver { padding: 10px 12px; margin-bottom: 8px; }
+            .print-driver h2 { font-size: 14px; }
+            .print-driver p { font-size: 11px; }
+            .print-section { margin-bottom: 8px; padding: 10px 12px; }
+            .print-section h3 { font-size: 10px; margin-bottom: 6px; padding-bottom: 4px; }
+            .print-table td { padding: 5px 0; font-size: 13px; }
+            .print-table td:last-child { font-size: 13px; }
+            .print-table .total td { font-size: 14px; padding-top: 8px; }
+            .print-payout { padding: 12px; border-radius: 10px; margin-top: 0; }
+            .print-payout-label { font-size: 10px; margin-bottom: 2px; }
+            .print-payout-value { font-size: 28px; }
+            .print-actions { padding: 10px 12px 16px; gap: 6px; }
+            .print-actions button { padding: 12px; font-size: 14px; border-radius: 10px; }
+            .print-actions .btn-share { padding: 14px; font-size: 15px; }
+            .print-actions .btn-cancel { padding: 8px; }
         }
         @media (max-width: 400px) {
             .stats { grid-template-columns: 1fr; }

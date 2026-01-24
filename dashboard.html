@@ -120,10 +120,10 @@
         .print-driver p { color: #64748b; font-size: 13px; }
         .print-section { margin-bottom: 12px; background: white; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .print-section h3 { font-size: 12px; font-weight: 700; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
-        .print-table { width: 100%; border-collapse: collapse; }
+        .print-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         .print-table td { padding: 12px 0; font-size: 15px; color: #1e293b; vertical-align: middle; }
-        .print-table td:first-child { font-weight: 500; }
-        .print-table td:last-child { text-align: right; font-weight: 700; color: #0f172a; }
+        .print-table td:first-child { font-weight: 500; width: 55%; }
+        .print-table td:last-child { text-align: right; font-weight: 700; color: #0f172a; width: 45%; }
         .print-table tr:not(:last-child) td { border-bottom: 1px solid #e2e8f0; }
         .print-table .total td { font-weight: 800; font-size: 16px; color: #0f172a; border-top: 2px solid #cbd5e1; border-bottom: none; padding-top: 14px; }
         .print-payout { text-align: center; padding: 20px; border-radius: 16px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
@@ -337,7 +337,8 @@
             .print-section { margin-bottom: 8px; padding: 10px 12px; }
             .print-section h3 { font-size: 10px; margin-bottom: 6px; padding-bottom: 4px; }
             .print-table td { padding: 5px 0; font-size: 13px; }
-            .print-table td:last-child { font-size: 13px; }
+            .print-table td:first-child { width: 50%; }
+            .print-table td:last-child { font-size: 13px; width: 50%; min-width: 90px; }
             .print-table .total td { font-size: 14px; padding-top: 8px; }
             .print-payout { padding: 12px; border-radius: 10px; margin-top: 0; }
             .print-payout-label { font-size: 10px; margin-bottom: 2px; }

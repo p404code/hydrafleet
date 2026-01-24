@@ -276,25 +276,48 @@
             .table-header { padding: 14px 16px; flex-direction: column; gap: 10px; align-items: flex-start; }
             table { min-width: 800px; }
             th, td { padding: 12px 10px; font-size: 13px; }
-            /* Print Modal Mobile */
-            .print-modal { max-width: 100%; max-height: 100vh; border-radius: 0; height: 100vh; }
-            .print-content { padding: 20px; }
-            .print-header h1 { font-size: 20px; }
-            .print-driver h2 { font-size: 18px; }
-            .print-payout-value { font-size: 28px; }
+            /* Print Modal Mobile - Full screen scrollable */
+            .print-overlay { padding: 0; align-items: stretch; }
+            .print-modal {
+                max-width: 100%;
+                max-height: 100%;
+                height: 100%;
+                border-radius: 0;
+                display: flex;
+                flex-direction: column;
+            }
+            .print-content {
+                padding: 16px;
+                flex: 1;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .print-header { margin-bottom: 16px; padding-bottom: 12px; }
+            .print-header h1 { font-size: 18px; }
+            .print-header p { font-size: 12px; }
+            .print-driver { padding: 12px; margin-bottom: 16px; }
+            .print-driver h2 { font-size: 16px; }
+            .print-driver p { font-size: 12px; }
+            .print-section { margin-bottom: 16px; }
+            .print-section h3 { font-size: 10px; margin-bottom: 8px; }
+            .print-table td { padding: 6px 0; font-size: 13px; }
+            .print-table .total td { font-size: 14px; }
+            .print-payout { margin-top: 16px; padding: 16px; }
+            .print-payout-label { font-size: 11px; }
+            .print-payout-value { font-size: 26px; }
             .print-actions {
                 flex-direction: row;
                 flex-wrap: wrap;
-                padding: 16px;
-                gap: 10px;
-                position: sticky;
-                bottom: 0;
-                background: linear-gradient(to top, #ffffff 0%, #ffffff 80%, rgba(255,255,255,0.95) 100%);
+                padding: 12px;
+                gap: 8px;
+                flex-shrink: 0;
+                border-top: 1px solid #e2e8f0;
+                background: white;
             }
-            .print-actions .btn-cancel { flex: 0 0 100%; order: 3; background: transparent; color: #64748b; }
+            .print-actions .btn-cancel { flex: 0 0 100%; order: 3; background: transparent; color: #64748b; padding: 10px; }
             .print-actions .btn-share { flex: 1; order: 1; }
             .print-actions .btn-print-now { flex: 1; order: 2; }
-            .print-actions button { padding: 16px; font-size: 15px; border-radius: 12px; }
+            .print-actions button { padding: 14px 12px; font-size: 14px; border-radius: 10px; }
         }
         @media (max-width: 400px) {
             .stats { grid-template-columns: 1fr; }

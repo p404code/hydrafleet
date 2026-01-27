@@ -439,12 +439,21 @@
                     <p id="printPhone"></p>
                 </div>
                 <div class="print-section">
-                    <h3>Einnahmen</h3>
+                    <h3>Einnahmen (Brutto)</h3>
                     <table class="print-table">
-                        <tr><td>Bolt Brutto</td><td id="printBolt"></td></tr>
-                        <tr><td>Uber Fahrpreis</td><td id="printUber"></td></tr>
+                        <tr><td>Bolt Brutto</td><td id="printBoltBrutto"></td></tr>
+                        <tr><td>Uber Fahrpreis</td><td id="printUberBrutto"></td></tr>
                         <tr><td>MyPOS Summe</td><td id="printMypos"></td></tr>
-                        <tr class="total"><td>Gesamt Brutto</td><td id="printGesamt"></td></tr>
+                        <tr class="total"><td>Brutto Gesamt</td><td id="printBruttoGesamt"></td></tr>
+                    </table>
+                </div>
+                <div class="print-section">
+                    <h3>Wir bekommen (Netto)</h3>
+                    <table class="print-table">
+                        <tr><td>Bolt Auszahlung</td><td id="printBoltNetto"></td></tr>
+                        <tr><td>Uber Auszahlung</td><td id="printUberNetto"></td></tr>
+                        <tr><td>MyPOS</td><td id="printMyposNetto"></td></tr>
+                        <tr class="total"><td>Wir bekommen</td><td id="printWirBekommen"></td></tr>
                     </table>
                 </div>
                 <div class="print-section">
@@ -452,7 +461,7 @@
                     <table class="print-table">
                         <tr><td>Miete</td><td id="printMiete"></td></tr>
                         <tr><td>Prozent-Abzug</td><td id="printProzent"></td></tr>
-                        <tr class="total"><td>Gesamt Abzug</td><td id="printAbzug"></td></tr>
+                        <tr class="total"><td>Abzug Gesamt</td><td id="printAbzug"></td></tr>
                     </table>
                 </div>
                 <div class="print-payout" id="printPayoutBox">
@@ -761,13 +770,25 @@
             document.getElementById('printWeek').textContent = 'Abrechnungswoche: ' + week;
             document.getElementById('printName').textContent = driver.fahrer_name;
             document.getElementById('printPhone').textContent = driver.telefon ? 'Tel: ' + driver.telefon : '';
-            document.getElementById('printBolt').textContent = fmt(driver.bolt_brutto);
-            document.getElementById('printUber').textContent = fmt(driver.uber_fahrpreis);
+
+            // Einnahmen (Brutto)
+            document.getElementById('printBoltBrutto').textContent = fmt(driver.bolt_brutto);
+            document.getElementById('printUberBrutto').textContent = fmt(driver.uber_fahrpreis);
             document.getElementById('printMypos').textContent = fmt(driver.mypos_summe);
-            document.getElementById('printGesamt').textContent = fmt(driver.bruttoumsatz_gesamt);
+            document.getElementById('printBruttoGesamt').textContent = fmt(driver.bruttoumsatz_gesamt);
+
+            // Wir bekommen (Netto)
+            document.getElementById('printBoltNetto').textContent = fmt(driver.bolt_auszahlung);
+            document.getElementById('printUberNetto').textContent = fmt(driver.uber_auszahlung);
+            document.getElementById('printMyposNetto').textContent = fmt(driver.mypos_summe);
+            document.getElementById('printWirBekommen').textContent = fmt(driver.wir_bekommen);
+
+            // Abzüge
             document.getElementById('printMiete').textContent = fmt(driver.miete);
             document.getElementById('printProzent').textContent = fmt(driver.prozent_abzug);
             document.getElementById('printAbzug').textContent = fmt(driver.abzug_gesamt);
+
+            // Auszahlung
             document.getElementById('printPayout').textContent = fmt(driver.auszahlung);
 
             const payoutBox = document.getElementById('printPayoutBox');

@@ -200,9 +200,18 @@
                 background: white !important;
                 font-size: 12pt !important;
             }
-            body > *:not(.print-overlay) {
+            body > *:not(.print-overlay):not(#printAllContainer) {
                 display: none !important;
             }
+            #printAllContainer { display: block !important; }
+            #printAllContainer .print-page { page-break-after: always; }
+            #printAllContainer .print-page:last-child { page-break-after: auto; }
+            #printAllContainer .print-content { padding: 0 !important; }
+            #printAllContainer .print-section { margin-bottom: 10px !important; padding: 10px !important; background: #f8fafc !important; box-shadow: none !important; border-radius: 4px !important; border: 1px solid #e2e8f0 !important; }
+            #printAllContainer .print-driver { padding: 10px 0 !important; background: none !important; box-shadow: none !important; border-bottom: 1px solid #e2e8f0 !important; border-radius: 0 !important; }
+            #printAllContainer .print-payout { margin-top: 12px !important; padding: 12px !important; border-radius: 4px !important; }
+            #printAllContainer .print-payout.positive { background: #ecfdf5 !important; border: 2px solid #10b981 !important; }
+            #printAllContainer .print-payout.negative { background: #fef2f2 !important; border: 2px solid #ef4444 !important; }
             .print-overlay {
                 display: block !important;
                 position: static !important;
@@ -413,6 +422,7 @@
             <div class="table-header">
                 <h2>Alle Fahrer<span id="tableCount"></span></h2>
                 <div>
+                    <button class="btn" id="printAllBtn" style="margin-left:8px">🖨️ Alle drucken</button>
                     <button class="btn" id="exportBtn">📥 Export</button>
                     <button class="btn" id="refreshBtn" style="margin-left:8px">🔄</button>
                 </div>
@@ -485,6 +495,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Print All Container -->
+    <div id="printAllContainer" style="display:none;"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -666,6 +679,7 @@
                 this.classList.toggle('excluded', showExcluded);
                 document.getElementById('excludedPanel').classList.toggle('show', showExcluded);
             });
+            document.getElementById('printAllBtn').addEventListener('click', printAllDrivers);
             document.getElementById('exportBtn').addEventListener('click', exportCSV);
             document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); });
             document.getElementById('logoutBtn').addEventListener('click', function() {
@@ -800,6 +814,52 @@
 
         function closePrintModal() {
             document.getElementById('printOverlay').classList.remove('show');
+        }
+
+        function printAllDrivers() {
+            const drivers = SETTLEMENTS.filter(function(s) {
+                return s.woche === week && s.auszahlung > 0 && !excludedDrivers.includes(s.fahrer_name);
+            }).sort(function(a, b) { return (a.fahrer_name || '').localeCompare(b.fahrer_name || ''); });
+
+            if (!drivers.length) { alert('Keine Fahrer mit Auszahlung'); return; }
+
+            var container = document.getElementById('printAllContainer');
+            container.innerHTML = drivers.map(function(d, i) {
+                var payoutClass = d.auszahlung >= 0 ? 'positive' : 'negative';
+                return '<div class="print-page">' +
+                    '<div class="print-content">' +
+                        '<div class="print-header"><h1>Abrechnung</h1><p>Abrechnungswoche: ' + esc(week) + '</p></div>' +
+                        '<div class="print-driver"><h2>' + esc(d.fahrer_name) + '</h2><p>' + (d.telefon ? 'Tel: ' + esc(d.telefon) : '') + '</p></div>' +
+                        '<div class="print-section"><h3>Einnahmen (Brutto)</h3><table class="print-table">' +
+                            '<tr><td>Bolt Brutto</td><td>' + fmt(d.bolt_brutto) + '</td></tr>' +
+                            '<tr><td>Uber Fahrpreis</td><td>' + fmt(d.uber_fahrpreis) + '</td></tr>' +
+                            '<tr><td>MyPOS Summe</td><td>' + fmt(d.mypos_summe) + '</td></tr>' +
+                            '<tr class="total"><td>Brutto Gesamt</td><td>' + fmt(d.bruttoumsatz_gesamt) + '</td></tr>' +
+                        '</table></div>' +
+                        '<div class="print-section"><h3>Wir bekommen (Netto)</h3><table class="print-table">' +
+                            '<tr><td>Bolt Auszahlung</td><td>' + fmt(d.bolt_auszahlung) + '</td></tr>' +
+                            '<tr><td>Uber Auszahlung</td><td>' + fmt(d.uber_auszahlung) + '</td></tr>' +
+                            '<tr><td>MyPOS</td><td>' + fmt(d.mypos_summe) + '</td></tr>' +
+                            '<tr class="total"><td>Wir bekommen</td><td>' + fmt(d.wir_bekommen) + '</td></tr>' +
+                        '</table></div>' +
+                        '<div class="print-section"><h3>Abzüge</h3><table class="print-table">' +
+                            '<tr><td>Miete</td><td>' + fmt(d.miete) + '</td></tr>' +
+                            '<tr><td>Prozent-Abzug</td><td>' + fmt(d.prozent_abzug) + '</td></tr>' +
+                            '<tr class="total"><td>Abzug Gesamt</td><td>' + fmt(d.abzug_gesamt) + '</td></tr>' +
+                        '</table></div>' +
+                        '<div class="print-payout ' + payoutClass + '">' +
+                            '<div class="print-payout-label">Auszahlung</div>' +
+                            '<div class="print-payout-value">' + fmt(d.auszahlung) + '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+
+            // Hide single print overlay if open
+            document.getElementById('printOverlay').classList.remove('show');
+            container.style.display = 'block';
+            window.print();
+            container.style.display = 'none';
         }
 
         function doPrint() {

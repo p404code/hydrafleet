@@ -30,14 +30,21 @@
         .form-group input { width: 100%; padding: 14px 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 12px; font-size: 15px; color: var(--text); outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
         .form-group input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
         .form-group input::placeholder { color: var(--text-muted); }
-        .btn-login { width: 100%; padding: 14px 24px; background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; border-radius: 12px; font-size: 16px; font-weight: 600; color: white; cursor: pointer; transition: transform 0.1s, box-shadow 0.2s; }
+        .pin-container { display: flex; gap: 12px; justify-content: center; }
+        .pin-input { width: 56px; height: 64px; text-align: center; font-size: 24px; font-weight: 700; background: var(--bg); border: 2px solid var(--border); border-radius: 12px; color: var(--text); outline: none; transition: border-color 0.2s, box-shadow 0.2s; -moz-appearance: textfield; }
+        .pin-input::-webkit-outer-spin-button, .pin-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .pin-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+        .pin-input.filled { border-color: var(--green); }
+        .btn-login { width: 100%; padding: 14px 24px; background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; border-radius: 12px; font-size: 16px; font-weight: 600; color: white; cursor: pointer; transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s; }
         .btn-login:hover { box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
         .btn-login:active { transform: scale(0.98); }
-        .error-message { color: var(--red); font-size: 14px; text-align: center; margin-bottom: 16px; min-height: 20px; }
+        .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+        .error-message { color: var(--red); font-size: 14px; text-align: center; margin-bottom: 16px; min-height: 20px; transition: opacity 0.2s; }
         .theme-toggle { position: fixed; top: 20px; right: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 18px; cursor: pointer; }
         .theme-toggle:hover { background: var(--bg-hover); }
         @media (max-width: 480px) {
             .login-card { padding: 28px 24px; }
+            .pin-input { width: 48px; height: 56px; font-size: 20px; }
         }
     </style>
 </head>
@@ -49,7 +56,6 @@
             <div class="logo">
                 <div class="logo-icon">
                     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Hydralink triangle network logo -->
                         <line x1="50" y1="20" x2="25" y2="70" stroke="#F5B51B" stroke-width="6" stroke-linecap="round"/>
                         <line x1="25" y1="70" x2="75" y2="70" stroke="#F5B51B" stroke-width="6" stroke-linecap="round"/>
                         <line x1="75" y1="70" x2="50" y2="20" stroke="#F5B51B" stroke-width="6" stroke-linecap="round"/>
@@ -65,26 +71,55 @@
             <form id="loginForm">
                 <div class="form-group">
                     <label for="username">Benutzer</label>
-                    <input type="text" id="username" placeholder="Benutzername" required>
+                    <input type="text" id="username" placeholder="Benutzername" autocomplete="username" required>
                 </div>
                 <div class="form-group">
-                    <label for="password">Passwort</label>
-                    <input type="password" id="password" placeholder="••••••••" required>
+                    <label>PIN</label>
+                    <div class="pin-container">
+                        <input type="number" class="pin-input" maxlength="1" inputmode="numeric" data-pin="0">
+                        <input type="number" class="pin-input" maxlength="1" inputmode="numeric" data-pin="1">
+                        <input type="number" class="pin-input" maxlength="1" inputmode="numeric" data-pin="2">
+                        <input type="number" class="pin-input" maxlength="1" inputmode="numeric" data-pin="3">
+                    </div>
                 </div>
                 <div class="error-message" id="errorMessage"></div>
-                <button type="submit" class="btn-login">Anmelden</button>
+                <button type="submit" class="btn-login" id="loginBtn">Anmelden</button>
             </form>
-
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script>
-        // User credentials
-        const USERS = [
-            { username: 'Boyko', password: '1607', name: 'Boyko' },
-            { username: 'Bislan', password: '1607', name: 'Bislan' },
-            { username: 'Musa', password: '1607', name: 'Musa' }
-        ];
+        const SUPABASE_URL = 'https://pkxcwfkfaaorwnbdmylg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBreGN3ZmtmYWFvcnduYmRteWxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3NTE1ODUsImV4cCI6MjA3OTMyNzU4NX0.xBDHKKXA9DFFwcTO18aDH_VHJr9BZyI__lv-L4Apryo';
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const pinInputs = document.querySelectorAll('.pin-input');
+
+        pinInputs.forEach((input, idx) => {
+            input.addEventListener('input', function(e) {
+                this.value = this.value.slice(-1);
+                if (this.value) {
+                    this.classList.add('filled');
+                    if (idx < 3) pinInputs[idx + 1].focus();
+                } else {
+                    this.classList.remove('filled');
+                }
+            });
+
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && !this.value && idx > 0) {
+                    pinInputs[idx - 1].focus();
+                    pinInputs[idx - 1].value = '';
+                    pinInputs[idx - 1].classList.remove('filled');
+                }
+                if (e.key === 'Enter') {
+                    document.getElementById('loginForm').requestSubmit();
+                }
+            });
+
+            input.addEventListener('focus', function() { this.select(); });
+        });
 
         function toggleTheme() {
             const html = document.documentElement;
@@ -128,31 +163,55 @@
         document.addEventListener('DOMContentLoaded', function() {
             initTheme();
             checkSession();
-
             document.getElementById('themeToggle').addEventListener('click', toggleTheme);
 
-            document.getElementById('loginForm').addEventListener('submit', function(e) {
+            document.getElementById('loginForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
 
-                const username = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
+                const username = document.getElementById('username').value.trim();
+                const pin = Array.from(pinInputs).map(i => i.value).join('');
                 const errorEl = document.getElementById('errorMessage');
+                const loginBtn = document.getElementById('loginBtn');
 
                 errorEl.textContent = '';
 
-                const user = USERS.find(u =>
-                    u.username.toLowerCase() === username.toLowerCase() && u.password === password
-                );
+                if (pin.length !== 4) {
+                    errorEl.textContent = 'Bitte 4-stelligen PIN eingeben';
+                    return;
+                }
 
-                if (user) {
-                    localStorage.setItem('hydralink_session', JSON.stringify({
-                        username: user.username,
-                        name: user.name,
-                        timestamp: Date.now()
-                    }));
-                    window.location.href = 'dashboard.html';
-                } else {
-                    errorEl.textContent = 'Ungültiger Benutzer oder Passwort';
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Prüfe...';
+
+                try {
+                    const { data, error } = await sb
+                        .from('app_users')
+                        .select('name, role')
+                        .ilike('name', username)
+                        .eq('pin', pin)
+                        .maybeSingle();
+
+                    if (error) throw error;
+
+                    if (data) {
+                        localStorage.setItem('hydralink_session', JSON.stringify({
+                            username: data.name,
+                            name: data.name,
+                            role: data.role,
+                            timestamp: Date.now()
+                        }));
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        errorEl.textContent = 'Ungültiger Benutzer oder PIN';
+                        pinInputs.forEach(i => { i.value = ''; i.classList.remove('filled'); });
+                        pinInputs[0].focus();
+                    }
+                } catch (err) {
+                    console.error('Login error:', err);
+                    errorEl.textContent = 'Verbindungsfehler. Bitte erneut versuchen.';
+                } finally {
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Anmelden';
                 }
             });
         });

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hydralink-v2';
+const CACHE_NAME = 'hydralink-v3';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
@@ -7,13 +7,15 @@ const PRECACHE_URLS = [
   '/icon-192x192.png',
   '/icon-512x512.png',
   '/apple-touch-icon.png',
+  '/favicon-32x32.png',
+  '/favicon-16x16.png',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
 ];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(PRECACHE_URLS))
+      .then(cache => cache.addAll(PRECACHE_URLS).catch(() => {}))
       .then(() => self.skipWaiting())
   );
 });
@@ -28,6 +30,7 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.url.includes('supabase.co')) return;
+  if (e.request.method !== 'GET') return;
   e.respondWith(
     fetch(e.request)
       .then(response => {

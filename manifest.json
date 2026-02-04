@@ -9,6 +9,7 @@
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "id": "/",
+  "categories": ["business", "finance"],
   "icons": [
     {
       "src": "/icon.svg",
@@ -31,6 +32,18 @@
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     }

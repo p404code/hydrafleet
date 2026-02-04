@@ -2,9 +2,23 @@
 <html lang="de" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Hydralink - Abrechnungen</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Hydralink">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Hydralink">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -24,7 +38,7 @@
             --status-ok-bg: #134e3a; --status-ok: #34d399; --status-warn-bg: #4a3728; --status-warn: #fbbf24;
             --status-err-bg: #4a2828; --status-err: #f87171; --warning-row: #3b2828; --warning-row-hover: #4a3333;
         }
-        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
         .container { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
         .header-left { display: flex; align-items: center; gap: 16px; }
@@ -98,16 +112,12 @@
         .loading { text-align: center; padding: 60px; color: var(--text-muted); }
         .loading .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Exclude Button */
         .btn-exclude { padding: 6px 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
         .btn-exclude:hover { background: var(--status-err-bg); border-color: var(--red); color: var(--red); }
         .btn-print { padding: 6px 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; margin-right: 6px; }
         .btn-print:hover { background: var(--badge-fix-bg); border-color: var(--blue); color: var(--blue); }
         .btn-include { padding: 6px 10px; background: var(--status-ok-bg); border: 1px solid var(--green); border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--status-ok); }
         .btn-include:hover { background: var(--green); color: white; }
-
-        /* Print Modal - Modern Card Design */
         .print-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
         .print-overlay.show { display: flex; }
         .print-modal { background: #f1f5f9; color: #1e293b; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.3); }
@@ -133,76 +143,18 @@
         .print-payout-value { font-size: 36px; font-weight: 800; }
         .print-payout.positive .print-payout-value { color: #059669; }
         .print-payout.negative .print-payout-value { color: #dc2626; }
-        /* Modern Button Design */
-        .print-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 16px 20px 24px;
-            background: #f1f5f9;
-        }
-        .print-actions button {
-            width: 100%;
-            padding: 16px 20px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
+        .print-actions { display: flex; flex-direction: column; gap: 10px; padding: 16px 20px 24px; background: #f1f5f9; }
+        .print-actions button { width: 100%; padding: 16px 20px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; border: none; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .print-actions button svg { width: 20px; height: 20px; }
         .print-actions button:active { transform: scale(0.98); opacity: 0.9; }
-
-        /* Teilen - WhatsApp Grün - OBEN */
-        .print-actions .btn-share {
-            order: 1;
-            background: #25D366;
-            color: white;
-            font-size: 17px;
-            padding: 18px;
-        }
-
-        /* Drucken - Blau */
-        .print-actions .btn-print-now {
-            order: 2;
-            background: #3b82f6;
-            color: white;
-        }
-
-        /* Abbrechen - Dezent */
-        .print-actions .btn-cancel {
-            order: 3;
-            background: transparent;
-            color: #64748b;
-            padding: 12px;
-        }
-
-        /* Print styles - Single page A4 output */
+        .print-actions .btn-share { order: 1; background: #25D366; color: white; font-size: 17px; padding: 18px; }
+        .print-actions .btn-print-now { order: 2; background: #3b82f6; color: white; }
+        .print-actions .btn-cancel { order: 3; background: transparent; color: #64748b; padding: 12px; }
         @media print {
-            @page {
-                size: A4 portrait;
-                margin: 15mm;
-            }
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            html, body {
-                margin: 0 !important;
-                padding: 0 !important;
-                width: 100% !important;
-                height: auto !important;
-                background: white !important;
-                font-size: 12pt !important;
-            }
-            body > *:not(.print-overlay):not(#printAllContainer) {
-                display: none !important;
-            }
+            @page { size: A4 portrait; margin: 15mm; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; height: auto !important; background: white !important; font-size: 12pt !important; }
+            body > *:not(.print-overlay):not(#printAllContainer) { display: none !important; }
             #printAllContainer { display: block !important; }
             #printAllContainer .print-page { page-break-after: always; }
             #printAllContainer .print-page:last-child { page-break-after: auto; }
@@ -212,92 +164,26 @@
             #printAllContainer .print-payout { margin-top: 12px !important; padding: 12px !important; border-radius: 4px !important; }
             #printAllContainer .print-payout.positive { background: #ecfdf5 !important; border: 2px solid #10b981 !important; }
             #printAllContainer .print-payout.negative { background: #fef2f2 !important; border: 2px solid #ef4444 !important; }
-            .print-overlay {
-                display: block !important;
-                position: static !important;
-                background: white !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            .print-modal {
-                position: static !important;
-                width: 100% !important;
-                max-width: none !important;
-                max-height: none !important;
-                height: auto !important;
-                box-shadow: none !important;
-                border-radius: 0 !important;
-                margin: 0 !important;
-                overflow: visible !important;
-                background: white !important;
-            }
-            .print-content {
-                padding: 0 !important;
-                page-break-inside: avoid !important;
-            }
-            .print-actions {
-                display: none !important;
-            }
-            .print-header {
-                margin-bottom: 10px !important;
-                padding-bottom: 8px !important;
-                border-bottom: 2px solid #1e293b !important;
-            }
+            .print-overlay { display: block !important; position: static !important; background: white !important; padding: 0 !important; margin: 0 !important; }
+            .print-modal { position: static !important; width: 100% !important; max-width: none !important; max-height: none !important; height: auto !important; box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; overflow: visible !important; background: white !important; }
+            .print-content { padding: 0 !important; page-break-inside: avoid !important; }
+            .print-actions { display: none !important; }
+            .print-header { margin-bottom: 10px !important; padding-bottom: 8px !important; border-bottom: 2px solid #1e293b !important; }
             .print-header h1 { font-size: 22pt !important; color: #1e293b !important; }
             .print-header p { font-size: 11pt !important; color: #64748b !important; }
-            .print-driver {
-                padding: 10px 0 !important;
-                margin-bottom: 10px !important;
-                background: none !important;
-                box-shadow: none !important;
-                border-bottom: 1px solid #e2e8f0 !important;
-                border-radius: 0 !important;
-            }
+            .print-driver { padding: 10px 0 !important; margin-bottom: 10px !important; background: none !important; box-shadow: none !important; border-bottom: 1px solid #e2e8f0 !important; border-radius: 0 !important; }
             .print-driver h2 { font-size: 14pt !important; }
             .print-driver p { font-size: 10pt !important; }
-            .print-section {
-                margin-bottom: 10px !important;
-                padding: 10px !important;
-                background: #f8fafc !important;
-                box-shadow: none !important;
-                border-radius: 4px !important;
-                border: 1px solid #e2e8f0 !important;
-                page-break-inside: avoid !important;
-            }
-            .print-section h3 {
-                margin-bottom: 6px !important;
-                font-size: 10pt !important;
-                padding-bottom: 4px !important;
-                border-bottom: 1px solid #cbd5e1 !important;
-            }
-            .print-table td {
-                padding: 4px 0 !important;
-                font-size: 11pt !important;
-            }
-            .print-table .total td {
-                font-size: 12pt !important;
-                padding-top: 8px !important;
-                border-top: 1px solid #94a3b8 !important;
-            }
-            .print-payout {
-                margin-top: 12px !important;
-                padding: 12px !important;
-                border-radius: 4px !important;
-                page-break-inside: avoid !important;
-            }
-            .print-payout.positive {
-                background: #ecfdf5 !important;
-                border: 2px solid #10b981 !important;
-            }
-            .print-payout.negative {
-                background: #fef2f2 !important;
-                border: 2px solid #ef4444 !important;
-            }
+            .print-section { margin-bottom: 10px !important; padding: 10px !important; background: #f8fafc !important; box-shadow: none !important; border-radius: 4px !important; border: 1px solid #e2e8f0 !important; page-break-inside: avoid !important; }
+            .print-section h3 { margin-bottom: 6px !important; font-size: 10pt !important; padding-bottom: 4px !important; border-bottom: 1px solid #cbd5e1 !important; }
+            .print-table td { padding: 4px 0 !important; font-size: 11pt !important; }
+            .print-table .total td { font-size: 12pt !important; padding-top: 8px !important; border-top: 1px solid #94a3b8 !important; }
+            .print-payout { margin-top: 12px !important; padding: 12px !important; border-radius: 4px !important; page-break-inside: avoid !important; }
+            .print-payout.positive { background: #ecfdf5 !important; border: 2px solid #10b981 !important; }
+            .print-payout.negative { background: #fef2f2 !important; border: 2px solid #ef4444 !important; }
             .print-payout-label { font-size: 10pt !important; }
             .print-payout-value { font-size: 24pt !important; }
         }
-
-        /* Excluded drivers panel */
         .excluded-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: none; }
         .excluded-panel.show { display: block; }
         .excluded-panel h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--red); }
@@ -305,7 +191,6 @@
         .excluded-tag { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--status-err-bg); border-radius: 20px; font-size: 13px; color: var(--red); }
         .excluded-tag button { background: none; border: none; cursor: pointer; color: var(--red); font-size: 14px; padding: 0; line-height: 1; }
         .excluded-tag button:hover { color: var(--text); }
-
         @media (max-width: 768px) {
             .container { padding: 16px 12px; }
             .header { flex-direction: column; gap: 12px; align-items: flex-start; }
@@ -327,15 +212,8 @@
             .table-header { padding: 14px 16px; flex-direction: column; gap: 10px; align-items: flex-start; }
             table { min-width: 800px; }
             th, td { padding: 12px 10px; font-size: 13px; }
-            /* Print Modal Mobile - Compact like print preview */
             .print-overlay { padding: 0; align-items: center; justify-content: center; }
-            .print-modal {
-                max-width: 100%;
-                max-height: 100vh;
-                height: auto;
-                border-radius: 0;
-                overflow-y: auto;
-            }
+            .print-modal { max-width: 100%; max-height: 100vh; height: auto; border-radius: 0; overflow-y: auto; }
             .print-content { padding: 12px; }
             .print-header { margin-bottom: 8px; }
             .print-header h1 { font-size: 16px; margin-bottom: 2px; }
@@ -404,13 +282,10 @@
             <button class="filter-btn" id="warningFilter">⚠️ Nur Probleme</button>
             <button class="filter-btn" id="excludedFilter">🚫 Ausgeschlossen (<span id="excludedCount">0</span>)</button>
         </div>
-
-        <!-- Excluded drivers panel -->
         <div class="excluded-panel" id="excludedPanel">
             <h3>🚫 Ausgeschlossene Fahrer (werden nicht in Statistiken gezählt)</h3>
             <div class="excluded-list" id="excludedList"></div>
         </div>
-
         <div class="stats">
             <div class="stat-card"><div class="stat-label">Fahrer</div><div class="stat-value" id="statFahrer">--</div></div>
             <div class="stat-card"><div class="stat-label">Bruttoumsatz</div><div class="stat-value blue" id="statBrutto">--</div></div>
@@ -435,8 +310,6 @@
             </table>
         </div>
     </div>
-
-    <!-- Print Modal -->
     <div class="print-overlay" id="printOverlay">
         <div class="print-modal">
             <div class="print-content" id="printContent">
@@ -495,421 +368,41 @@
             </div>
         </div>
     </div>
-
-    <!-- Print All Container -->
     <div id="printAllContainer" style="display:none;"></div>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script>
-        // Supabase Config
         const SUPABASE_URL = 'https://pkxcwfkfaaorwnbdmylg.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBreGN3ZmtmYWFvcnduYmRteWxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3NTE1ODUsImV4cCI6MjA3OTMyNzU4NX0.xBDHKKXA9DFFwcTO18aDH_VHJr9BZyI__lv-L4Apryo';
-
         let supabaseClient = null;
         let SETTLEMENTS = [];
         let WEEKS = [];
         let week = '', search = '', warn = false, showExcluded = false, sortBy = 'name_asc';
-
-        // Excluded drivers (stored in localStorage)
         let excludedDrivers = JSON.parse(localStorage.getItem('excludedDrivers') || '[]');
-
-        function getSupabase() {
-            if (!supabaseClient) {
-                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            }
-            return supabaseClient;
-        }
-
-        function saveExcluded() {
-            localStorage.setItem('excludedDrivers', JSON.stringify(excludedDrivers));
-            updateExcludedUI();
-        }
-
-        function excludeDriver(name) {
-            if (!excludedDrivers.includes(name)) {
-                excludedDrivers.push(name);
-                saveExcluded();
-                render();
-            }
-        }
-
-        function includeDriver(name) {
-            excludedDrivers = excludedDrivers.filter(n => n !== name);
-            saveExcluded();
-            render();
-        }
-
-        function updateExcludedUI() {
-            document.getElementById('excludedCount').textContent = excludedDrivers.length;
-            const list = document.getElementById('excludedList');
-            if (excludedDrivers.length === 0) {
-                list.innerHTML = '<span style="color: var(--text-muted)">Keine Fahrer ausgeschlossen</span>';
-            } else {
-                list.innerHTML = excludedDrivers.map(name =>
-                    `<span class="excluded-tag">${esc(name)} <button onclick="includeDriver('${esc(name.replace(/'/g, "\\'"))}')">✕</button></span>`
-                ).join('');
-            }
-        }
-
-        async function loadData() {
-            try {
-                const client = getSupabase();
-                const { data, error } = await client
-                    .from('settlements')
-                    .select('*');
-
-                if (error) throw error;
-
-                if (!data || data.length === 0) {
-                    document.getElementById('tableBody').innerHTML =
-                        '<tr><td colspan="10" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>';
-                    return;
-                }
-
-                SETTLEMENTS = data.map(s => {
-                    const clean = {};
-                    for (const [key, val] of Object.entries(s)) {
-                        if (typeof val === 'string') {
-                            clean[key] = val.replace(/[\r\n\t]/g, ' ').trim();
-                        } else {
-                            clean[key] = val;
-                        }
-                    }
-                    return clean;
-                });
-
-                WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse();
-                week = WEEKS[0] || '';
-
-                document.getElementById('weekFilter').innerHTML = WEEKS.map(w =>
-                    '<option value="'+w+'">'+w+'</option>'
-                ).join('');
-
-                render();
-            } catch (err) {
-                console.error('Load error:', err);
-                document.getElementById('tableBody').innerHTML =
-                    '<tr><td colspan="10" class="empty">Fehler beim Laden: ' + err.message + '</td></tr>';
-            }
-        }
-
-        function updateThemeUI(isDark) {
-            const icon = document.getElementById('themeIcon');
-            const text = document.getElementById('themeText');
-            if (isDark) {
-                icon.innerHTML = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
-                text.textContent = 'Light';
-            } else {
-                icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-                text.textContent = 'Dark';
-            }
-        }
-
-        function toggleTheme() {
-            const html = document.documentElement;
-            if (html.getAttribute('data-theme') === 'dark') {
-                html.removeAttribute('data-theme');
-                localStorage.setItem('theme', 'light');
-                updateThemeUI(false);
-            } else {
-                html.setAttribute('data-theme', 'dark');
-                localStorage.setItem('theme', 'dark');
-                updateThemeUI(true);
-            }
-        }
-
-        function toggleSort(col) {
-            if (col === 'name') {
-                sortBy = sortBy === 'name_asc' ? 'name_desc' : 'name_asc';
-            } else if (col === 'payout') {
-                sortBy = sortBy === 'payout_desc' ? 'payout_asc' : 'payout_desc';
-            }
-            updateSortUI();
-            render();
-        }
-
-        function updateSortUI() {
-            const nameEl = document.getElementById('sortName');
-            const payoutEl = document.getElementById('sortPayout');
-            nameEl.classList.remove('active');
-            payoutEl.classList.remove('active');
-            nameEl.querySelector('.sort-icon').textContent = '↕';
-            payoutEl.querySelector('.sort-icon').textContent = '↕';
-
-            if (sortBy === 'name_asc') {
-                nameEl.classList.add('active');
-                nameEl.querySelector('.sort-icon').textContent = '↑';
-            } else if (sortBy === 'name_desc') {
-                nameEl.classList.add('active');
-                nameEl.querySelector('.sort-icon').textContent = '↓';
-            } else if (sortBy === 'payout_desc') {
-                payoutEl.classList.add('active');
-                payoutEl.querySelector('.sort-icon').textContent = '↓';
-            } else if (sortBy === 'payout_asc') {
-                payoutEl.classList.add('active');
-                payoutEl.querySelector('.sort-icon').textContent = '↑';
-            }
-        }
-
-        function initTheme() {
-            const saved = localStorage.getItem('theme');
-            const html = document.documentElement;
-            if (saved === 'light') {
-                html.removeAttribute('data-theme');
-                updateThemeUI(false);
-            } else {
-                html.setAttribute('data-theme', 'dark');
-                updateThemeUI(true);
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            initTheme();
-            updateExcludedUI();
-            updateSortUI();
-            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
-            document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); });
-            document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); render(); });
-            document.getElementById('sortName').addEventListener('click', function() { toggleSort('name'); });
-            document.getElementById('sortPayout').addEventListener('click', function() { toggleSort('payout'); });
-            document.getElementById('warningFilter').addEventListener('click', function() { warn = !warn; this.classList.toggle('active', warn); render(); });
-            document.getElementById('excludedFilter').addEventListener('click', function() {
-                showExcluded = !showExcluded;
-                this.classList.toggle('excluded', showExcluded);
-                document.getElementById('excludedPanel').classList.toggle('show', showExcluded);
-            });
-            document.getElementById('printAllBtn').addEventListener('click', printAllDrivers);
-            document.getElementById('exportBtn').addEventListener('click', exportCSV);
-            document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); });
-            document.getElementById('logoutBtn').addEventListener('click', function() {
-                localStorage.removeItem('hydralink_session');
-                window.location.href = 'index.html';
-            });
-            loadData();
-        });
-
-        function getData() {
-            let data = SETTLEMENTS.filter(function(s) {
-                const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0;
-                const isExcluded = excludedDrivers.includes(s.fahrer_name);
-                return s.woche === week &&
-                       s.fahrer_name &&
-                       s.fahrer_name.toLowerCase().indexOf(search) >= 0 &&
-                       (!warn || isWarn) &&
-                       !isExcluded;
-            });
-
-            // Sorting
-            data.sort(function(a, b) {
-                if (sortBy === 'name_asc') return (a.fahrer_name || '').localeCompare(b.fahrer_name || '');
-                if (sortBy === 'name_desc') return (b.fahrer_name || '').localeCompare(a.fahrer_name || '');
-                if (sortBy === 'payout_desc') return (b.auszahlung || 0) - (a.auszahlung || 0);
-                if (sortBy === 'payout_asc') return (a.auszahlung || 0) - (b.auszahlung || 0);
-                return 0;
-            });
-
-            return data;
-        }
-
-        function render() {
-            const data = getData();
-            const all = SETTLEMENTS.filter(function(s) {
-                return s.woche === week && !excludedDrivers.includes(s.fahrer_name);
-            });
-            const warnCount = all.filter(function(s) { return (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; }).length;
-            const totalAbzug = data.reduce(function(a,s) { return a + (s.abzug_gesamt || 0); }, 0);
-            const totalMieten = data.reduce(function(a,s) { return a + (s.miete || 0); }, 0);
-            const totalProzent = data.reduce(function(a,s) { return a + (s.prozent_abzug || 0); }, 0);
-            const totalAuszahlung = data.reduce(function(a,s) { return a + (s.auszahlung || 0); }, 0);
-
-            document.getElementById('statFahrer').textContent = data.length;
-            document.getElementById('statBrutto').textContent = fmt(data.reduce(function(a,s) { return a + (s.bruttoumsatz_gesamt||0); }, 0));
-            document.getElementById('statBleibt').textContent = fmt(totalAbzug);
-            document.getElementById('statBleibtSub').textContent = fmt(totalMieten) + ' Mieten + ' + fmt(totalProzent) + ' %';
-            document.getElementById('statAuszahlung').textContent = fmt(totalAuszahlung);
-            document.getElementById('statProbleme').textContent = warnCount;
-            document.getElementById('tableCount').textContent = ' (' + data.length + ')';
-
-            const tbody = document.getElementById('tableBody');
-            if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">Keine Eintraege</td></tr>'; return; }
-
-            tbody.innerHTML = data.map(function(s) {
-                const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0;
-                const mc = s.mietmodell === 'fix' ? 'fix' : s.mietmodell === 'f11' ? 'f11' : s.mietmodell === 'f12' ? 'f12' : 'unknown';
-                const st = s.status && s.status.indexOf('WARNUNG') >= 0 ? '<span class="status warn">Unbekannt</span>' : s.auszahlung < 0 ? '<span class="status err">Schuldet</span>' : '<span class="status ok">OK</span>';
-                const escapedName = esc(s.fahrer_name).replace(/'/g, "\\'");
-                return '<tr class="'+(isWarn?'warning':'')+'">' +
-                    '<td><div class="fahrer-name" style="cursor:pointer;color:var(--blue)" onclick="printDriver(\''+escapedName+'\')">'+esc(s.fahrer_name)+'</div><div class="fahrer-tel">'+(s.telefon||'-')+'</div></td>' +
-                    '<td class="right"><span class="money '+(s.auszahlung>=0?'pos':'neg')+'">'+fmt(s.auszahlung)+'</span></td>' +
-                    '<td>'+st+'</td>' +
-                    '<td><span class="badge '+mc+'">'+(s.mietmodell||'-')+'</span></td>' +
-                    '<td class="right">'+fmt(s.bolt_brutto)+'</td>' +
-                    '<td class="right">'+fmt(s.uber_fahrpreis)+'</td>' +
-                    '<td class="right">'+fmt(s.mypos_summe)+'</td>' +
-                    '<td class="right">'+fmt(s.bruttoumsatz_gesamt)+'</td>' +
-                    '<td class="right">'+fmt(s.abzug_gesamt)+'</td>' +
-                    '<td class="center"><button class="btn-print" onclick="printDriver(\''+escapedName+'\')" title="Abrechnung drucken">🖨️</button><button class="btn-exclude" onclick="excludeDriver(\''+escapedName+'\')" title="Aus Berechnung ausschließen">🚫</button></td>' +
-                    '</tr>';
-            }).join('');
-        }
-
-        function fmt(v) {
-            if (v == null) return '-';
-            const n = parseFloat(v);
-            if (isNaN(n)) return '-';
-            return (n<0?'-':'') + Math.abs(n).toLocaleString('de-AT',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
-        }
-
-        function esc(str) {
-            if (!str) return '';
-            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-        }
-
-        function exportCSV() {
-            const data = getData();
-            const csv = [['Fahrer','Telefon','Auszahlung','Status','Modell','Miete','Bolt','Uber','MyPOS','Gesamt','Abzug','Prozent']]
-                .concat(data.map(function(s) { return [s.fahrer_name,s.telefon||'',s.auszahlung,s.status,s.mietmodell,s.miete,s.bolt_brutto,s.uber_fahrpreis,s.mypos_summe,s.bruttoumsatz_gesamt,s.abzug_gesamt,s.prozent_abzug]; }))
-                .map(function(r) { return r.join(';'); }).join('\n');
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
-            a.download = 'abrechnungen_'+week+'.csv';
-            a.click();
-        }
-
-        function printDriver(name) {
-            const driver = SETTLEMENTS.find(s => s.fahrer_name === name && s.woche === week);
-            if (!driver) return;
-
-            document.getElementById('printWeek').textContent = 'Abrechnungswoche: ' + week;
-            document.getElementById('printName').textContent = driver.fahrer_name;
-            document.getElementById('printPhone').textContent = driver.telefon ? 'Tel: ' + driver.telefon : '';
-
-            // Einnahmen (Brutto)
-            document.getElementById('printBoltBrutto').textContent = fmt(driver.bolt_brutto);
-            document.getElementById('printUberBrutto').textContent = fmt(driver.uber_fahrpreis);
-            document.getElementById('printMypos').textContent = fmt(driver.mypos_summe);
-            document.getElementById('printBruttoGesamt').textContent = fmt(driver.bruttoumsatz_gesamt);
-
-            // Wir bekommen (Netto)
-            document.getElementById('printBoltNetto').textContent = fmt(driver.bolt_auszahlung);
-            document.getElementById('printUberNetto').textContent = fmt(driver.uber_auszahlung);
-            document.getElementById('printMyposNetto').textContent = fmt(driver.mypos_summe);
-            document.getElementById('printWirBekommen').textContent = fmt(driver.wir_bekommen);
-
-            // Abzüge
-            document.getElementById('printMiete').textContent = fmt(driver.miete);
-            document.getElementById('printProzent').textContent = fmt(driver.prozent_abzug);
-            document.getElementById('printAbzug').textContent = fmt(driver.abzug_gesamt);
-
-            // Auszahlung
-            document.getElementById('printPayout').textContent = fmt(driver.auszahlung);
-
-            const payoutBox = document.getElementById('printPayoutBox');
-            payoutBox.classList.remove('positive', 'negative');
-            payoutBox.classList.add(driver.auszahlung >= 0 ? 'positive' : 'negative');
-
-            document.getElementById('printOverlay').classList.add('show');
-        }
-
-        function closePrintModal() {
-            document.getElementById('printOverlay').classList.remove('show');
-        }
-
-        function printAllDrivers() {
-            const drivers = SETTLEMENTS.filter(function(s) {
-                return s.woche === week && s.auszahlung > 0 && !excludedDrivers.includes(s.fahrer_name);
-            }).sort(function(a, b) { return (a.fahrer_name || '').localeCompare(b.fahrer_name || ''); });
-
-            if (!drivers.length) { alert('Keine Fahrer mit Auszahlung'); return; }
-
-            var container = document.getElementById('printAllContainer');
-            container.innerHTML = drivers.map(function(d, i) {
-                var payoutClass = d.auszahlung >= 0 ? 'positive' : 'negative';
-                return '<div class="print-page">' +
-                    '<div class="print-content">' +
-                        '<div class="print-header"><h1>Abrechnung</h1><p>Abrechnungswoche: ' + esc(week) + '</p></div>' +
-                        '<div class="print-driver"><h2>' + esc(d.fahrer_name) + '</h2><p>' + (d.telefon ? 'Tel: ' + esc(d.telefon) : '') + '</p></div>' +
-                        '<div class="print-section"><h3>Einnahmen (Brutto)</h3><table class="print-table">' +
-                            '<tr><td>Bolt Brutto</td><td>' + fmt(d.bolt_brutto) + '</td></tr>' +
-                            '<tr><td>Uber Fahrpreis</td><td>' + fmt(d.uber_fahrpreis) + '</td></tr>' +
-                            '<tr><td>MyPOS Summe</td><td>' + fmt(d.mypos_summe) + '</td></tr>' +
-                            '<tr class="total"><td>Brutto Gesamt</td><td>' + fmt(d.bruttoumsatz_gesamt) + '</td></tr>' +
-                        '</table></div>' +
-                        '<div class="print-section"><h3>Wir bekommen (Netto)</h3><table class="print-table">' +
-                            '<tr><td>Bolt Auszahlung</td><td>' + fmt(d.bolt_auszahlung) + '</td></tr>' +
-                            '<tr><td>Uber Auszahlung</td><td>' + fmt(d.uber_auszahlung) + '</td></tr>' +
-                            '<tr><td>MyPOS</td><td>' + fmt(d.mypos_summe) + '</td></tr>' +
-                            '<tr class="total"><td>Wir bekommen</td><td>' + fmt(d.wir_bekommen) + '</td></tr>' +
-                        '</table></div>' +
-                        '<div class="print-section"><h3>Abzüge</h3><table class="print-table">' +
-                            '<tr><td>Miete</td><td>' + fmt(d.miete) + '</td></tr>' +
-                            '<tr><td>Prozent-Abzug</td><td>' + fmt(d.prozent_abzug) + '</td></tr>' +
-                            '<tr class="total"><td>Abzug Gesamt</td><td>' + fmt(d.abzug_gesamt) + '</td></tr>' +
-                        '</table></div>' +
-                        '<div class="print-payout ' + payoutClass + '">' +
-                            '<div class="print-payout-label">Auszahlung</div>' +
-                            '<div class="print-payout-value">' + fmt(d.auszahlung) + '</div>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>';
-            }).join('');
-
-            // Hide single print overlay if open
-            document.getElementById('printOverlay').classList.remove('show');
-            container.style.display = 'block';
-            window.print();
-            container.style.display = 'none';
-        }
-
-        function doPrint() {
-            window.print();
-        }
-
-        async function shareAsImage() {
-            const content = document.getElementById('printContent');
-            const shareBtn = document.querySelector('.btn-share');
-            const originalText = shareBtn.textContent;
-            shareBtn.textContent = '⏳ Laden...';
-            shareBtn.disabled = true;
-
-            try {
-                const canvas = await html2canvas(content, {
-                    backgroundColor: '#ffffff',
-                    scale: 2,
-                    useCORS: true
-                });
-
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                const file = new File([blob], 'abrechnung.png', { type: 'image/png' });
-
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file],
-                        title: 'Abrechnung',
-                        text: 'Fahrer-Abrechnung'
-                    });
-                } else {
-                    const link = document.createElement('a');
-                    link.href = canvas.toDataURL('image/png');
-                    link.download = 'abrechnung.png';
-                    link.click();
-                }
-            } catch (err) {
-                console.error('Share error:', err);
-                if (err.name !== 'AbortError') {
-                    alert('Teilen fehlgeschlagen. Bitte Screenshot machen.');
-                }
-            } finally {
-                shareBtn.textContent = originalText;
-                shareBtn.disabled = false;
-            }
-        }
-
-        // Close modal on overlay click
-        document.getElementById('printOverlay').addEventListener('click', function(e) {
-            if (e.target === this) closePrintModal();
-        });
+        function getSupabase() { if (!supabaseClient) { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } return supabaseClient; }
+        function saveExcluded() { localStorage.setItem('excludedDrivers', JSON.stringify(excludedDrivers)); updateExcludedUI(); }
+        function excludeDriver(name) { if (!excludedDrivers.includes(name)) { excludedDrivers.push(name); saveExcluded(); render(); } }
+        function includeDriver(name) { excludedDrivers = excludedDrivers.filter(n => n !== name); saveExcluded(); render(); }
+        function updateExcludedUI() { document.getElementById('excludedCount').textContent = excludedDrivers.length; const list = document.getElementById('excludedList'); if (excludedDrivers.length === 0) { list.innerHTML = '<span style="color: var(--text-muted)">Keine Fahrer ausgeschlossen</span>'; } else { list.innerHTML = excludedDrivers.map(name => `<span class="excluded-tag">${esc(name)} <button onclick="includeDriver('${esc(name.replace(/'/g, "\\\\'"))}')">\u2715</button></span>`).join(''); } }
+        async function loadData() { try { const client = getSupabase(); const { data, error } = await client.from('settlements').select('*'); if (error) throw error; if (!data || data.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = data.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; document.getElementById('weekFilter').innerHTML = WEEKS.map(w => '<option value="'+w+'">'+w+'</option>').join(''); render(); } catch (err) { console.error('Load error:', err); document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty">Fehler beim Laden: ' + err.message + '</td></tr>'; } }
+        function updateThemeUI(isDark) { const icon = document.getElementById('themeIcon'); const text = document.getElementById('themeText'); if (isDark) { icon.innerHTML = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>'; text.textContent = 'Light'; } else { icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'; text.textContent = 'Dark'; } }
+        function toggleTheme() { const html = document.documentElement; if (html.getAttribute('data-theme') === 'dark') { html.removeAttribute('data-theme'); localStorage.setItem('theme', 'light'); updateThemeUI(false); } else { html.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); updateThemeUI(true); } }
+        function toggleSort(col) { if (col === 'name') { sortBy = sortBy === 'name_asc' ? 'name_desc' : 'name_asc'; } else if (col === 'payout') { sortBy = sortBy === 'payout_desc' ? 'payout_asc' : 'payout_desc'; } updateSortUI(); render(); }
+        function updateSortUI() { const nameEl = document.getElementById('sortName'); const payoutEl = document.getElementById('sortPayout'); nameEl.classList.remove('active'); payoutEl.classList.remove('active'); nameEl.querySelector('.sort-icon').textContent = '↕'; payoutEl.querySelector('.sort-icon').textContent = '↕'; if (sortBy === 'name_asc') { nameEl.classList.add('active'); nameEl.querySelector('.sort-icon').textContent = '↑'; } else if (sortBy === 'name_desc') { nameEl.classList.add('active'); nameEl.querySelector('.sort-icon').textContent = '↓'; } else if (sortBy === 'payout_desc') { payoutEl.classList.add('active'); payoutEl.querySelector('.sort-icon').textContent = '↓'; } else if (sortBy === 'payout_asc') { payoutEl.classList.add('active'); payoutEl.querySelector('.sort-icon').textContent = '↑'; } }
+        function initTheme() { const saved = localStorage.getItem('theme'); const html = document.documentElement; if (saved === 'light') { html.removeAttribute('data-theme'); updateThemeUI(false); } else { html.setAttribute('data-theme', 'dark'); updateThemeUI(true); } }
+        document.addEventListener('DOMContentLoaded', function() { initTheme(); updateExcludedUI(); updateSortUI(); document.getElementById('themeToggle').addEventListener('click', toggleTheme); document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); }); document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); render(); }); document.getElementById('sortName').addEventListener('click', function() { toggleSort('name'); }); document.getElementById('sortPayout').addEventListener('click', function() { toggleSort('payout'); }); document.getElementById('warningFilter').addEventListener('click', function() { warn = !warn; this.classList.toggle('active', warn); render(); }); document.getElementById('excludedFilter').addEventListener('click', function() { showExcluded = !showExcluded; this.classList.toggle('excluded', showExcluded); document.getElementById('excludedPanel').classList.toggle('show', showExcluded); }); document.getElementById('printAllBtn').addEventListener('click', printAllDrivers); document.getElementById('exportBtn').addEventListener('click', exportCSV); document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); }); document.getElementById('logoutBtn').addEventListener('click', function() { localStorage.removeItem('hydralink_session'); window.location.href = 'index.html'; }); loadData(); });
+        function getData() { let data = SETTLEMENTS.filter(function(s) { const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; const isExcluded = excludedDrivers.includes(s.fahrer_name); return s.woche === week && s.fahrer_name && s.fahrer_name.toLowerCase().indexOf(search) >= 0 && (!warn || isWarn) && !isExcluded; }); data.sort(function(a, b) { if (sortBy === 'name_asc') return (a.fahrer_name || '').localeCompare(b.fahrer_name || ''); if (sortBy === 'name_desc') return (b.fahrer_name || '').localeCompare(a.fahrer_name || ''); if (sortBy === 'payout_desc') return (b.auszahlung || 0) - (a.auszahlung || 0); if (sortBy === 'payout_asc') return (a.auszahlung || 0) - (b.auszahlung || 0); return 0; }); return data; }
+        function render() { const data = getData(); const all = SETTLEMENTS.filter(function(s) { return s.woche === week && !excludedDrivers.includes(s.fahrer_name); }); const warnCount = all.filter(function(s) { return (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; }).length; const totalAbzug = data.reduce(function(a,s) { return a + (s.abzug_gesamt || 0); }, 0); const totalMieten = data.reduce(function(a,s) { return a + (s.miete || 0); }, 0); const totalProzent = data.reduce(function(a,s) { return a + (s.prozent_abzug || 0); }, 0); const totalAuszahlung = data.reduce(function(a,s) { return a + (s.auszahlung || 0); }, 0); document.getElementById('statFahrer').textContent = data.length; document.getElementById('statBrutto').textContent = fmt(data.reduce(function(a,s) { return a + (s.bruttoumsatz_gesamt||0); }, 0)); document.getElementById('statBleibt').textContent = fmt(totalAbzug); document.getElementById('statBleibtSub').textContent = fmt(totalMieten) + ' Mieten + ' + fmt(totalProzent) + ' %'; document.getElementById('statAuszahlung').textContent = fmt(totalAuszahlung); document.getElementById('statProbleme').textContent = warnCount; document.getElementById('tableCount').textContent = ' (' + data.length + ')'; const tbody = document.getElementById('tableBody'); if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">Keine Eintraege</td></tr>'; return; } tbody.innerHTML = data.map(function(s) { const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; const mc = s.mietmodell === 'fix' ? 'fix' : s.mietmodell === 'f11' ? 'f11' : s.mietmodell === 'f12' ? 'f12' : 'unknown'; const st = s.status && s.status.indexOf('WARNUNG') >= 0 ? '<span class="status warn">Unbekannt</span>' : s.auszahlung < 0 ? '<span class="status err">Schuldet</span>' : '<span class="status ok">OK</span>'; const escapedName = esc(s.fahrer_name).replace(/'/g, "\\'"); return '<tr class="'+(isWarn?'warning':'')+'">' + '<td><div class="fahrer-name" style="cursor:pointer;color:var(--blue)" onclick="printDriver(\''+escapedName+'\')">'+esc(s.fahrer_name)+'</div><div class="fahrer-tel">'+(s.telefon||'-')+'</div></td>' + '<td class="right"><span class="money '+(s.auszahlung>=0?'pos':'neg')+'">'+fmt(s.auszahlung)+'</span></td>' + '<td>'+st+'</td>' + '<td><span class="badge '+mc+'">'+(s.mietmodell||'-')+'</span></td>' + '<td class="right">'+fmt(s.bolt_brutto)+'</td>' + '<td class="right">'+fmt(s.uber_fahrpreis)+'</td>' + '<td class="right">'+fmt(s.mypos_summe)+'</td>' + '<td class="right">'+fmt(s.bruttoumsatz_gesamt)+'</td>' + '<td class="right">'+fmt(s.abzug_gesamt)+'</td>' + '<td class="center"><button class="btn-print" onclick="printDriver(\''+escapedName+'\')" title="Abrechnung drucken">🖨️</button><button class="btn-exclude" onclick="excludeDriver(\''+escapedName+'\')" title="Aus Berechnung ausschließen">🚫</button></td>' + '</tr>'; }).join(''); }
+        function fmt(v) { if (v == null) return '-'; const n = parseFloat(v); if (isNaN(n)) return '-'; return (n<0?'-':'') + Math.abs(n).toLocaleString('de-AT',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' \u20AC'; }
+        function esc(str) { if (!str) return ''; return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+        function exportCSV() { const data = getData(); const csv = [['Fahrer','Telefon','Auszahlung','Status','Modell','Miete','Bolt','Uber','MyPOS','Gesamt','Abzug','Prozent']].concat(data.map(function(s) { return [s.fahrer_name,s.telefon||'',s.auszahlung,s.status,s.mietmodell,s.miete,s.bolt_brutto,s.uber_fahrpreis,s.mypos_summe,s.bruttoumsatz_gesamt,s.abzug_gesamt,s.prozent_abzug]; })).map(function(r) { return r.join(';'); }).join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); a.download = 'abrechnungen_'+week+'.csv'; a.click(); }
+        function printDriver(name) { const driver = SETTLEMENTS.find(s => s.fahrer_name === name && s.woche === week); if (!driver) return; document.getElementById('printWeek').textContent = 'Abrechnungswoche: ' + week; document.getElementById('printName').textContent = driver.fahrer_name; document.getElementById('printPhone').textContent = driver.telefon ? 'Tel: ' + driver.telefon : ''; document.getElementById('printBoltBrutto').textContent = fmt(driver.bolt_brutto); document.getElementById('printUberBrutto').textContent = fmt(driver.uber_fahrpreis); document.getElementById('printMypos').textContent = fmt(driver.mypos_summe); document.getElementById('printBruttoGesamt').textContent = fmt(driver.bruttoumsatz_gesamt); document.getElementById('printBoltNetto').textContent = fmt(driver.bolt_auszahlung); document.getElementById('printUberNetto').textContent = fmt(driver.uber_auszahlung); document.getElementById('printMyposNetto').textContent = fmt(driver.mypos_summe); document.getElementById('printWirBekommen').textContent = fmt(driver.wir_bekommen); document.getElementById('printMiete').textContent = fmt(driver.miete); document.getElementById('printProzent').textContent = fmt(driver.prozent_abzug); document.getElementById('printAbzug').textContent = fmt(driver.abzug_gesamt); document.getElementById('printPayout').textContent = fmt(driver.auszahlung); const payoutBox = document.getElementById('printPayoutBox'); payoutBox.classList.remove('positive', 'negative'); payoutBox.classList.add(driver.auszahlung >= 0 ? 'positive' : 'negative'); document.getElementById('printOverlay').classList.add('show'); }
+        function closePrintModal() { document.getElementById('printOverlay').classList.remove('show'); }
+        function printAllDrivers() { const drivers = SETTLEMENTS.filter(function(s) { return s.woche === week && s.auszahlung > 0 && !excludedDrivers.includes(s.fahrer_name); }).sort(function(a, b) { return (a.fahrer_name || '').localeCompare(b.fahrer_name || ''); }); if (!drivers.length) { alert('Keine Fahrer mit Auszahlung'); return; } var container = document.getElementById('printAllContainer'); container.innerHTML = drivers.map(function(d, i) { var payoutClass = d.auszahlung >= 0 ? 'positive' : 'negative'; return '<div class="print-page"><div class="print-content"><div class="print-header"><h1>Abrechnung</h1><p>Abrechnungswoche: ' + esc(week) + '</p></div><div class="print-driver"><h2>' + esc(d.fahrer_name) + '</h2><p>' + (d.telefon ? 'Tel: ' + esc(d.telefon) : '') + '</p></div><div class="print-section"><h3>Einnahmen (Brutto)</h3><table class="print-table"><tr><td>Bolt Brutto</td><td>' + fmt(d.bolt_brutto) + '</td></tr><tr><td>Uber Fahrpreis</td><td>' + fmt(d.uber_fahrpreis) + '</td></tr><tr><td>MyPOS Summe</td><td>' + fmt(d.mypos_summe) + '</td></tr><tr class="total"><td>Brutto Gesamt</td><td>' + fmt(d.bruttoumsatz_gesamt) + '</td></tr></table></div><div class="print-section"><h3>Wir bekommen (Netto)</h3><table class="print-table"><tr><td>Bolt Auszahlung</td><td>' + fmt(d.bolt_auszahlung) + '</td></tr><tr><td>Uber Auszahlung</td><td>' + fmt(d.uber_auszahlung) + '</td></tr><tr><td>MyPOS</td><td>' + fmt(d.mypos_summe) + '</td></tr><tr class="total"><td>Wir bekommen</td><td>' + fmt(d.wir_bekommen) + '</td></tr></table></div><div class="print-section"><h3>Abz\u00fcge</h3><table class="print-table"><tr><td>Miete</td><td>' + fmt(d.miete) + '</td></tr><tr><td>Prozent-Abzug</td><td>' + fmt(d.prozent_abzug) + '</td></tr><tr class="total"><td>Abzug Gesamt</td><td>' + fmt(d.abzug_gesamt) + '</td></tr></table></div><div class="print-payout ' + payoutClass + '"><div class="print-payout-label">Auszahlung</div><div class="print-payout-value">' + fmt(d.auszahlung) + '</div></div></div></div>'; }).join(''); document.getElementById('printOverlay').classList.remove('show'); container.style.display = 'block'; window.print(); container.style.display = 'none'; }
+        function doPrint() { window.print(); }
+        async function shareAsImage() { const content = document.getElementById('printContent'); const shareBtn = document.querySelector('.btn-share'); const originalText = shareBtn.textContent; shareBtn.textContent = '\u23F3 Laden...'; shareBtn.disabled = true; try { const canvas = await html2canvas(content, { backgroundColor: '#ffffff', scale: 2, useCORS: true }); const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png')); const file = new File([blob], 'abrechnung.png', { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Abrechnung', text: 'Fahrer-Abrechnung' }); } else { const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = 'abrechnung.png'; link.click(); } } catch (err) { console.error('Share error:', err); if (err.name !== 'AbortError') { alert('Teilen fehlgeschlagen. Bitte Screenshot machen.'); } } finally { shareBtn.textContent = originalText; shareBtn.disabled = false; } }
+        document.getElementById('printOverlay').addEventListener('click', function(e) { if (e.target === this) closePrintModal(); });
     </script>
+    <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js').catch(() => {}); }</script>
 </body>
 </html>

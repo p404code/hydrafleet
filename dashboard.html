@@ -239,6 +239,117 @@
             .stats { grid-template-columns: 1fr; }
             .stat-card { padding: 12px 14px; }
         }
+        /* === TAB NAVIGATION === */
+        .tab-nav { display: flex; gap: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 24px; }
+        .tab-btn { flex: 1; padding: 12px 20px; border: none; background: transparent; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .tab-btn:hover { background: var(--bg-hover); color: var(--text); }
+        .tab-btn.active { background: var(--blue); color: white; }
+        .tab-btn svg { width: 18px; height: 18px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        /* === RECHNUNG FORM === */
+        .re-wrap { max-width: 900px; margin: 0 auto; }
+        .re-sub-tabs { display: flex; gap: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 3px; margin-bottom: 20px; }
+        .re-sub-tab { flex: 1; padding: 10px 16px; border: none; background: transparent; border-radius: 7px; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .re-sub-tab:hover { background: var(--bg-hover); color: var(--text); }
+        .re-sub-tab.active { background: var(--blue); color: white; }
+        .re-sub-tab svg { width: 16px; height: 16px; }
+        .re-sub-content { display: none; }
+        .re-sub-content.active { display: block; }
+        /* Archive Table */
+        .re-archive-card { background: var(--bg-card); border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden; }
+        .re-archive-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--border-light); flex-wrap: wrap; gap: 12px; }
+        .re-archive-header h2 { font-size: 16px; font-weight: 600; }
+        .re-archive-header .re-count { color: var(--text-muted); font-size: 14px; font-weight: 400; margin-left: 6px; }
+        .re-archive-search { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 14px; color: var(--text); outline: none; min-width: 200px; font-family: inherit; }
+        .re-archive-search:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .re-archive-search::placeholder { color: var(--text-muted); }
+        .re-table { width: 100%; border-collapse: collapse; }
+        .re-table th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg-table-head); white-space: nowrap; }
+        .re-table th.right { text-align: right; }
+        .re-table td { padding: 12px 14px; font-size: 13px; border-top: 1px solid var(--border-light); white-space: nowrap; }
+        .re-table td.right { text-align: right; }
+        .re-table tr:hover td { background: var(--bg-hover); }
+        .re-table .re-nr { font-weight: 600; color: var(--blue); }
+        .re-table .re-betrag { font-weight: 600; }
+        .re-pdf-btn { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; color: var(--text-secondary); cursor: pointer; text-decoration: none; transition: all 0.15s; }
+        .re-pdf-btn:hover { background: var(--badge-fix-bg); border-color: var(--blue); color: var(--blue); }
+        .re-no-pdf { color: var(--text-muted); font-size: 12px; }
+        .re-status { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .re-status.erstellt { background: var(--status-ok-bg); color: var(--status-ok); }
+        .re-status.storniert { background: var(--status-err-bg); color: var(--status-err); }
+        @media (max-width: 768px) {
+            .re-archive-header { flex-direction: column; align-items: flex-start; }
+            .re-archive-search { width: 100%; }
+            .re-table { min-width: 560px; }
+            .re-archive-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        }
+        .re-form-card { background: var(--bg-card); border-radius: 16px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 24px; }
+        .re-form-card h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .re-section { margin-bottom: 24px; }
+        .re-section h3 { font-size: 13px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+        .re-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .re-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+        .re-field { margin-bottom: 14px; }
+        .re-field label { display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+        .re-field label .optional { color: var(--text-muted); font-weight: 400; font-size: 11px; }
+        .re-field input, .re-field select, .re-field textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--text); outline: none; font-family: inherit; transition: border-color 0.2s; }
+        .re-field input:focus, .re-field select:focus, .re-field textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .re-field textarea { resize: vertical; min-height: 60px; }
+        .re-field select { cursor: pointer; }
+        /* Company Cards */
+        .re-companies { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 14px; }
+        .re-company-card { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 10px; background: var(--bg); border: 2px solid var(--border); border-radius: 14px; cursor: pointer; transition: all 0.2s; text-align: center; }
+        .re-company-card:hover { border-color: var(--blue); background: var(--bg-hover); }
+        .re-company-card.selected { border-color: var(--blue); background: rgba(59,130,246,0.08); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        [data-theme="dark"] .re-company-card.selected { background: rgba(59,130,246,0.15); }
+        .re-company-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; color: white; flex-shrink: 0; }
+        .re-company-card .re-company-name { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.3; }
+        .re-company-card .re-company-sub { font-size: 10px; color: var(--text-muted); }
+        .re-company-card.neu-card { border-style: dashed; }
+        .re-company-card.neu-card .re-company-icon { background: var(--bg-hover); color: var(--text-muted); border: 2px dashed var(--border); font-size: 24px; }
+        .re-company-delete { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: var(--red); color: white; border: 2px solid var(--bg-card); font-size: 11px; cursor: pointer; display: none; align-items: center; justify-content: center; line-height: 1; }
+        .re-company-card:hover .re-company-delete { display: flex; }
+        .re-company-card { position: relative; }
+        .re-save-company { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--badge-fix-bg); border: 1px solid var(--blue); border-radius: 10px; margin-top: 14px; }
+        .re-save-company input[type=checkbox] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--blue); }
+        .re-save-company label { font-weight: 600; font-size: 13px; color: var(--blue); cursor: pointer; }
+        .re-new-company { display: none; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 14px; }
+        .re-new-company.show { display: block; }
+        /* Color scheme inside new company */
+        .re-colors { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+        .re-color { width: 32px; height: 32px; border-radius: 8px; cursor: pointer; border: 3px solid transparent; transition: all 0.15s; }
+        .re-color:hover { transform: scale(1.1); }
+        .re-color.selected { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
+        .re-position { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; position: relative; }
+        .re-pos-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .re-pos-header span { font-weight: 600; font-size: 14px; }
+        .re-pos-remove { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--red); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+        .re-pos-remove:hover { background: var(--status-err-bg); border-color: var(--red); }
+        .re-add-pos { display: flex; align-items: center; gap: 8px; padding: 12px 18px; background: transparent; border: 2px dashed var(--border); border-radius: 10px; color: var(--green); font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.15s; width: 100%; justify-content: center; }
+        .re-add-pos:hover { background: var(--status-ok-bg); border-color: var(--green); }
+        .re-paid { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--status-ok-bg); border: 1px solid var(--green); border-radius: 10px; margin-bottom: 14px; cursor: pointer; }
+        .re-paid input[type=checkbox] { width: 20px; height: 20px; cursor: pointer; accent-color: var(--green); }
+        .re-paid label { font-weight: 600; font-size: 14px; color: var(--green); cursor: pointer; }
+        .re-submit { width: 100%; padding: 16px; background: linear-gradient(135deg, var(--blue) 0%, #6366f1 100%); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.15s; }
+        .re-submit:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 15px rgba(59,130,246,0.3); }
+        .re-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .re-logo-preview { max-height: 50px; margin-top: 8px; display: none; border-radius: 6px; }
+        .re-logo-preview.show { display: block; }
+        .re-toast { position: fixed; bottom: 24px; right: 24px; padding: 16px 24px; border-radius: 12px; font-weight: 600; font-size: 14px; z-index: 9999; transform: translateY(100px); opacity: 0; transition: all 0.3s; }
+        .re-toast.show { transform: translateY(0); opacity: 1; }
+        .re-toast.success { background: var(--green); color: white; }
+        .re-toast.error { background: var(--red); color: white; }
+        @media (max-width: 768px) {
+            .tab-nav { flex-direction: row; }
+            .tab-btn { padding: 10px 14px; font-size: 13px; }
+            .re-form-card { padding: 18px; }
+            .re-row, .re-row-3 { grid-template-columns: 1fr; }
+            .re-position .re-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+            .re-companies { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+            .re-company-card { padding: 12px 8px; }
+            .re-company-icon { width: 40px; height: 40px; font-size: 16px; }
+        }
     </style>
 </head>
 <body>
@@ -276,6 +387,17 @@
                 </button>
             </div>
         </header>
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('abrechnungen')" id="tabAbrechnungen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                Abrechnungen
+            </button>
+            <button class="tab-btn" onclick="switchTab('rechnungen')" id="tabRechnungen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Rechnungen
+            </button>
+        </div>
+        <div class="tab-content active" id="contentAbrechnungen">
         <div class="filters">
             <select id="weekFilter"><option value="">Laden...</option></select>
             <input type="text" id="searchInput" placeholder="Fahrer suchen...">
@@ -309,7 +431,141 @@
                 </tbody>
             </table>
         </div>
-    </div>
+    </div><!-- end table-card -->
+    </div><!-- end contentAbrechnungen -->
+
+    <div class="tab-content" id="contentRechnungen">
+        <div class="re-wrap">
+        <div class="re-sub-tabs">
+            <button class="re-sub-tab active" onclick="switchReSubTab('erstellen')" id="reSubErstellen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                Rechnung erstellen
+            </button>
+            <button class="re-sub-tab" onclick="switchReSubTab('archiv')" id="reSubArchiv">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
+                Rechnungsarchiv
+            </button>
+        </div>
+        </div><!-- re-wrap for sub-tabs -->
+        <div class="re-sub-content active" id="reContentErstellen">
+        <div class="re-wrap">
+        <div class="re-form-card">
+            <h2>📄 Rechnung erstellen</h2>
+            <form id="invoiceForm" onsubmit="return submitInvoice(event)">
+                <input type="hidden" name="company" id="reCompanyValue" value="sorhan">
+                <input type="hidden" name="colorScheme" id="reColorScheme" value="blau">
+                <div class="re-section">
+                    <h3>🏢 Rechnungsaussteller</h3>
+                    <div class="re-companies" id="reCompaniesGrid">
+                        <div class="re-company-card" style="opacity:0.5;pointer-events:none">
+                            <div class="re-company-icon" style="background:var(--border)"><div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0"></div></div>
+                            <div class="re-company-name">Laden...</div>
+                        </div>
+                    </div>
+                    <div id="reNewCompanyFields" class="re-new-company">
+                        <div class="re-field"><label>Farbschema</label>
+                            <div class="re-colors">
+                                <div class="re-color selected" style="background:#2c3e50" onclick="selectReColor('blau',this)" title="Blau"></div>
+                                <div class="re-color" style="background:#27ae60" onclick="selectReColor('gruen',this)" title="Grün"></div>
+                                <div class="re-color" style="background:#c0392b" onclick="selectReColor('rot',this)" title="Rot"></div>
+                                <div class="re-color" style="background:#e67e22" onclick="selectReColor('orange',this)" title="Orange"></div>
+                                <div class="re-color" style="background:#8e44ad" onclick="selectReColor('lila',this)" title="Lila"></div>
+                                <div class="re-color" style="background:#16a085" onclick="selectReColor('tuerkis',this)" title="Türkis"></div>
+                                <div class="re-color" style="background:#7f8c8d" onclick="selectReColor('grau',this)" title="Grau"></div>
+                                <div class="re-color" style="background:#1a1a1a" onclick="selectReColor('schwarz',this)" title="Schwarz"></div>
+                            </div>
+                        </div>
+                        <div class="re-field"><label>Firmenname</label><input type="text" name="newCompanyName" id="reNewName" placeholder="Meine Firma GmbH"></div>
+                        <div class="re-field"><label>Adresse</label><textarea name="newCompanyAddress" id="reNewAddress" rows="2" placeholder="Straße 1&#10;1010 Wien"></textarea></div>
+                        <div class="re-row">
+                            <div class="re-field"><label>UID</label><input type="text" name="newCompanyUid" id="reNewUid" placeholder="ATU12345678"></div>
+                            <div class="re-field"><label>FN</label><input type="text" name="newCompanyFn" id="reNewFn" placeholder="FN 123456a"></div>
+                        </div>
+                        <div class="re-row">
+                            <div class="re-field"><label>IBAN</label><input type="text" name="newCompanyIban" id="reNewIban" placeholder="AT12 3456 7890 1234 5678"></div>
+                            <div class="re-field"><label>BIC</label><input type="text" name="newCompanyBic" id="reNewBic" placeholder="GIBAATWWXXX"></div>
+                        </div>
+                        <div class="re-row">
+                            <div class="re-field"><label>Geschäftsführer</label><input type="text" name="newCompanyGf" id="reNewGf" placeholder="Max Mustermann"></div>
+                            <div class="re-field"><label>E-Mail</label><input type="email" name="newCompanyEmail" id="reNewEmail" placeholder="firma@example.com"></div>
+                        </div>
+                        <div class="re-field"><label>Telefon <span class="optional">(optional)</span></label><input type="text" name="newCompanyTel" id="reNewTel" placeholder="+43 660 1234567"></div>
+                        <div class="re-field">
+                            <label>Logo URL <span class="optional">(optional)</span></label>
+                            <input type="url" name="logoUrl" id="reLogoUrl" placeholder="https://example.com/logo.png" oninput="previewReLogo()">
+                            <img id="reLogoPreview" class="re-logo-preview" alt="Logo Vorschau">
+                        </div>
+                        <div class="re-save-company">
+                            <input type="checkbox" id="reSaveCompany">
+                            <label for="reSaveCompany">💾 Firma dauerhaft speichern (erscheint als eigene Karte)</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="re-section">
+                    <h3>📋 Rechnungsdaten</h3>
+                    <div class="re-row-3">
+                        <div class="re-field"><label>Rechnungsnr. <span class="optional">(leer = auto)</span></label><input type="text" name="invoiceNumber" placeholder="RE-2025-001"></div>
+                        <div class="re-field"><label>Rechnungsdatum</label><input type="date" name="date" id="reDate"></div>
+                        <div class="re-field" id="reDueDateField"><label>Fällig bis</label><input type="date" name="dueDate" id="reDueDate"></div>
+                    </div>
+                    <div class="re-paid">
+                        <input type="checkbox" id="reIsPaid" name="isPaid" value="true" onchange="toggleReDueDate()">
+                        <label for="reIsPaid">✅ BEZAHLT (keine Fälligkeit)</label>
+                    </div>
+                </div>
+                <div class="re-section">
+                    <h3>👤 Rechnungsempfänger</h3>
+                    <div class="re-field"><label>Name / Firma</label><input type="text" name="customerName" required placeholder="Firma oder Name des Kunden"></div>
+                    <div class="re-field"><label>Adresse</label><textarea name="customerAddress" rows="2" required placeholder="Straße 123&#10;1010 Wien"></textarea></div>
+                    <div class="re-field"><label>Kunden-UID <span class="optional">(optional)</span></label><input type="text" name="customerUid" placeholder="ATU12345678"></div>
+                </div>
+                <div class="re-section">
+                    <h3>📝 Positionen</h3>
+                    <div id="rePositionsContainer"></div>
+                    <button type="button" class="re-add-pos" onclick="addRePosition()">+ Position hinzufügen</button>
+                </div>
+                <div class="re-section">
+                    <h3>📋 Fußzeile</h3>
+                    <div class="re-field"><label>Footer-Text</label><textarea name="footerText" rows="2">Zahlbar innerhalb von 14 Tagen ohne Abzug.</textarea></div>
+                </div>
+                <button type="submit" class="re-submit" id="reSubmitBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:20px;height:20px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    Rechnung erstellen & PDF herunterladen
+                </button>
+            </form>
+        </div>
+        </div>
+        </div><!-- end reContentErstellen -->
+        <div class="re-sub-content" id="reContentArchiv">
+            <div class="re-wrap">
+            <div class="re-archive-card">
+                <div class="re-archive-header">
+                    <h2>📁 Rechnungsarchiv<span class="re-count" id="reArchivCount"></span></h2>
+                    <input type="text" class="re-archive-search" id="reArchivSearch" placeholder="Suchen (RE-Nr, Firma, Empfänger...)" oninput="filterReArchiv()">
+                </div>
+                <table class="re-table">
+                    <thead>
+                        <tr>
+                            <th>RE-Nummer</th>
+                            <th>Datum</th>
+                            <th>Firma</th>
+                            <th>Empfänger</th>
+                            <th class="right">Betrag</th>
+                            <th>Status</th>
+                            <th>PDF</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reArchivBody">
+                        <tr><td colspan="7" class="empty">Lade Rechnungen...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            </div>
+        </div><!-- re-wrap -->
+        </div><!-- end reContentArchiv -->
+    </div><!-- end contentRechnungen -->
+    <div class="re-toast" id="reToast"></div>
+    </div><!-- end container -->
     <div class="print-overlay" id="printOverlay">
         <div class="print-modal">
             <div class="print-content" id="printContent">
@@ -402,6 +658,296 @@
         function doPrint() { window.print(); }
         async function shareAsImage() { const content = document.getElementById('printContent'); const shareBtn = document.querySelector('.btn-share'); const originalText = shareBtn.textContent; shareBtn.textContent = '\u23F3 Laden...'; shareBtn.disabled = true; try { const canvas = await html2canvas(content, { backgroundColor: '#ffffff', scale: 2, useCORS: true }); const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png')); const file = new File([blob], 'abrechnung.png', { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Abrechnung', text: 'Fahrer-Abrechnung' }); } else { const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = 'abrechnung.png'; link.click(); } } catch (err) { console.error('Share error:', err); if (err.name !== 'AbortError') { alert('Teilen fehlgeschlagen. Bitte Screenshot machen.'); } } finally { shareBtn.textContent = originalText; shareBtn.disabled = false; } }
         document.getElementById('printOverlay').addEventListener('click', function(e) { if (e.target === this) closePrintModal(); });
+
+        /* === TAB NAVIGATION === */
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            if (tab === 'rechnungen') {
+                document.getElementById('tabRechnungen').classList.add('active');
+                document.getElementById('contentRechnungen').classList.add('active');
+                if (!reInitialized) { initInvoiceForm(); reInitialized = true; }
+            } else {
+                document.getElementById('tabAbrechnungen').classList.add('active');
+                document.getElementById('contentAbrechnungen').classList.add('active');
+            }
+            localStorage.setItem('hydralink_tab', tab);
+        }
+        /* Restore last tab */
+        const savedTab = localStorage.getItem('hydralink_tab');
+        if (savedTab === 'rechnungen') { switchTab('rechnungen'); }
+
+        /* === INVOICE FORM LOGIC === */
+        let rePositionCount = 0;
+        let reInitialized = false;
+        let reCompanies = [];
+        let reSelectedCompany = null;
+        let reArchivData = [];
+        let reArchivLoaded = false;
+        const RE_INVOICE_URL = 'http://188.245.179.170:5678/webhook/invoice';
+        const RE_COLOR_MAP = { blau:'#2c3e50', gruen:'#27ae60', rot:'#c0392b', orange:'#e67e22', lila:'#8e44ad', tuerkis:'#16a085', grau:'#7f8c8d', schwarz:'#1a1a1a' };
+
+        function switchReSubTab(sub) {
+            document.querySelectorAll('.re-sub-tab').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.re-sub-content').forEach(c => c.classList.remove('active'));
+            if (sub === 'archiv') {
+                document.getElementById('reSubArchiv').classList.add('active');
+                document.getElementById('reContentArchiv').classList.add('active');
+                if (!reArchivLoaded) { loadReArchiv(); reArchivLoaded = true; }
+            } else {
+                document.getElementById('reSubErstellen').classList.add('active');
+                document.getElementById('reContentErstellen').classList.add('active');
+            }
+        }
+
+        async function loadReArchiv() {
+            try {
+                const client = getSupabase();
+                const { data, error } = await client.from('rechnungen').select('*').order('erstellt_am', { ascending: false });
+                if (error) throw error;
+                reArchivData = data || [];
+            } catch (e) { console.error('Load archiv error:', e); reArchivData = []; }
+            renderReArchiv();
+        }
+
+        function renderReArchiv(filter) {
+            const q = (filter || '').toLowerCase();
+            const filtered = q ? reArchivData.filter(r =>
+                (r.re_nummer||'').toLowerCase().includes(q) ||
+                (r.firma||'').toLowerCase().includes(q) ||
+                (r.empfaenger_name||'').toLowerCase().includes(q)
+            ) : reArchivData;
+            document.getElementById('reArchivCount').textContent = ' (' + filtered.length + ')';
+            const tbody = document.getElementById('reArchivBody');
+            if (!filtered.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty">' + (q ? 'Keine Treffer' : 'Noch keine Rechnungen') + '</td></tr>';
+                return;
+            }
+            tbody.innerHTML = filtered.map(r => {
+                const datum = r.datum ? new Date(r.datum).toLocaleDateString('de-AT') : '-';
+                const betrag = r.betrag_brutto != null ? parseFloat(r.betrag_brutto).toLocaleString('de-AT', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €' : '-';
+                const statusClass = r.status === 'storniert' ? 'storniert' : 'erstellt';
+                const statusText = r.status === 'storniert' ? 'Storniert' : 'Erstellt';
+                const pdf = r.pdf_url ? '<a href="'+r.pdf_url+'" target="_blank" class="re-pdf-btn">📥 PDF</a>' : '<span class="re-no-pdf">–</span>';
+                return '<tr>' +
+                    '<td class="re-nr">' + esc(r.re_nummer || '-') + '</td>' +
+                    '<td>' + datum + '</td>' +
+                    '<td>' + esc(r.firma || '-') + '</td>' +
+                    '<td>' + esc(r.empfaenger_name || '-') + '</td>' +
+                    '<td class="right re-betrag">' + betrag + '</td>' +
+                    '<td><span class="re-status ' + statusClass + '">' + statusText + '</span></td>' +
+                    '<td>' + pdf + '</td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        function filterReArchiv() {
+            const q = document.getElementById('reArchivSearch').value;
+            renderReArchiv(q);
+        }
+
+        async function initInvoiceForm() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('reDate').value = today;
+            const due = new Date(); due.setDate(due.getDate() + 14);
+            document.getElementById('reDueDate').value = due.toISOString().split('T')[0];
+            if (rePositionCount === 0) addRePosition();
+            await loadReCompanies();
+        }
+
+        async function loadReCompanies() {
+            try {
+                const client = getSupabase();
+                const { data, error } = await client.from('companies').select('*').order('sort_order', { ascending: true });
+                if (error) throw error;
+                reCompanies = data || [];
+            } catch (e) { console.error('Load companies error:', e); reCompanies = []; }
+            renderReCompanies();
+        }
+
+        function renderReCompanies() {
+            const grid = document.getElementById('reCompaniesGrid');
+            let html = reCompanies.map((c, i) => {
+                const color = RE_COLOR_MAP[c.color_scheme] || c.color_scheme || '#2c3e50';
+                const initials = (c.short_name || c.name || '?').substring(0, 2).toUpperCase();
+                const isSelected = (i === 0 && !reSelectedCompany) || (reSelectedCompany === c.slug);
+                if (isSelected && !reSelectedCompany) { reSelectedCompany = c.slug; document.getElementById('reCompanyValue').value = c.slug; }
+                const deleteBtn = c.is_default ? '' : '<button class="re-company-delete" onclick="event.stopPropagation();deleteReCompany(\''+c.id+'\',\''+c.name.replace(/'/g,"\\\\'")+'\')">×</button>';
+                return '<div class="re-company-card'+(isSelected?' selected':'')+'" onclick="selectReCompany(\''+c.slug+'\',this)">' +
+                    deleteBtn +
+                    '<div class="re-company-icon" style="background:'+color+'">'+initials+'</div>' +
+                    '<div class="re-company-name">'+c.name+'</div>' +
+                    '</div>';
+            }).join('');
+            html += '<div class="re-company-card neu-card" onclick="selectReCompany(\'neu\',this)">' +
+                '<div class="re-company-icon">+</div>' +
+                '<div class="re-company-name">Neue Firma</div></div>';
+            grid.innerHTML = html;
+        }
+
+        function selectReCompany(slug, el) {
+            document.querySelectorAll('.re-company-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            reSelectedCompany = slug;
+            document.getElementById('reCompanyValue').value = slug;
+            document.getElementById('reNewCompanyFields').classList.toggle('show', slug === 'neu');
+        }
+
+        async function saveNewCompanyIfChecked() {
+            const shouldSave = document.getElementById('reSaveCompany').checked;
+            if (!shouldSave) return;
+            const name = document.getElementById('reNewName').value.trim();
+            if (!name) return;
+            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+            const color = document.getElementById('reColorScheme').value || 'blau';
+            const newCompany = {
+                name: name,
+                slug: slug,
+                short_name: name.substring(0, 2).toUpperCase(),
+                address: document.getElementById('reNewAddress').value.trim(),
+                uid: document.getElementById('reNewUid').value.trim(),
+                fn: document.getElementById('reNewFn').value.trim(),
+                iban: document.getElementById('reNewIban').value.trim(),
+                bic: document.getElementById('reNewBic').value.trim(),
+                gf: document.getElementById('reNewGf').value.trim(),
+                email: document.getElementById('reNewEmail').value.trim(),
+                tel: document.getElementById('reNewTel').value.trim(),
+                color_scheme: color,
+                logo_url: document.getElementById('reLogoUrl').value.trim(),
+                is_default: false,
+                sort_order: 99
+            };
+            try {
+                const client = getSupabase();
+                const { error } = await client.from('companies').insert(newCompany);
+                if (error) throw error;
+                showReToast('✅ Firma "' + name + '" gespeichert!', 'success');
+                document.getElementById('reSaveCompany').checked = false;
+                await loadReCompanies();
+            } catch (e) {
+                console.error('Save company error:', e);
+                showReToast('❌ Firma speichern fehlgeschlagen: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteReCompany(id, name) {
+            if (!confirm('Firma "' + name + '" wirklich löschen?')) return;
+            try {
+                const client = getSupabase();
+                const { error } = await client.from('companies').delete().eq('id', id);
+                if (error) throw error;
+                showReToast('🗑️ Firma gelöscht', 'success');
+                reSelectedCompany = null;
+                await loadReCompanies();
+            } catch (e) {
+                console.error('Delete company error:', e);
+                showReToast('❌ Löschen fehlgeschlagen: ' + e.message, 'error');
+            }
+        }
+
+        function addRePosition() {
+            rePositionCount++;
+            const n = rePositionCount;
+            const container = document.getElementById('rePositionsContainer');
+            const div = document.createElement('div');
+            div.className = 're-position';
+            div.id = 'rePos' + n;
+            div.innerHTML = '<div class="re-pos-header"><span>Position ' + n + '</span>' +
+                (n > 1 ? '<button type="button" class="re-pos-remove" onclick="removeRePosition(' + n + ')">×</button>' : '') +
+                '</div>' +
+                '<div class="re-field"><label>Beschreibung</label><input type="text" name="item' + n + '_desc" ' + (n===1?'required ':'') + 'placeholder="z.B. Fahrzeugmiete Februar 2026"></div>' +
+                '<div class="re-row-3">' +
+                '<div class="re-field"><label>Menge</label><input type="number" name="item' + n + '_qty" value="1" min="1" step="1"></div>' +
+                '<div class="re-field"><label>Einzelpreis (€ netto)</label><input type="number" name="item' + n + '_price" ' + (n===1?'required ':'') + 'step="0.01" placeholder="750.00"></div>' +
+                '<div class="re-field"><label>USt %</label><select name="item' + n + '_vat"><option value="20" selected>20%</option><option value="10">10%</option><option value="0">0%</option></select></div>' +
+                '</div>';
+            container.appendChild(div);
+        }
+
+        function removeRePosition(n) {
+            const el = document.getElementById('rePos' + n);
+            if (el) el.remove();
+        }
+
+        /* selectReCompany is defined above in the dynamic companies block */
+
+        function selectReColor(color, el) {
+            document.querySelectorAll('.re-color').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            document.getElementById('reColorScheme').value = color;
+        }
+
+        function previewReLogo() {
+            const url = document.getElementById('reLogoUrl').value;
+            const preview = document.getElementById('reLogoPreview');
+            if (url) { preview.src = url; preview.classList.add('show'); preview.onerror = () => preview.classList.remove('show'); }
+            else { preview.classList.remove('show'); }
+        }
+
+        function toggleReNewCompany() {
+            /* kept for compatibility, handled by selectReCompany now */
+        }
+
+        function toggleReDueDate() {
+            const isPaid = document.getElementById('reIsPaid').checked;
+            const field = document.getElementById('reDueDateField');
+            field.style.opacity = isPaid ? '0.3' : '1';
+            field.style.pointerEvents = isPaid ? 'none' : 'auto';
+            if (isPaid) document.getElementById('reDueDate').value = '';
+        }
+
+        function showReToast(msg, type) {
+            const toast = document.getElementById('reToast');
+            toast.textContent = msg;
+            toast.className = 're-toast ' + type + ' show';
+            setTimeout(() => { toast.classList.remove('show'); }, 4000);
+        }
+
+        async function submitInvoice(e) {
+            e.preventDefault();
+            const btn = document.getElementById('reSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0"></div> Wird erstellt...';
+            try {
+                const form = document.getElementById('invoiceForm');
+                const formData = new FormData(form);
+                const response = await fetch(RE_INVOICE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams(formData).toString()
+                });
+                if (!response.ok) throw new Error('Server Error: ' + response.status);
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/pdf')) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const cd = response.headers.get('content-disposition') || '';
+                    const match = cd.match(/filename="?([^"]+)"?/);
+                    a.download = match ? match[1] : 'rechnung.pdf';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showReToast('✅ PDF erfolgreich erstellt!', 'success');
+                    await saveNewCompanyIfChecked();
+                    reArchivLoaded = false; /* force reload on next archiv visit */
+                } else {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = 'rechnung.pdf'; a.click();
+                    URL.revokeObjectURL(url);
+                    showReToast('✅ PDF heruntergeladen!', 'success');
+                }
+            } catch (err) {
+                console.error('Invoice error:', err);
+                showReToast('❌ Fehler: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:20px;height:20px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Rechnung erstellen & PDF herunterladen';
+            }
+            return false;
+        }
     </script>
     <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js').catch(() => {}); }</script>
 </body>

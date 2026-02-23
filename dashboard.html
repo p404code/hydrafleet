@@ -528,9 +528,38 @@
                 </div>
                 <div class="re-section">
                     <h3>👤 Rechnungsempfänger</h3>
-                    <div class="re-field"><label>Name / Firma</label><input type="text" name="customerName" required placeholder="Firma oder Name des Kunden"></div>
-                    <div class="re-field"><label>Adresse</label><textarea name="customerAddress" rows="2" required placeholder="Straße 123&#10;1010 Wien"></textarea></div>
-                    <div class="re-field"><label>Kunden-UID <span class="optional">(optional)</span></label><input type="text" name="customerUid" placeholder="ATU12345678"></div>
+                    <div class="re-companies" id="reCustGrid">
+                        <div class="re-company-card" style="opacity:0.5;pointer-events:none">
+                            <div class="re-company-icon" style="background:var(--border)"><div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0"></div></div>
+                            <div class="re-company-name">Laden...</div>
+                        </div>
+                    </div>
+                    <div id="reCustNewFields" class="re-new-company">
+                        <div class="re-field"><label>Farbschema</label>
+                            <div class="re-colors">
+                                <div class="re-color selected" style="background:#7f8c8d" onclick="selectCustColor('grau',this)" title="Grau"></div>
+                                <div class="re-color" style="background:#2c3e50" onclick="selectCustColor('blau',this)" title="Blau"></div>
+                                <div class="re-color" style="background:#27ae60" onclick="selectCustColor('gruen',this)" title="Grün"></div>
+                                <div class="re-color" style="background:#c0392b" onclick="selectCustColor('rot',this)" title="Rot"></div>
+                                <div class="re-color" style="background:#e67e22" onclick="selectCustColor('orange',this)" title="Orange"></div>
+                                <div class="re-color" style="background:#8e44ad" onclick="selectCustColor('lila',this)" title="Lila"></div>
+                                <div class="re-color" style="background:#16a085" onclick="selectCustColor('tuerkis',this)" title="Türkis"></div>
+                                <div class="re-color" style="background:#1a1a1a" onclick="selectCustColor('schwarz',this)" title="Schwarz"></div>
+                            </div>
+                        </div>
+                        <div class="re-field"><label>Name / Firma</label><input type="text" name="customerName" id="reCustName" required placeholder="Firma oder Name des Kunden"></div>
+                        <div class="re-field"><label>Adresse</label><textarea name="customerAddress" id="reCustAddress" rows="2" required placeholder="Straße 123&#10;1010 Wien"></textarea></div>
+                        <div class="re-field"><label>Kunden-UID <span class="optional">(optional)</span></label><input type="text" name="customerUid" id="reCustUid" placeholder="ATU12345678"></div>
+                        <div class="re-save-company">
+                            <input type="checkbox" id="reSaveCust">
+                            <label for="reSaveCust">💾 Empfänger dauerhaft speichern (erscheint als eigene Karte)</label>
+                        </div>
+                    </div>
+                    <div id="reCustSelectedFields" style="display:none;">
+                        <input type="hidden" name="customerName" id="reCustSelName">
+                        <input type="hidden" name="customerAddress" id="reCustSelAddress">
+                        <input type="hidden" name="customerUid" id="reCustSelUid">
+                    </div>
                 </div>
                 <div class="re-section">
                     <h3>📝 Positionen</h3>
@@ -748,6 +777,9 @@
         let rePositionCount = 0;
         let reCompanies = [];
         let reSelectedCompany = null;
+        let reCustomers = [];
+        let reSelectedCustomer = null;
+        let reCustColorScheme = 'grau';
         let reArchivData = [];
         let reArchivLoaded = false;
         const RE_INVOICE_URL = 'https://n8n.hydrafleet.at/webhook/invoice';
@@ -824,7 +856,7 @@
                 const due = new Date(); due.setDate(due.getDate() + 14);
                 document.getElementById('reDueDate').value = due.toISOString().split('T')[0];
                 if (rePositionCount === 0) addRePosition();
-                await loadReCompanies();
+                await Promise.all([loadReCompanies(), loadReCustomers()]);
             } catch (e) {
                 console.error('initInvoiceForm error:', e);
             }
@@ -873,11 +905,133 @@
         }
 
         function selectReCompany(slug, el) {
-            document.querySelectorAll('.re-company-card').forEach(c => c.classList.remove('selected'));
+            document.querySelectorAll('#reCompaniesGrid .re-company-card').forEach(c => c.classList.remove('selected'));
             el.classList.add('selected');
             reSelectedCompany = slug;
             document.getElementById('reCompanyValue').value = slug;
             document.getElementById('reNewCompanyFields').classList.toggle('show', slug === 'neu');
+        }
+
+        /* === CUSTOMER (Empfänger) CARDS === */
+        async function loadReCustomers() {
+            try {
+                const client = getSupabase();
+                const { data, error } = await client.from('customers').select('*').order('sort_order', { ascending: true });
+                if (error) {
+                    console.error('Load customers DB error:', error);
+                    reCustomers = [];
+                } else {
+                    reCustomers = data || [];
+                }
+            } catch (e) {
+                console.error('Load customers error:', e);
+                reCustomers = [];
+            }
+            renderReCustomers();
+        }
+
+        function renderReCustomers() {
+            const grid = document.getElementById('reCustGrid');
+            if (!grid) return;
+            let html = reCustomers.map((c, i) => {
+                const color = RE_COLOR_MAP[c.color_scheme] || c.color_scheme || '#7f8c8d';
+                const initials = (c.short_name || c.name || '?').substring(0, 2).toUpperCase();
+                const isSelected = reSelectedCustomer === c.slug;
+                const safeName = (c.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const deleteBtn = c.is_default ? '' : '<button class="re-company-delete" onclick="event.stopPropagation();deleteCust(\''+c.id+'\',\''+safeName+'\')">×</button>';
+                return '<div class="re-company-card'+(isSelected?' selected':'')+'" onclick="selectCust(\''+c.slug+'\',this)">' +
+                    deleteBtn +
+                    '<div class="re-company-icon" style="background:'+color+'">'+initials+'</div>' +
+                    '<div class="re-company-name">'+(c.name||'Unbenannt')+'</div>' +
+                    '</div>';
+            }).join('');
+            html += '<div class="re-company-card neu-card" onclick="selectCust(\'neu\',this)">' +
+                '<div class="re-company-icon">+</div>' +
+                '<div class="re-company-name">Neuer Kunde</div></div>';
+            grid.innerHTML = html;
+            /* If no customer selected yet, auto-show new fields */
+            if (!reSelectedCustomer || reSelectedCustomer === 'neu') {
+                selectCustShowNew();
+            }
+        }
+
+        function selectCust(slug, el) {
+            document.querySelectorAll('#reCustGrid .re-company-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            reSelectedCustomer = slug;
+            if (slug === 'neu') {
+                selectCustShowNew();
+            } else {
+                const cust = reCustomers.find(c => c.slug === slug);
+                if (cust) {
+                    /* Hide new-fields, show selected hidden fields */
+                    document.getElementById('reCustNewFields').classList.remove('show');
+                    document.getElementById('reCustSelectedFields').style.display = 'block';
+                    document.getElementById('reCustSelName').value = cust.name || '';
+                    document.getElementById('reCustSelAddress').value = cust.address || '';
+                    document.getElementById('reCustSelUid').value = cust.uid || '';
+                    /* Also disable the new-fields inputs so they dont submit */
+                    document.getElementById('reCustName').removeAttribute('required');
+                    document.getElementById('reCustAddress').removeAttribute('required');
+                }
+            }
+        }
+
+        function selectCustShowNew() {
+            document.getElementById('reCustNewFields').classList.add('show');
+            document.getElementById('reCustSelectedFields').style.display = 'none';
+            document.getElementById('reCustName').setAttribute('required', '');
+            document.getElementById('reCustAddress').setAttribute('required', '');
+        }
+
+        function selectCustColor(color, el) {
+            el.closest('.re-colors').querySelectorAll('.re-color').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            reCustColorScheme = color;
+        }
+
+        async function saveNewCustIfChecked() {
+            const shouldSave = document.getElementById('reSaveCust').checked;
+            if (!shouldSave) return;
+            const name = document.getElementById('reCustName').value.trim();
+            if (!name) return;
+            const slug = name.toLowerCase().replace(/[^a-z0-9äöüß]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+            const newCust = {
+                name: name,
+                slug: slug,
+                short_name: name.substring(0, 2).toUpperCase(),
+                address: document.getElementById('reCustAddress').value.trim(),
+                uid: document.getElementById('reCustUid').value.trim(),
+                color_scheme: reCustColorScheme,
+                is_default: false,
+                sort_order: 99
+            };
+            try {
+                const client = getSupabase();
+                const { error } = await client.from('customers').insert(newCust);
+                if (error) throw error;
+                showReToast('✅ Empfänger "' + name + '" gespeichert!', 'success');
+                document.getElementById('reSaveCust').checked = false;
+                await loadReCustomers();
+            } catch (e) {
+                console.error('Save customer error:', e);
+                showReToast('❌ Empfänger speichern fehlgeschlagen: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteCust(id, name) {
+            if (!confirm('Empfänger "' + name + '" wirklich löschen?')) return;
+            try {
+                const client = getSupabase();
+                const { error } = await client.from('customers').delete().eq('id', id);
+                if (error) throw error;
+                showReToast('🗑️ Empfänger gelöscht', 'success');
+                reSelectedCustomer = null;
+                await loadReCustomers();
+            } catch (e) {
+                console.error('Delete customer error:', e);
+                showReToast('❌ Löschen fehlgeschlagen: ' + e.message, 'error');
+            }
         }
 
         async function saveNewCompanyIfChecked() {
@@ -1017,6 +1171,7 @@
                     URL.revokeObjectURL(url);
                     showReToast('✅ PDF erfolgreich erstellt!', 'success');
                     await saveNewCompanyIfChecked();
+                    await saveNewCustIfChecked();
                     reArchivLoaded = false; /* force reload on next archiv visit */
                 } else {
                     const blob = await response.blob();
@@ -1025,6 +1180,7 @@
                     a.href = url; a.download = 'rechnung.pdf'; a.click();
                     URL.revokeObjectURL(url);
                     showReToast('✅ PDF heruntergeladen!', 'success');
+                    await saveNewCustIfChecked();
                 }
             } catch (err) {
                 console.error('Invoice error:', err);

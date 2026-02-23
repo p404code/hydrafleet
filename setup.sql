@@ -27,3 +27,26 @@ CREATE POLICY "anon_can_read_users"
   ON app_users FOR SELECT
   TO anon
   USING (true);
+
+-- ============================================
+-- CUSTOMERS (Rechnungsempfaenger) Setup
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS customers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  short_name TEXT DEFAULT '',
+  address TEXT DEFAULT '',
+  uid TEXT DEFAULT '',
+  color_scheme TEXT DEFAULT 'grau',
+  is_default BOOLEAN DEFAULT false,
+  sort_order INTEGER DEFAULT 99,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon_select_customers" ON customers FOR SELECT TO anon USING (true);
+CREATE POLICY "anon_insert_customers" ON customers FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "anon_delete_customers" ON customers FOR DELETE TO anon USING (true);
+CREATE POLICY "anon_update_customers" ON customers FOR UPDATE TO anon USING (true);

@@ -535,18 +535,6 @@
                         </div>
                     </div>
                     <div id="reCustNewFields" class="re-new-company">
-                        <div class="re-field"><label>Farbschema</label>
-                            <div class="re-colors">
-                                <div class="re-color selected" style="background:#7f8c8d" onclick="selectCustColor('grau',this)" title="Grau"></div>
-                                <div class="re-color" style="background:#2c3e50" onclick="selectCustColor('blau',this)" title="Blau"></div>
-                                <div class="re-color" style="background:#27ae60" onclick="selectCustColor('gruen',this)" title="Grün"></div>
-                                <div class="re-color" style="background:#c0392b" onclick="selectCustColor('rot',this)" title="Rot"></div>
-                                <div class="re-color" style="background:#e67e22" onclick="selectCustColor('orange',this)" title="Orange"></div>
-                                <div class="re-color" style="background:#8e44ad" onclick="selectCustColor('lila',this)" title="Lila"></div>
-                                <div class="re-color" style="background:#16a085" onclick="selectCustColor('tuerkis',this)" title="Türkis"></div>
-                                <div class="re-color" style="background:#1a1a1a" onclick="selectCustColor('schwarz',this)" title="Schwarz"></div>
-                            </div>
-                        </div>
                         <div class="re-field"><label>Name / Firma</label><input type="text" name="customerName" id="reCustName" required placeholder="Firma oder Name des Kunden"></div>
                         <div class="re-field"><label>Adresse</label><textarea name="customerAddress" id="reCustAddress" rows="2" required placeholder="Straße 123&#10;1010 Wien"></textarea></div>
                         <div class="re-field"><label>Kunden-UID <span class="optional">(optional)</span></label><input type="text" name="customerUid" id="reCustUid" placeholder="ATU12345678"></div>
@@ -779,7 +767,6 @@
         let reSelectedCompany = null;
         let reCustomers = [];
         let reSelectedCustomer = null;
-        let reCustColorScheme = 'grau';
         let reArchivData = [];
         let reArchivLoaded = false;
         const RE_INVOICE_URL = 'https://n8n.hydrafleet.at/webhook/invoice';
@@ -984,12 +971,6 @@
             document.getElementById('reCustAddress').setAttribute('required', '');
         }
 
-        function selectCustColor(color, el) {
-            el.closest('.re-colors').querySelectorAll('.re-color').forEach(c => c.classList.remove('selected'));
-            el.classList.add('selected');
-            reCustColorScheme = color;
-        }
-
         async function saveNewCustIfChecked() {
             const shouldSave = document.getElementById('reSaveCust').checked;
             if (!shouldSave) return;
@@ -1002,7 +983,7 @@
                 short_name: name.substring(0, 2).toUpperCase(),
                 address: document.getElementById('reCustAddress').value.trim(),
                 uid: document.getElementById('reCustUid').value.trim(),
-                color_scheme: reCustColorScheme,
+                color_scheme: 'grau',
                 is_default: false,
                 sort_order: 99
             };

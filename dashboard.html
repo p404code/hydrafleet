@@ -744,11 +744,6 @@
             }
             localStorage.setItem('hydralink_tab', tab);
         }
-        /* Restore last tab */
-        const savedTab = localStorage.getItem('hydralink_tab');
-        if (savedTab === 'rechnungen') { switchTab('rechnungen'); }
-        else if (savedTab === 'abrbot') { switchTab('abrbot'); }
-
         /* === INVOICE FORM LOGIC === */
         let rePositionCount = 0;
         let reCompanies = [];
@@ -757,6 +752,11 @@
         let reArchivLoaded = false;
         const RE_INVOICE_URL = 'https://n8n.hydrafleet.at/webhook/invoice';
         const RE_COLOR_MAP = { blau:'#2c3e50', gruen:'#27ae60', rot:'#c0392b', orange:'#e67e22', lila:'#8e44ad', tuerkis:'#16a085', grau:'#7f8c8d', schwarz:'#1a1a1a' };
+
+        /* Restore last tab (MUST be after all let/const declarations above) */
+        const savedTab = localStorage.getItem('hydralink_tab');
+        if (savedTab === 'rechnungen') { switchTab('rechnungen'); }
+        else if (savedTab === 'abrbot') { switchTab('abrbot'); }
 
         function switchReSubTab(sub) {
             document.querySelectorAll('.re-sub-tab').forEach(b => b.classList.remove('active'));
@@ -818,36 +818,52 @@
         }
 
         async function initInvoiceForm() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('reDate').value = today;
-            const due = new Date(); due.setDate(due.getDate() + 14);
-            document.getElementById('reDueDate').value = due.toISOString().split('T')[0];
-            if (rePositionCount === 0) addRePosition();
-            await loadReCompanies();
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('reDate').value = today;
+                const due = new Date(); due.setDate(due.getDate() + 14);
+                document.getElementById('reDueDate').value = due.toISOString().split('T')[0];
+                if (rePositionCount === 0) addRePosition();
+                await loadReCompanies();
+            } catch (e) {
+                console.error('initInvoiceForm error:', e);
+            }
         }
 
         async function loadReCompanies() {
             try {
                 const client = getSupabase();
                 const { data, error } = await client.from('companies').select('*').order('sort_order', { ascending: true });
-                if (error) throw error;
-                reCompanies = data || [];
-            } catch (e) { console.error('Load companies error:', e); reCompanies = []; }
+                if (error) {
+                    console.error('Load companies DB error:', error);
+                    showReToast('❌ Firmen laden fehlgeschlagen: ' + error.message, 'error');
+                    reCompanies = [];
+                } else {
+                    reCompanies = data || [];
+                    console.log('Companies loaded:', reCompanies.length);
+                }
+            } catch (e) {
+                console.error('Load companies error:', e);
+                showReToast('❌ Firmen laden fehlgeschlagen: ' + e.message, 'error');
+                reCompanies = [];
+            }
             renderReCompanies();
         }
 
         function renderReCompanies() {
             const grid = document.getElementById('reCompaniesGrid');
+            if (!grid) return;
             let html = reCompanies.map((c, i) => {
                 const color = RE_COLOR_MAP[c.color_scheme] || c.color_scheme || '#2c3e50';
                 const initials = (c.short_name || c.name || '?').substring(0, 2).toUpperCase();
                 const isSelected = (i === 0 && !reSelectedCompany) || (reSelectedCompany === c.slug);
                 if (isSelected && !reSelectedCompany) { reSelectedCompany = c.slug; document.getElementById('reCompanyValue').value = c.slug; }
-                const deleteBtn = c.is_default ? '' : '<button class="re-company-delete" onclick="event.stopPropagation();deleteReCompany(\''+c.id+'\',\''+c.name.replace(/'/g,"\\\\'")+'\')">×</button>';
+                const safeName = (c.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const deleteBtn = c.is_default ? '' : '<button class="re-company-delete" onclick="event.stopPropagation();deleteReCompany(\''+c.id+'\',\''+safeName+'\')">×</button>';
                 return '<div class="re-company-card'+(isSelected?' selected':'')+'" onclick="selectReCompany(\''+c.slug+'\',this)">' +
                     deleteBtn +
                     '<div class="re-company-icon" style="background:'+color+'">'+initials+'</div>' +
-                    '<div class="re-company-name">'+c.name+'</div>' +
+                    '<div class="re-company-name">'+(c.name||'Unbenannt')+'</div>' +
                     '</div>';
             }).join('');
             html += '<div class="re-company-card neu-card" onclick="selectReCompany(\'neu\',this)">' +

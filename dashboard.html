@@ -1131,6 +1131,20 @@
             btn.disabled = true;
             btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0"></div> Wird erstellt...';
             try {
+                /* Fix: disable duplicate customer fields before collecting FormData.
+                   If a saved customer is selected (hidden fields visible), disable the manual inputs.
+                   Otherwise disable the hidden inputs. This prevents arrays being sent. */
+                const selFields = document.getElementById('reCustSelectedFields');
+                const isSelected = selFields && selFields.style.display !== 'none';
+                if (isSelected) {
+                    document.getElementById('reCustName').disabled = true;
+                    document.getElementById('reCustAddress').disabled = true;
+                    document.getElementById('reCustUid').disabled = true;
+                } else {
+                    document.getElementById('reCustSelName').disabled = true;
+                    document.getElementById('reCustSelAddress').disabled = true;
+                    document.getElementById('reCustSelUid').disabled = true;
+                }
                 const form = document.getElementById('invoiceForm');
                 const formData = new FormData(form);
                 const response = await fetch(RE_INVOICE_URL, {
@@ -1167,6 +1181,13 @@
                 console.error('Invoice error:', err);
                 showReToast('❌ Fehler: ' + err.message, 'error');
             } finally {
+                /* Re-enable all customer fields */
+                document.getElementById('reCustName').disabled = false;
+                document.getElementById('reCustAddress').disabled = false;
+                document.getElementById('reCustUid').disabled = false;
+                document.getElementById('reCustSelName').disabled = false;
+                document.getElementById('reCustSelAddress').disabled = false;
+                document.getElementById('reCustSelUid').disabled = false;
                 btn.disabled = false;
                 btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:20px;height:20px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Rechnung erstellen & PDF herunterladen';
             }

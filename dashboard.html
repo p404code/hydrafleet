@@ -22,21 +22,22 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --bg: #f8fafc; --bg-card: #ffffff; --bg-hover: #f8fafc; --bg-table-head: #f8fafc;
-            --border: #e2e8f0; --border-light: #f1f5f9; --text: #1e293b; --text-secondary: #64748b; --text-muted: #94a3b8;
-            --blue: #3b82f6; --green: #10b981; --orange: #f59e0b; --red: #ef4444;
-            --badge-fix-bg: #dbeafe; --badge-fix: #1d4ed8; --badge-f11-bg: #ede9fe; --badge-f11: #6d28d9;
-            --badge-f12-bg: #d1fae5; --badge-f12: #047857; --badge-unknown-bg: #f1f5f9; --badge-unknown: #64748b;
-            --status-ok-bg: #d1fae5; --status-ok: #047857; --status-warn-bg: #fef3c7; --status-warn: #b45309;
-            --status-err-bg: #fee2e2; --status-err: #b91c1c; --warning-row: #fef2f2; --warning-row-hover: #fee2e2;
+            --bg: #f8fafc; --bg-card: #ffffff; --bg-hover: #f1f5f9; --bg-table-head: #f8fafc;
+            --border: #e2e8f0; --border-light: #e2e8f0; --text: #0f172a; --text-secondary: #475569; --text-muted: #94a3b8;
+            --blue: #059669; --green: #059669; --orange: #d97706; --red: #e11d48;
+            --badge-fix-bg: #d1fae5; --badge-fix: #065f46; --badge-f11-bg: #ede9fe; --badge-f11: #5b21b6;
+            --badge-f12-bg: #f1f5f9; --badge-f12: #334155; --badge-unknown-bg: #f1f5f9; --badge-unknown: #64748b;
+            --status-ok-bg: #d1fae5; --status-ok: #065f46; --status-warn-bg: #fef3c7; --status-warn: #92400e;
+            --status-err-bg: #ffe4e6; --status-err: #9f1239; --warning-row: #fffbeb; --warning-row-hover: #fef3c7;
         }
         [data-theme="dark"] {
-            --bg: #0f172a; --bg-card: #1e293b; --bg-hover: #334155; --bg-table-head: #1e293b;
-            --border: #334155; --border-light: #334155; --text: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b;
-            --badge-fix-bg: #1e3a5f; --badge-fix: #60a5fa; --badge-f11-bg: #3b2f63; --badge-f11: #a78bfa;
-            --badge-f12-bg: #134e3a; --badge-f12: #34d399; --badge-unknown-bg: #334155; --badge-unknown: #94a3b8;
-            --status-ok-bg: #134e3a; --status-ok: #34d399; --status-warn-bg: #4a3728; --status-warn: #fbbf24;
-            --status-err-bg: #4a2828; --status-err: #f87171; --warning-row: #3b2828; --warning-row-hover: #4a3333;
+            --bg: #020617; --bg-card: #0f172a; --bg-hover: #1e293b; --bg-table-head: #0f172a;
+            --border: #1e293b; --border-light: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #475569;
+            --blue: #3ecf8e; --green: #3ecf8e; --orange: #f59e0b; --red: #f43f5e;
+            --badge-fix-bg: #0d2f1e; --badge-fix: #3ecf8e; --badge-f11-bg: #1e1b4b; --badge-f11: #818cf8;
+            --badge-f12-bg: #1c1917; --badge-f12: #a3a3a3; --badge-unknown-bg: #1e293b; --badge-unknown: #475569;
+            --status-ok-bg: #0d2f1e; --status-ok: #3ecf8e; --status-warn-bg: #1c1407; --status-warn: #f59e0b;
+            --status-err-bg: #1e0f14; --status-err: #f43f5e; --warning-row: #1a1207; --warning-row-hover: #231a0a;
         }
         body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
         .container { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
@@ -50,85 +51,82 @@
         .typewriter-cursor { display: inline-block; width: 2px; height: 20px; background: #F5B51B; margin-left: 2px; vertical-align: middle; animation: blink 0.7s step-end infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         .header-left p { color: var(--text-secondary); font-size: 15px; }
-        .header-actions { display: flex; gap: 0; align-items: center; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-        .header-actions button { background: transparent; border: none; padding: 12px 16px; font-size: 14px; font-weight: 500; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+        .header-actions { display: flex; gap: 0; align-items: center; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+        .header-actions button { background: transparent; border: none; padding: 10px 14px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
         .header-actions button:hover { background: var(--bg-hover); color: var(--text); }
-        .header-actions button svg { width: 18px; height: 18px; }
-        .header-actions .divider { width: 1px; height: 24px; background: var(--border); }
+        .header-actions button svg { width: 16px; height: 16px; }
+        .header-actions .divider { width: 1px; height: 20px; background: var(--border); }
         .header-actions .btn-logout:hover { background: var(--status-err-bg); color: var(--red); }
-        .filters { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
-        select, input[type="text"] { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-size: 14px; color: var(--text); outline: none; }
-        select:focus, input[type="text"]:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
-        input[type="text"] { min-width: 220px; }
+        .filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        select, input[type="text"] { background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; font-size: 13px; color: var(--text); outline: none; }
+        select:focus, input[type="text"]:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(62,207,142,0.15); }
+        input[type="text"] { min-width: 200px; }
         input[type="text"]::placeholder { color: var(--text-muted); }
-        .filter-btn { padding: 12px 18px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--text-secondary); cursor: pointer; }
-        .filter-btn:hover { background: var(--bg-hover); }
+        .filter-btn { padding: 8px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; }
+        .filter-btn:hover { background: var(--bg-hover); color: var(--text); }
         .filter-btn.active { background: var(--status-warn-bg); border-color: var(--orange); color: var(--orange); }
         .filter-btn.excluded { background: var(--status-err-bg); border-color: var(--red); color: var(--red); }
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
-        .stat-card { background: var(--bg-card); border-radius: 16px; padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-        .stat-card.highlight { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-        .stat-card.highlight .stat-label { color: rgba(255,255,255,0.85); }
-        .stat-card.highlight .stat-value { color: white; }
-        .stat-card.highlight .stat-sub { color: rgba(255,255,255,0.7); }
-        .stat-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; }
-        .stat-value { font-size: 32px; font-weight: 700; }
-        .stat-value.blue { color: var(--blue); }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: var(--bg-card); border-radius: 6px; padding: 16px 20px; border: 1px solid var(--border); }
+        .stat-card.highlight { border-left: 3px solid var(--green); }
+        .stat-label { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
+        .stat-value { font-size: 22px; font-weight: 600; }
+        .stat-value.blue { color: var(--green); }
         .stat-value.green { color: var(--green); }
         .stat-value.orange { color: var(--orange); }
-        .stat-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
-        .table-card { background: var(--bg-card); border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden; }
-        .table-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border-light); }
-        .table-header h2 { font-size: 16px; font-weight: 600; }
-        .table-header span { color: var(--text-muted); font-size: 14px; margin-left: 8px; font-weight: 400; }
-        .btn { padding: 10px 16px; background: var(--bg-hover); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; }
-        .btn:hover { background: var(--border); }
+        .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        .table-card { background: var(--bg-card); border-radius: 6px; border: 1px solid var(--border); overflow: hidden; }
+        .table-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+        .table-header h2 { font-size: 14px; font-weight: 600; }
+        .table-header span { color: var(--text-muted); font-size: 13px; margin-left: 6px; font-weight: 400; }
+        .btn { padding: 8px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; }
+        .btn:hover { background: var(--bg-hover); color: var(--text); }
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 14px 20px; font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg-table-head); }
+        th { text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg-table-head); border-bottom: 1px solid var(--border); }
         th.right { text-align: right; }
         th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
-        th.sortable:hover { background: var(--bg-hover); }
-        th.sortable .sort-icon { opacity: 0.4; margin-left: 4px; font-size: 12px; }
-        th.sortable.active .sort-icon { opacity: 1; color: var(--blue); }
+        th.sortable:hover { color: var(--text-secondary); }
+        th.sortable .sort-icon { opacity: 0.4; margin-left: 4px; font-size: 11px; }
+        th.sortable.active .sort-icon { opacity: 1; color: var(--green); }
         th.center { text-align: center; }
-        td { padding: 16px 20px; font-size: 14px; border-top: 1px solid var(--border-light); }
+        td { padding: 11px 16px; font-size: 13px; border-top: 1px solid var(--border); }
         td.right { text-align: right; }
         td.center { text-align: center; }
         tr:hover td { background: var(--bg-hover); }
         tr.warning td { background: var(--warning-row); }
         tr.warning:hover td { background: var(--warning-row-hover); }
-        .fahrer-name { font-weight: 600; }
-        .fahrer-tel { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-        .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .fahrer-name { font-weight: 600; font-size: 13px; }
+        .fahrer-tel { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
         .badge.fix { background: var(--badge-fix-bg); color: var(--badge-fix); }
         .badge.f11 { background: var(--badge-f11-bg); color: var(--badge-f11); }
         .badge.f12 { background: var(--badge-f12-bg); color: var(--badge-f12); }
         .badge.unknown { background: var(--badge-unknown-bg); color: var(--badge-unknown); }
-        .money { font-weight: 500; }
+        .money { font-weight: 500; font-size: 13px; }
         .money.pos { color: var(--green); }
         .money.neg { color: var(--red); }
-        .status { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .status { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
         .status.ok { background: var(--status-ok-bg); color: var(--status-ok); }
         .status.warn { background: var(--status-warn-bg); color: var(--status-warn); }
         .status.err { background: var(--status-err-bg); color: var(--status-err); }
-        .status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-        .empty { text-align: center; padding: 60px; color: var(--text-muted); }
+        .status::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+        .empty { text-align: center; padding: 60px; color: var(--text-muted); font-size: 13px; }
         .loading { text-align: center; padding: 60px; color: var(--text-muted); }
-        .loading .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+        .loading .spinner { width: 32px; height: 32px; border: 2px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .btn-exclude { padding: 6px 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
+        .btn-exclude { padding: 4px 8px; background: transparent; border: 1px solid var(--border); border-radius: 4px; font-size: 11px; cursor: pointer; color: var(--text-muted); transition: all 0.15s; }
         .btn-exclude:hover { background: var(--status-err-bg); border-color: var(--red); color: var(--red); }
-        .btn-print { padding: 6px 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; margin-right: 6px; }
-        .btn-print:hover { background: var(--badge-fix-bg); border-color: var(--blue); color: var(--blue); }
-        .btn-include { padding: 6px 10px; background: var(--status-ok-bg); border: 1px solid var(--green); border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--status-ok); }
-        .btn-include:hover { background: var(--green); color: white; }
-        .alias-banner { background: var(--status-warn-bg); border: 1px solid var(--status-warn); color: var(--status-warn); border-radius: 12px; padding: 12px 18px; margin-bottom: 16px; display: none; align-items: center; justify-content: space-between; gap: 12px; }
-        .alias-modal-inner { background: var(--bg-card); color: var(--text); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.3); padding: 28px; }
-        .alias-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-light); }
+        .btn-print { padding: 4px 8px; background: transparent; border: 1px solid var(--border); border-radius: 4px; font-size: 11px; cursor: pointer; color: var(--text-muted); transition: all 0.15s; margin-right: 4px; }
+        .btn-print:hover { background: var(--badge-fix-bg); border-color: var(--green); color: var(--green); }
+        .btn-include { padding: 4px 8px; background: var(--status-ok-bg); border: 1px solid var(--green); border-radius: 4px; font-size: 11px; cursor: pointer; color: var(--status-ok); }
+        .btn-include:hover { background: var(--green); color: #020617; }
+        .alias-banner { background: var(--status-warn-bg); border: 1px solid var(--status-warn); color: var(--status-warn); border-radius: 6px; padding: 10px 16px; margin-bottom: 12px; display: none; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
+        .alias-modal-inner { background: var(--bg-card); color: var(--text); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 20px 60px rgba(0,0,0,0.5); padding: 24px; }
+        .alias-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
         .alias-row:last-child { border-bottom: none; }
-        .alias-csv-name { flex: 1; font-weight: 500; font-size: 14px; word-break: break-word; }
-        .alias-arrow { color: var(--text-muted); font-size: 16px; flex-shrink: 0; }
-        .alias-select { flex: 1.5; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 14px; color: var(--text); }
+        .alias-csv-name { flex: 1; font-weight: 500; font-size: 13px; word-break: break-word; }
+        .alias-arrow { color: var(--text-muted); font-size: 14px; flex-shrink: 0; }
+        .alias-select { flex: 1.5; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 7px 10px; font-size: 13px; color: var(--text); }
         .print-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
         .print-overlay.show { display: flex; }
         .print-modal { background: #f1f5f9; color: #1e293b; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.3); }
@@ -195,11 +193,11 @@
             .print-payout-label { font-size: 10pt !important; }
             .print-payout-value { font-size: 24pt !important; }
         }
-        .excluded-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: none; }
+        .excluded-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; padding: 14px 16px; margin-bottom: 16px; display: none; }
         .excluded-panel.show { display: block; }
-        .excluded-panel h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--red); }
+        .excluded-panel h3 { font-size: 12px; font-weight: 600; margin-bottom: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; }
         .excluded-list { display: flex; flex-wrap: wrap; gap: 8px; }
-        .excluded-tag { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--status-err-bg); border-radius: 20px; font-size: 13px; color: var(--red); }
+        .excluded-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--status-err-bg); border-radius: 4px; font-size: 12px; color: var(--red); border: 1px solid var(--red); }
         .excluded-tag button { background: none; border: none; cursor: pointer; color: var(--red); font-size: 14px; padding: 0; line-height: 1; }
         .excluded-tag button:hover { color: var(--text); }
         @media (max-width: 768px) {
@@ -256,24 +254,24 @@
         .abr-file-btn:hover { border-color:var(--blue);background:var(--bg-hover); }
         .abr-file-btn.has-file { border-color:var(--green);border-style:solid;color:var(--green); }
         .abr-file-info { display:none;margin-top:8px;padding:8px 14px;background:var(--status-ok-bg);border-radius:8px;font-size:13px;color:var(--status-ok);font-weight:500; }
-        .tab-nav { display: flex; gap: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 24px; }
-        .tab-btn { flex: 1; padding: 12px 20px; border: none; background: transparent; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .tab-btn:hover { background: var(--bg-hover); color: var(--text); }
-        .tab-btn.active { background: var(--blue); color: white; }
-        .tab-btn svg { width: 18px; height: 18px; }
+        .tab-nav { display: flex; gap: 0; background: transparent; border: none; border-bottom: 1px solid var(--border); padding: 0; margin-bottom: 24px; }
+        .tab-btn { flex: none; padding: 10px 18px; border: none; border-bottom: 2px solid transparent; background: transparent; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 6px; margin-bottom: -1px; }
+        .tab-btn:hover { color: var(--text-secondary); }
+        .tab-btn.active { color: var(--green); border-bottom-color: var(--green); font-weight: 600; }
+        .tab-btn svg { width: 15px; height: 15px; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         /* === RECHNUNG FORM === */
         .re-wrap { max-width: 900px; margin: 0 auto; }
-        .re-sub-tabs { display: flex; gap: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 3px; margin-bottom: 20px; }
-        .re-sub-tab { flex: 1; padding: 10px 16px; border: none; background: transparent; border-radius: 7px; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
-        .re-sub-tab:hover { background: var(--bg-hover); color: var(--text); }
-        .re-sub-tab.active { background: var(--blue); color: white; }
-        .re-sub-tab svg { width: 16px; height: 16px; }
+        .re-sub-tabs { display: flex; gap: 0; background: transparent; border-bottom: 1px solid var(--border); padding: 0; margin-bottom: 20px; }
+        .re-sub-tab { flex: none; padding: 8px 16px; border: none; border-bottom: 2px solid transparent; background: transparent; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 6px; margin-bottom: -1px; }
+        .re-sub-tab:hover { color: var(--text-secondary); }
+        .re-sub-tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 600; }
+        .re-sub-tab svg { width: 14px; height: 14px; }
         .re-sub-content { display: none; }
         .re-sub-content.active { display: block; }
         /* Archive Table */
-        .re-archive-card { background: var(--bg-card); border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden; }
+        .re-archive-card { background: var(--bg-card); border-radius: 6px; border: 1px solid var(--border); overflow: hidden; }
         .re-archive-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--border-light); flex-wrap: wrap; gap: 12px; }
         .re-archive-header h2 { font-size: 16px; font-weight: 600; }
         .re-archive-header .re-count { color: var(--text-muted); font-size: 14px; font-weight: 400; margin-left: 6px; }
@@ -300,26 +298,26 @@
             .re-table { min-width: 560px; }
             .re-archive-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         }
-        .re-form-card { background: var(--bg-card); border-radius: 16px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 24px; }
-        .re-form-card h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-        .re-section { margin-bottom: 24px; }
-        .re-section h3 { font-size: 13px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+        .re-form-card { background: var(--bg-card); border-radius: 6px; border: 1px solid var(--border); padding: 24px; margin-bottom: 16px; }
+        .re-form-card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .re-section { margin-bottom: 20px; }
+        .re-section h3 { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
         .re-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
         .re-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
         .re-field { margin-bottom: 14px; }
         .re-field label { display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
         .re-field label .optional { color: var(--text-muted); font-weight: 400; font-size: 11px; }
-        .re-field input, .re-field select, .re-field textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--text); outline: none; font-family: inherit; transition: border-color 0.2s; }
-        .re-field input:focus, .re-field select:focus, .re-field textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .re-field input, .re-field select, .re-field textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; font-size: 13px; color: var(--text); outline: none; font-family: inherit; transition: border-color 0.15s; }
+        .re-field input:focus, .re-field select:focus, .re-field textarea:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(62,207,142,0.15); }
         .re-field textarea { resize: vertical; min-height: 60px; }
         .re-field select { cursor: pointer; }
         /* Company Cards */
         .re-companies { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 14px; }
-        .re-company-card { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 10px; background: var(--bg); border: 2px solid var(--border); border-radius: 14px; cursor: pointer; transition: all 0.2s; text-align: center; }
-        .re-company-card:hover { border-color: var(--blue); background: var(--bg-hover); }
-        .re-company-card.selected { border-color: var(--blue); background: rgba(59,130,246,0.08); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
-        [data-theme="dark"] .re-company-card.selected { background: rgba(59,130,246,0.15); }
-        .re-company-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; color: white; flex-shrink: 0; }
+        .re-company-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: all 0.15s; text-align: center; }
+        .re-company-card:hover { border-color: var(--green); background: var(--bg-hover); }
+        .re-company-card.selected { border-color: var(--green); background: rgba(62,207,142,0.06); box-shadow: 0 0 0 2px rgba(62,207,142,0.2); }
+        [data-theme="dark"] .re-company-card.selected { background: rgba(62,207,142,0.08); }
+        .re-company-icon { width: 40px; height: 40px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: white; flex-shrink: 0; }
         .re-company-card .re-company-name { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.3; }
         .re-company-card .re-company-sub { font-size: 10px; color: var(--text-muted); }
         .re-company-card.neu-card { border-style: dashed; }
@@ -327,35 +325,35 @@
         .re-company-delete { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: var(--red); color: white; border: 2px solid var(--bg-card); font-size: 11px; cursor: pointer; display: none; align-items: center; justify-content: center; line-height: 1; }
         .re-company-card:hover .re-company-delete { display: flex; }
         .re-company-card { position: relative; }
-        .re-save-company { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--badge-fix-bg); border: 1px solid var(--blue); border-radius: 10px; margin-top: 14px; }
-        .re-save-company input[type=checkbox] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--blue); }
-        .re-save-company label { font-weight: 600; font-size: 13px; color: var(--blue); cursor: pointer; }
-        .re-new-company { display: none; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 14px; }
+        .re-save-company { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--badge-fix-bg); border: 1px solid var(--green); border-radius: 4px; margin-top: 12px; }
+        .re-save-company input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--green); }
+        .re-save-company label { font-weight: 500; font-size: 13px; color: var(--green); cursor: pointer; }
+        .re-new-company { display: none; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 16px; margin-bottom: 12px; }
         .re-new-company.show { display: block; }
         /* Color scheme inside new company */
         .re-colors { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-        .re-color { width: 32px; height: 32px; border-radius: 8px; cursor: pointer; border: 3px solid transparent; transition: all 0.15s; }
+        .re-color { width: 28px; height: 28px; border-radius: 4px; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; }
         .re-color:hover { transform: scale(1.1); }
-        .re-color.selected { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
-        .re-position { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; position: relative; }
-        .re-pos-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .re-pos-header span { font-weight: 600; font-size: 14px; }
-        .re-pos-remove { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--red); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+        .re-color.selected { border-color: var(--green); box-shadow: 0 0 0 2px rgba(62,207,142,0.3); }
+        .re-position { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 14px; margin-bottom: 10px; position: relative; }
+        .re-pos-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .re-pos-header span { font-weight: 600; font-size: 13px; }
+        .re-pos-remove { width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--red); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
         .re-pos-remove:hover { background: var(--status-err-bg); border-color: var(--red); }
-        .re-add-pos { display: flex; align-items: center; gap: 8px; padding: 12px 18px; background: transparent; border: 2px dashed var(--border); border-radius: 10px; color: var(--green); font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.15s; width: 100%; justify-content: center; }
-        .re-add-pos:hover { background: var(--status-ok-bg); border-color: var(--green); }
-        .re-paid { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--status-ok-bg); border: 1px solid var(--green); border-radius: 10px; margin-bottom: 14px; cursor: pointer; }
-        .re-paid input[type=checkbox] { width: 20px; height: 20px; cursor: pointer; accent-color: var(--green); }
-        .re-paid label { font-weight: 600; font-size: 14px; color: var(--green); cursor: pointer; }
-        .re-submit { width: 100%; padding: 16px; background: linear-gradient(135deg, var(--blue) 0%, #6366f1 100%); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.15s; }
-        .re-submit:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 15px rgba(59,130,246,0.3); }
-        .re-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-        .re-logo-preview { max-height: 50px; margin-top: 8px; display: none; border-radius: 6px; }
+        .re-add-pos { display: flex; align-items: center; gap: 6px; padding: 10px 16px; background: transparent; border: 1px dashed var(--border); border-radius: 4px; color: var(--text-muted); font-weight: 500; font-size: 13px; cursor: pointer; transition: all 0.15s; width: 100%; justify-content: center; }
+        .re-add-pos:hover { background: var(--status-ok-bg); border-color: var(--green); color: var(--green); }
+        .re-paid { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--status-ok-bg); border: 1px solid var(--green); border-radius: 4px; margin-bottom: 12px; cursor: pointer; }
+        .re-paid input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--green); }
+        .re-paid label { font-weight: 500; font-size: 13px; color: var(--green); cursor: pointer; }
+        .re-submit { width: 100%; padding: 12px; background: var(--green); color: #020617; border: none; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s; }
+        .re-submit:hover { opacity: 0.9; }
+        .re-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+        .re-logo-preview { max-height: 40px; margin-top: 8px; display: none; border-radius: 4px; }
         .re-logo-preview.show { display: block; }
-        .re-toast { position: fixed; bottom: 24px; right: 24px; padding: 16px 24px; border-radius: 12px; font-weight: 600; font-size: 14px; z-index: 9999; transform: translateY(100px); opacity: 0; transition: all 0.3s; }
+        .re-toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 4px; font-weight: 500; font-size: 13px; z-index: 9999; transform: translateY(100px); opacity: 0; transition: all 0.25s; border: 1px solid; }
         .re-toast.show { transform: translateY(0); opacity: 1; }
-        .re-toast.success { background: var(--green); color: white; }
-        .re-toast.error { background: var(--red); color: white; }
+        .re-toast.success { background: var(--status-ok-bg); color: var(--status-ok); border-color: var(--green); }
+        .re-toast.error { background: var(--status-err-bg); color: var(--status-err); border-color: var(--red); }
         @media (max-width: 768px) {
             .tab-nav { flex-direction: row; }
             .tab-btn { padding: 10px 14px; font-size: 13px; }
@@ -421,31 +419,31 @@
         <div class="filters">
             <select id="weekFilter"><option value="">Laden...</option></select>
             <input type="text" id="searchInput" placeholder="Fahrer suchen...">
-            <button class="filter-btn" id="warningFilter">⚠️ Nur Probleme</button>
-            <button class="filter-btn" id="excludedFilter">🚫 Ausgeschlossen (<span id="excludedCount">0</span>)</button>
+            <button class="filter-btn" id="warningFilter">Nur Probleme</button>
+            <button class="filter-btn" id="excludedFilter">Ausgeschlossen (<span id="excludedCount">0</span>)</button>
         </div>
         <div class="excluded-panel" id="excludedPanel">
-            <h3>🚫 Ausgeschlossene Fahrer (werden nicht in Statistiken gezählt)</h3>
+            <h3>Ausgeschlossene Fahrer</h3>
             <div class="excluded-list" id="excludedList"></div>
         </div>
         <div class="stats">
             <div class="stat-card"><div class="stat-label">Fahrer</div><div class="stat-value" id="statFahrer">--</div></div>
-            <div class="stat-card highlight"><div class="stat-label">💰 Bei uns bleibt</div><div class="stat-value" id="statBleibt">--</div><div class="stat-sub" id="statBleibtSub">Mieten + Prozent</div></div>
+            <div class="stat-card highlight"><div class="stat-label">Bei uns bleibt</div><div class="stat-value" id="statBleibt">--</div><div class="stat-sub" id="statBleibtSub">Mieten + Prozent</div></div>
             <div class="stat-card"><div class="stat-label">Auszahlungen (tatsächlich)</div><div class="stat-value green" id="statAuszahlung">--</div><div class="stat-sub">Was wir an Fahrer zahlen</div></div>
             <div class="stat-card"><div class="stat-label">Zu kassieren</div><div class="stat-value orange" id="statKassieren">--</div><div class="stat-sub">Fahrer schulden uns</div></div>
             <div class="stat-card"><div class="stat-label">Probleme</div><div class="stat-value orange" id="statProbleme">--</div></div>
         </div>
         <div class="alias-banner" id="aliasBanner">
-            <span>⚠️ <strong id="aliasBannerCount">0</strong> Fahrer ohne Zuordnung in dieser Woche</span>
+            <span><strong id="aliasBannerCount">0</strong> Fahrer ohne Zuordnung in dieser Woche</span>
             <button class="btn" onclick="openAliasModal()">Jetzt zuordnen →</button>
         </div>
         <div class="table-card">
             <div class="table-header">
                 <h2>Alle Fahrer<span id="tableCount"></span></h2>
                 <div>
-                    <button class="btn" id="printAllBtn" style="margin-left:8px">🖨️ Alle drucken</button>
-                    <button class="btn" id="exportBtn">📥 Export</button>
-                    <button class="btn" id="refreshBtn" style="margin-left:8px">🔄</button>
+                    <button class="btn" id="printAllBtn" style="margin-left:8px">Alle drucken</button>
+                    <button class="btn" id="exportBtn">Export</button>
+                    <button class="btn" id="refreshBtn" style="margin-left:8px">↺</button>
                 </div>
             </div>
             <table>
@@ -521,12 +519,12 @@
                         </div>
                         <div class="re-save-company">
                             <input type="checkbox" id="reSaveCompany">
-                            <label for="reSaveCompany">💾 Firma dauerhaft speichern (erscheint als eigene Karte)</label>
+                            <label for="reSaveCompany">Firma dauerhaft speichern</label>
                         </div>
                     </div>
                 </div>
                 <div class="re-section">
-                    <h3>📋 Rechnungsdaten</h3>
+                    <h3>Rechnungsdaten</h3>
                     <div class="re-row-3">
                         <div class="re-field"><label>Rechnungsnr. <span class="optional">(leer = auto)</span></label><input type="text" name="invoiceNumber" placeholder="RE-2025-001"></div>
                         <div class="re-field"><label>Rechnungsdatum</label><input type="date" name="date" id="reDate"></div>
@@ -534,7 +532,7 @@
                     </div>
                     <div class="re-paid">
                         <input type="checkbox" id="reIsPaid" name="isPaid" value="true" onchange="toggleReDueDate()">
-                        <label for="reIsPaid">✅ BEZAHLT (keine Fälligkeit)</label>
+                        <label for="reIsPaid">BEZAHLT (keine Fälligkeit)</label>
                     </div>
                 </div>
                 <div class="re-section">
@@ -551,7 +549,7 @@
                         <div class="re-field"><label>Kunden-UID <span class="optional">(optional)</span></label><input type="text" name="customerUid" id="reCustUid" placeholder="ATU12345678"></div>
                         <div class="re-save-company">
                             <input type="checkbox" id="reSaveCust">
-                            <label for="reSaveCust">💾 Empfänger dauerhaft speichern (erscheint als eigene Karte)</label>
+                            <label for="reSaveCust">Empfänger dauerhaft speichern</label>
                         </div>
                     </div>
                     <div id="reCustSelectedFields" style="display:none;">
@@ -566,7 +564,7 @@
                     <button type="button" class="re-add-pos" onclick="addRePosition()">+ Position hinzufügen</button>
                 </div>
                 <div class="re-section">
-                    <h3>📋 Fußzeile</h3>
+                    <h3>Fußzeile</h3>
                     <div class="re-field"><label>Footer-Text</label><textarea name="footerText" rows="2">Zahlbar innerhalb von 14 Tagen ohne Abzug.</textarea></div>
                 </div>
                 <button type="submit" class="re-submit" id="reSubmitBtn">
@@ -608,50 +606,50 @@
 
     <div class="tab-content" id="contentAbrBot">
         <div style="max-width:900px;margin:0 auto;">
-            <div style="background:var(--bg-card);border-radius:16px;padding:28px 32px;margin-bottom:20px;border:1px solid var(--border);">
-                <h2 style="font-size:18px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:10px;">📊 AbrechnungsBot</h2>
+            <div style="background:var(--bg-card);border-radius:6px;padding:24px;margin-bottom:16px;border:1px solid var(--border);">
+                <h2 style="font-size:15px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px;">AbrechnungsBot</h2>
                 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                     <label style="color:var(--text-secondary);font-size:14px;white-space:nowrap;">📅 Woche:</label>
                     <select id="abrWeekSelect" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:14px;color:var(--text);font-family:inherit;min-width:200px;"></select>
                     <input type="text" id="abrWeekManual" placeholder="z.B. 2026-W07" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:14px;color:var(--text);font-family:inherit;width:160px;">
                 </div>
             </div>
-            <div style="background:var(--bg-card);border-radius:16px;padding:24px 28px;margin-bottom:20px;border:1px solid var(--border);">
-                <h3 style="font-size:14px;font-weight:600;color:var(--blue);margin-bottom:12px;">📋 Vor dem Upload prüfen:</h3>
+            <div style="background:var(--bg-card);border-radius:6px;padding:20px;margin-bottom:16px;border:1px solid var(--border);">
+                <h3 style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Vor dem Upload prüfen</h3>
                 <ul style="list-style:none;padding:0;margin:0;font-size:13px;color:var(--text-secondary);display:flex;flex-direction:column;gap:8px;">
                     <li>☐ <strong>Notion Fahrer:</strong> Pauschale und Pauschalmodell (fix/f11/f12) aktuell?</li>
                     <li>☐ <strong>MyPOS Terminals:</strong> Alle Terminals dem richtigen Fahrer zugeordnet?</li>
                     <li>☐ <strong>Uber CSV:</strong> Zeitraum Montag 04:00 bis Montag 04:00 Uhr?</li>
                 </ul>
             </div>
-            <form id="abrForm" style="display:flex;flex-direction:column;gap:16px;">
-                <div style="background:var(--bg-card);border-radius:16px;padding:24px 28px;border:1px solid var(--border);">
-                    <label style="display:block;font-size:14px;font-weight:600;margin-bottom:10px;">🟢 Bolt CSV <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(Umsatz nach Fahrer)</span></label>
+            <form id="abrForm" style="display:flex;flex-direction:column;gap:12px;">
+                <div style="background:var(--bg-card);border-radius:6px;padding:20px;border:1px solid var(--border);">
+                    <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-muted);margin-bottom:10px;">Bolt CSV <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);font-size:11px;">(Umsatz nach Fahrer)</span></label>
                     <div style="position:relative;">
                         <input type="file" id="abrBolt" accept=".csv" required style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;z-index:2;">
-                        <div class="abr-file-btn" id="abrBoltBtn">📁 Datei auswählen...</div>
+                        <div class="abr-file-btn" id="abrBoltBtn">Datei auswählen...</div>
                     </div>
                     <div class="abr-file-info" id="abrBoltInfo"></div>
                 </div>
-                <div style="background:var(--bg-card);border-radius:16px;padding:24px 28px;border:1px solid var(--border);">
-                    <label style="display:block;font-size:14px;font-weight:600;margin-bottom:10px;">⚫ Uber CSV <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(Mo 04:00 – Mo 04:00)</span></label>
+                <div style="background:var(--bg-card);border-radius:6px;padding:20px;border:1px solid var(--border);">
+                    <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-muted);margin-bottom:10px;">Uber CSV <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);font-size:11px;">(Mo 04:00 – Mo 04:00)</span></label>
                     <div style="position:relative;">
                         <input type="file" id="abrUber" accept=".csv" required style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;z-index:2;">
-                        <div class="abr-file-btn" id="abrUberBtn">📁 Datei auswählen...</div>
+                        <div class="abr-file-btn" id="abrUberBtn">Datei auswählen...</div>
                     </div>
                     <div class="abr-file-info" id="abrUberInfo"></div>
                 </div>
-                <div style="background:var(--bg-card);border-radius:16px;padding:24px 28px;border:1px solid var(--border);">
-                    <label style="display:block;font-size:14px;font-weight:600;margin-bottom:10px;">💳 MyPOS CSV <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(Transactions Export)</span></label>
+                <div style="background:var(--bg-card);border-radius:6px;padding:20px;border:1px solid var(--border);">
+                    <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-muted);margin-bottom:10px;">MyPOS CSV <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);font-size:11px;">(Transactions Export)</span></label>
                     <div style="position:relative;">
                         <input type="file" id="abrMypos" accept=".csv" required style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;z-index:2;">
-                        <div class="abr-file-btn" id="abrMyposBtn">📁 Datei auswählen...</div>
+                        <div class="abr-file-btn" id="abrMyposBtn">Datei auswählen...</div>
                     </div>
                     <div class="abr-file-info" id="abrMyposInfo"></div>
                 </div>
-                <button type="submit" id="abrSubmitBtn" style="padding:16px;background:linear-gradient(135deg,var(--blue),#2563eb);color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;">📊 Abrechnung erstellen</button>
+                <button type="submit" id="abrSubmitBtn" style="padding:12px;background:var(--green);color:#020617;border:none;border-radius:4px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;">Abrechnung erstellen</button>
             </form>
-            <div id="abrStatus" style="margin-top:16px;padding:14px 20px;border-radius:12px;text-align:center;font-weight:600;font-size:14px;display:none;"></div>
+            <div id="abrStatus" style="margin-top:12px;padding:12px 16px;border-radius:4px;text-align:center;font-weight:500;font-size:13px;display:none;"></div>
         </div>
     </div><!-- end contentAbrBot -->
     <div class="re-toast" id="reToast"></div>
@@ -721,7 +719,7 @@
             <p style="color:var(--text-secondary);margin-bottom:20px;font-size:14px">CSV-Namen ohne Treffer den richtigen Fahrern zuordnen. Wird sofort gespeichert und die Abrechnung neu berechnet.</p>
             <div id="aliasList"></div>
             <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
-                <button class="btn" onclick="saveAliases()" id="aliasSaveBtn">💾 Speichern &amp; Berechnen</button>
+                <button class="btn" onclick="saveAliases()" id="aliasSaveBtn" style="background:var(--green);color:#020617;border:none;">Speichern &amp; Berechnen</button>
                 <button class="btn" style="background:var(--bg-hover);color:var(--text);border:1px solid var(--border)" onclick="closeAliasModal()">Abbrechen</button>
             </div>
         </div>
@@ -813,7 +811,7 @@
                 console.error('Save aliases error:', err);
                 alert('Fehler beim Speichern: ' + err.message);
             } finally {
-                saveBtn.disabled = false; saveBtn.textContent = '\uD83D\uDCBE Speichern & Berechnen';
+                saveBtn.disabled = false; saveBtn.textContent = 'Speichern & Berechnen';
             }
         }
 
@@ -894,7 +892,7 @@
                 const betrag = r.betrag_brutto != null ? parseFloat(r.betrag_brutto).toLocaleString('de-AT', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €' : '-';
                 const statusClass = r.status === 'storniert' ? 'storniert' : 'erstellt';
                 const statusText = r.status === 'storniert' ? 'Storniert' : 'Erstellt';
-                const pdf = r.pdf_url ? '<a href="'+r.pdf_url+'" target="_blank" class="re-pdf-btn">📥 PDF</a>' : '<span class="re-no-pdf">–</span>';
+                const pdf = r.pdf_url ? '<a href="'+r.pdf_url+'" target="_blank" class="re-pdf-btn">PDF</a>' : '<span class="re-no-pdf">–</span>';
                 return '<tr>' +
                     '<td class="re-nr">' + esc(r.re_nummer || '-') + '</td>' +
                     '<td>' + datum + '</td>' +
@@ -931,7 +929,7 @@
                 const { data, error } = await client.from('companies').select('*').order('sort_order', { ascending: true });
                 if (error) {
                     console.error('Load companies DB error:', error);
-                    showReToast('❌ Firmen laden fehlgeschlagen: ' + error.message, 'error');
+                    showReToast('Firmen laden fehlgeschlagen: ' + error.message, 'error');
                     reCompanies = [];
                 } else {
                     reCompanies = data || [];
@@ -939,7 +937,7 @@
                 }
             } catch (e) {
                 console.error('Load companies error:', e);
-                showReToast('❌ Firmen laden fehlgeschlagen: ' + e.message, 'error');
+                showReToast('Firmen laden fehlgeschlagen: ' + e.message, 'error');
                 reCompanies = [];
             }
             renderReCompanies();
@@ -1067,12 +1065,12 @@
                 const client = getSupabase();
                 const { error } = await client.from('customers').insert(newCust);
                 if (error) throw error;
-                showReToast('✅ Empfänger "' + name + '" gespeichert!', 'success');
+                showReToast('Empfänger "' + name + '" gespeichert.', 'success');
                 document.getElementById('reSaveCust').checked = false;
                 await loadReCustomers();
             } catch (e) {
                 console.error('Save customer error:', e);
-                showReToast('❌ Empfänger speichern fehlgeschlagen: ' + e.message, 'error');
+                showReToast('Empfänger speichern fehlgeschlagen: ' + e.message, 'error');
             }
         }
 
@@ -1082,12 +1080,12 @@
                 const client = getSupabase();
                 const { error } = await client.from('customers').delete().eq('id', id);
                 if (error) throw error;
-                showReToast('🗑️ Empfänger gelöscht', 'success');
+                showReToast('Empfänger gelöscht.', 'success');
                 reSelectedCustomer = null;
                 await loadReCustomers();
             } catch (e) {
                 console.error('Delete customer error:', e);
-                showReToast('❌ Löschen fehlgeschlagen: ' + e.message, 'error');
+                showReToast('Löschen fehlgeschlagen: ' + e.message, 'error');
             }
         }
 
@@ -1119,12 +1117,12 @@
                 const client = getSupabase();
                 const { error } = await client.from('companies').insert(newCompany);
                 if (error) throw error;
-                showReToast('✅ Firma "' + name + '" gespeichert!', 'success');
+                showReToast('Firma "' + name + '" gespeichert.', 'success');
                 document.getElementById('reSaveCompany').checked = false;
                 await loadReCompanies();
             } catch (e) {
                 console.error('Save company error:', e);
-                showReToast('❌ Firma speichern fehlgeschlagen: ' + e.message, 'error');
+                showReToast('Firma speichern fehlgeschlagen: ' + e.message, 'error');
             }
         }
 
@@ -1134,12 +1132,12 @@
                 const client = getSupabase();
                 const { error } = await client.from('companies').delete().eq('id', id);
                 if (error) throw error;
-                showReToast('🗑️ Firma gelöscht', 'success');
+                showReToast('Firma gelöscht.', 'success');
                 reSelectedCompany = null;
                 await loadReCompanies();
             } catch (e) {
                 console.error('Delete company error:', e);
-                showReToast('❌ Löschen fehlgeschlagen: ' + e.message, 'error');
+                showReToast('Löschen fehlgeschlagen: ' + e.message, 'error');
             }
         }
 
@@ -1240,7 +1238,7 @@
                     a.download = match ? match[1] : 'rechnung.pdf';
                     a.click();
                     URL.revokeObjectURL(url);
-                    showReToast('✅ PDF erfolgreich erstellt!', 'success');
+                    showReToast('PDF erfolgreich erstellt.', 'success');
                     await saveNewCompanyIfChecked();
                     await saveNewCustIfChecked();
                     reArchivLoaded = false; /* force reload on next archiv visit */
@@ -1250,12 +1248,12 @@
                     const a = document.createElement('a');
                     a.href = url; a.download = 'rechnung.pdf'; a.click();
                     URL.revokeObjectURL(url);
-                    showReToast('✅ PDF heruntergeladen!', 'success');
+                    showReToast('PDF heruntergeladen.', 'success');
                     await saveNewCustIfChecked();
                 }
             } catch (err) {
                 console.error('Invoice error:', err);
-                showReToast('❌ Fehler: ' + err.message, 'error');
+                showReToast('Fehler: ' + err.message, 'error');
             } finally {
                 /* Re-enable all customer fields */
                 document.getElementById('reCustName').disabled = false;
@@ -1308,12 +1306,12 @@
                 input.addEventListener('change', function() {
                     if (this.files.length > 0) {
                         const f = this.files[0];
-                        btn.textContent = '✅ ' + f.name;
+                        btn.textContent = f.name;
                         btn.classList.add('has-file');
-                        info.textContent = '✅ ' + f.name + ' (' + Math.round(f.size/1024) + ' KB)';
+                        info.textContent = f.name + ' (' + Math.round(f.size/1024) + ' KB)';
                         info.style.display = 'block';
                     } else {
-                        btn.textContent = '📁 Datei auswählen...';
+                        btn.textContent = 'Datei auswählen...';
                         btn.classList.remove('has-file');
                         info.style.display = 'none';
                     }
@@ -1326,13 +1324,13 @@
                 s.style.display = 'block';
                 s.style.background = 'var(--status-warn-bg)';
                 s.style.color = 'var(--status-warn)';
-                s.textContent = '⏳ Verarbeite Abrechnung...';
+                s.textContent = 'Verarbeite Abrechnung...';
                 btn.disabled = true;
-                btn.textContent = '⏳ Verarbeite...';
+                btn.textContent = 'Verarbeite...';
                 const d = new FormData();
                 const selVal = document.getElementById('abrWeekSelect').value;
                 const weekVal = selVal === '__manual__' ? document.getElementById('abrWeekManual').value.trim() : selVal;
-                if (!weekVal) { s.style.display='block'; s.style.background='var(--status-err-bg)'; s.style.color='var(--status-err)'; s.textContent='❌ Bitte Woche angeben'; btn.disabled=false; btn.textContent='📊 Abrechnung erstellen'; return; }
+                if (!weekVal) { s.style.display='block'; s.style.background='var(--status-err-bg)'; s.style.color='var(--status-err)'; s.textContent='Bitte Woche angeben'; btn.disabled=false; btn.textContent='Abrechnung erstellen'; return; }
                 d.append('woche', weekVal);
                 d.append('bolt', document.getElementById('abrBolt').files[0]);
                 d.append('uber', document.getElementById('abrUber').files[0]);
@@ -1346,20 +1344,20 @@
                         a.href = u; a.download = 'abrechnung.csv'; a.click();
                         s.style.background = 'var(--status-ok-bg)';
                         s.style.color = 'var(--status-ok)';
-                        s.textContent = '✅ Abrechnung erstellt! CSV heruntergeladen. Settlements gespeichert.';
+                        s.textContent = 'Abrechnung erstellt. CSV heruntergeladen. Settlements gespeichert.';
                     } else {
                         const txt = await r.text();
                         s.style.background = 'var(--status-err-bg)';
                         s.style.color = 'var(--status-err)';
-                        s.textContent = '❌ ' + txt;
+                        s.textContent = txt;
                     }
                 } catch (err) {
                     s.style.background = 'var(--status-err-bg)';
                     s.style.color = 'var(--status-err)';
-                    s.textContent = '❌ Fehler: ' + err.message;
+                    s.textContent = 'Fehler: ' + err.message;
                 } finally {
                     btn.disabled = false;
-                    btn.textContent = '📊 Abrechnung erstellen';
+                    btn.textContent = 'Abrechnung erstellen';
                 }
             });
         }

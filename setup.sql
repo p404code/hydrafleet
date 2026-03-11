@@ -50,3 +50,19 @@ CREATE POLICY "anon_select_customers" ON customers FOR SELECT TO anon USING (tru
 CREATE POLICY "anon_insert_customers" ON customers FOR INSERT TO anon WITH CHECK (true);
 CREATE POLICY "anon_delete_customers" ON customers FOR DELETE TO anon USING (true);
 CREATE POLICY "anon_update_customers" ON customers FOR UPDATE TO anon USING (true);
+
+-- ============================================
+-- NAME_ALIASES (CSV-Name → Fahrer Zuordnung)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS name_aliases (
+  csv_name TEXT PRIMARY KEY,
+  fahrer_name TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE name_aliases ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon_select_aliases" ON name_aliases FOR SELECT TO anon USING (true);
+CREATE POLICY "anon_insert_aliases" ON name_aliases FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "anon_update_aliases" ON name_aliases FOR UPDATE TO anon USING (true);
+CREATE POLICY "anon_delete_aliases" ON name_aliases FOR DELETE TO anon USING (true);

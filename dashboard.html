@@ -122,6 +122,13 @@
         .btn-print:hover { background: var(--badge-fix-bg); border-color: var(--blue); color: var(--blue); }
         .btn-include { padding: 6px 10px; background: var(--status-ok-bg); border: 1px solid var(--green); border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--status-ok); }
         .btn-include:hover { background: var(--green); color: white; }
+        .alias-banner { background: var(--status-warn-bg); border: 1px solid var(--status-warn); color: var(--status-warn); border-radius: 12px; padding: 12px 18px; margin-bottom: 16px; display: none; align-items: center; justify-content: space-between; gap: 12px; }
+        .alias-modal-inner { background: var(--bg-card); color: var(--text); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.3); padding: 28px; }
+        .alias-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-light); }
+        .alias-row:last-child { border-bottom: none; }
+        .alias-csv-name { flex: 1; font-weight: 500; font-size: 14px; word-break: break-word; }
+        .alias-arrow { color: var(--text-muted); font-size: 16px; flex-shrink: 0; }
+        .alias-select { flex: 1.5; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 14px; color: var(--text); }
         .print-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
         .print-overlay.show { display: flex; }
         .print-modal { background: #f1f5f9; color: #1e293b; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.3); }
@@ -428,6 +435,10 @@
             <div class="stat-card"><div class="stat-label">Zu kassieren</div><div class="stat-value orange" id="statKassieren">--</div><div class="stat-sub">Fahrer schulden uns</div></div>
             <div class="stat-card"><div class="stat-label">Probleme</div><div class="stat-value orange" id="statProbleme">--</div></div>
         </div>
+        <div class="alias-banner" id="aliasBanner">
+            <span>⚠️ <strong id="aliasBannerCount">0</strong> Fahrer ohne Zuordnung in dieser Woche</span>
+            <button class="btn" onclick="openAliasModal()">Jetzt zuordnen →</button>
+        </div>
         <div class="table-card">
             <div class="table-header">
                 <h2>Alle Fahrer<span id="tableCount"></span></h2>
@@ -704,6 +715,17 @@
         </div>
     </div>
     <div id="printAllContainer" style="display:none;"></div>
+    <div class="print-overlay" id="aliasOverlay">
+        <div class="alias-modal-inner">
+            <h2 style="margin-bottom:8px;font-size:20px">Fahrer zuordnen</h2>
+            <p style="color:var(--text-secondary);margin-bottom:20px;font-size:14px">CSV-Namen ohne Treffer den richtigen Fahrern zuordnen. Wird sofort gespeichert und die Abrechnung neu berechnet.</p>
+            <div id="aliasList"></div>
+            <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
+                <button class="btn" onclick="saveAliases()" id="aliasSaveBtn">💾 Speichern &amp; Berechnen</button>
+                <button class="btn" style="background:var(--bg-hover);color:var(--text);border:1px solid var(--border)" onclick="closeAliasModal()">Abbrechen</button>
+            </div>
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script>
@@ -714,12 +736,14 @@
         let WEEKS = [];
         let week = '', search = '', warn = false, showExcluded = false, sortBy = 'name_asc';
         let excludedDrivers = JSON.parse(localStorage.getItem('excludedDrivers') || '[]');
+        let NAME_ALIASES = {};
+        let FAHRER_LIST = [];
         function getSupabase() { if (!supabaseClient) { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } return supabaseClient; }
         function saveExcluded() { localStorage.setItem('excludedDrivers', JSON.stringify(excludedDrivers)); updateExcludedUI(); }
         function excludeDriver(name) { if (!excludedDrivers.includes(name)) { excludedDrivers.push(name); saveExcluded(); render(); } }
         function includeDriver(name) { excludedDrivers = excludedDrivers.filter(n => n !== name); saveExcluded(); render(); }
         function updateExcludedUI() { document.getElementById('excludedCount').textContent = excludedDrivers.length; const list = document.getElementById('excludedList'); if (excludedDrivers.length === 0) { list.innerHTML = '<span style="color: var(--text-muted)">Keine Fahrer ausgeschlossen</span>'; } else { list.innerHTML = excludedDrivers.map(name => `<span class="excluded-tag">${esc(name)} <button onclick="includeDriver('${esc(name.replace(/'/g, "\\\\'"))}')">\u2715</button></span>`).join(''); } }
-        async function loadData() { try { const client = getSupabase(); const { data, error } = await client.from('settlements').select('*'); if (error) throw error; if (!data || data.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = data.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; document.getElementById('weekFilter').innerHTML = WEEKS.map(w => '<option value="'+w+'">'+w+'</option>').join(''); render(); } catch (err) { console.error('Load error:', err); document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty">Fehler beim Laden: ' + err.message + '</td></tr>'; } }
+        async function loadData() { try { const client = getSupabase(); const [settleRes, aliasRes, fahrerRes] = await Promise.all([ client.from('settlements').select('*'), client.from('name_aliases').select('csv_name,fahrer_name'), client.from('fahrer').select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon').eq('aktiv', true) ]); if (settleRes.error) throw settleRes.error; if (!settleRes.data || settleRes.data.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = settleRes.data.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); NAME_ALIASES = {}; if (!aliasRes.error && aliasRes.data) { aliasRes.data.forEach(a => { NAME_ALIASES[a.csv_name.toLowerCase()] = a.fahrer_name; }); } FAHRER_LIST = (!fahrerRes.error && fahrerRes.data) ? fahrerRes.data : []; WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; document.getElementById('weekFilter').innerHTML = WEEKS.map(w => '<option value="'+w+'">'+w+'</option>').join(''); render(); } catch (err) { console.error('Load error:', err); document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty">Fehler beim Laden: ' + err.message + '</td></tr>'; } }
         function updateThemeUI(isDark) { const icon = document.getElementById('themeIcon'); const text = document.getElementById('themeText'); if (isDark) { icon.innerHTML = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>'; text.textContent = 'Light'; } else { icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'; text.textContent = 'Dark'; } }
         function toggleTheme() { const html = document.documentElement; if (html.getAttribute('data-theme') === 'dark') { html.removeAttribute('data-theme'); localStorage.setItem('theme', 'light'); updateThemeUI(false); } else { html.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); updateThemeUI(true); } }
         function toggleSort(col) { if (col === 'name') { sortBy = sortBy === 'name_asc' ? 'name_desc' : 'name_asc'; } else if (col === 'payout') { sortBy = sortBy === 'payout_desc' ? 'payout_asc' : 'payout_desc'; } updateSortUI(); render(); }
@@ -730,7 +754,7 @@
             (function(){ const h=document.querySelector('.hydra'),l=document.querySelector('.link'),c=document.getElementById('cursor'),ht='HYDRA',lt='link'; let i=0; function tH(){if(i<ht.length){h.textContent+=ht[i];i++;setTimeout(tH,100)}else{i=0;setTimeout(tL,150)}} function tL(){if(i<lt.length){l.textContent+=lt[i];i++;setTimeout(tL,100)}else{setTimeout(()=>{if(c)c.style.display='none'},1200)}} tH()})();
             document.getElementById('themeToggle').addEventListener('click', toggleTheme); document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); }); document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); render(); }); document.getElementById('sortName').addEventListener('click', function() { toggleSort('name'); }); document.getElementById('sortPayout').addEventListener('click', function() { toggleSort('payout'); }); document.getElementById('warningFilter').addEventListener('click', function() { warn = !warn; this.classList.toggle('active', warn); render(); }); document.getElementById('excludedFilter').addEventListener('click', function() { showExcluded = !showExcluded; this.classList.toggle('excluded', showExcluded); document.getElementById('excludedPanel').classList.toggle('show', showExcluded); }); document.getElementById('printAllBtn').addEventListener('click', printAllDrivers); document.getElementById('exportBtn').addEventListener('click', exportCSV); document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); }); document.getElementById('logoutBtn').addEventListener('click', function() { localStorage.removeItem('hydralink_session'); window.location.href = 'index.html'; }); loadData(); });
         function getData() { let data = SETTLEMENTS.filter(function(s) { const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; const isExcluded = excludedDrivers.includes(s.fahrer_name); return s.woche === week && s.fahrer_name && s.fahrer_name.toLowerCase().indexOf(search) >= 0 && (!warn || isWarn) && !isExcluded; }); data.sort(function(a, b) { if (sortBy === 'name_asc') return (a.fahrer_name || '').localeCompare(b.fahrer_name || ''); if (sortBy === 'name_desc') return (b.fahrer_name || '').localeCompare(a.fahrer_name || ''); if (sortBy === 'payout_desc') return (b.auszahlung || 0) - (a.auszahlung || 0); if (sortBy === 'payout_asc') return (a.auszahlung || 0) - (b.auszahlung || 0); return 0; }); return data; }
-        function render() { const data = getData(); const all = SETTLEMENTS.filter(function(s) { return s.woche === week && !excludedDrivers.includes(s.fahrer_name); }); const warnCount = all.filter(function(s) { return (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; }).length; const totalAbzug = data.reduce(function(a,s) { return a + (s.abzug_gesamt || 0); }, 0); const totalMieten = data.reduce(function(a,s) { return a + (s.miete || 0); }, 0); const totalProzent = data.reduce(function(a,s) { return a + (s.prozent_abzug || 0); }, 0); const auszahlungPositiv = data.reduce(function(a,s) { return a + (s.auszahlung > 0 ? s.auszahlung : 0); }, 0); const auszahlungNegativ = data.reduce(function(a,s) { return a + (s.auszahlung < 0 ? Math.abs(s.auszahlung) : 0); }, 0); document.getElementById('statFahrer').textContent = data.length; document.getElementById('statBleibt').textContent = fmt(totalAbzug); document.getElementById('statBleibtSub').textContent = fmt(totalMieten) + ' Mieten + ' + fmt(totalProzent) + ' %'; document.getElementById('statAuszahlung').textContent = fmt(auszahlungPositiv); document.getElementById('statKassieren').textContent = fmt(auszahlungNegativ); document.getElementById('statProbleme').textContent = warnCount; document.getElementById('tableCount').textContent = ' (' + data.length + ')'; const tbody = document.getElementById('tableBody'); if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">Keine Eintraege</td></tr>'; return; } tbody.innerHTML = data.map(function(s) { const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; const mc = s.mietmodell === 'fix' ? 'fix' : s.mietmodell === 'f11' ? 'f11' : s.mietmodell === 'f12' ? 'f12' : 'unknown'; const st = s.status && s.status.indexOf('WARNUNG') >= 0 ? '<span class="status warn">Unbekannt</span>' : s.auszahlung < 0 ? '<span class="status err">Schuldet</span>' : '<span class="status ok">OK</span>'; const escapedName = esc(s.fahrer_name).replace(/'/g, "\\'"); return '<tr class="'+(isWarn?'warning':'')+'">' + '<td><div class="fahrer-name" style="cursor:pointer;color:var(--blue)" onclick="printDriver(\''+escapedName+'\')">'+esc(s.fahrer_name)+'</div><div class="fahrer-tel">'+(s.telefon||'-')+'</div></td>' + '<td class="right"><span class="money '+(s.auszahlung>=0?'pos':'neg')+'">'+fmt(s.auszahlung)+'</span></td>' + '<td>'+st+'</td>' + '<td><span class="badge '+mc+'">'+(s.mietmodell||'-')+'</span></td>' + '<td class="right">'+fmt(s.bolt_brutto)+'</td>' + '<td class="right">'+fmt(s.uber_fahrpreis)+'</td>' + '<td class="right">'+fmt(s.mypos_summe)+'</td>' + '<td class="right">'+fmt(s.bruttoumsatz_gesamt)+'</td>' + '<td class="right">'+fmt(s.abzug_gesamt)+'</td>' + '<td class="center"><button class="btn-print" onclick="printDriver(\''+escapedName+'\')" title="Abrechnung drucken">🖨️</button><button class="btn-exclude" onclick="excludeDriver(\''+escapedName+'\')" title="Aus Berechnung ausschließen">🚫</button></td>' + '</tr>'; }).join(''); }
+        function render() { const data = getData(); const all = SETTLEMENTS.filter(function(s) { return s.woche === week && !excludedDrivers.includes(s.fahrer_name); }); const warnCount = all.filter(function(s) { return (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; }).length; const totalAbzug = data.reduce(function(a,s) { return a + (s.abzug_gesamt || 0); }, 0); const totalMieten = data.reduce(function(a,s) { return a + (s.miete || 0); }, 0); const totalProzent = data.reduce(function(a,s) { return a + (s.prozent_abzug || 0); }, 0); const auszahlungPositiv = data.reduce(function(a,s) { return a + (s.auszahlung > 0 ? s.auszahlung : 0); }, 0); const auszahlungNegativ = data.reduce(function(a,s) { return a + (s.auszahlung < 0 ? Math.abs(s.auszahlung) : 0); }, 0); document.getElementById('statFahrer').textContent = data.length; document.getElementById('statBleibt').textContent = fmt(totalAbzug); document.getElementById('statBleibtSub').textContent = fmt(totalMieten) + ' Mieten + ' + fmt(totalProzent) + ' %'; document.getElementById('statAuszahlung').textContent = fmt(auszahlungPositiv); document.getElementById('statKassieren').textContent = fmt(auszahlungNegativ); document.getElementById('statProbleme').textContent = warnCount; document.getElementById('tableCount').textContent = ' (' + data.length + ')'; const noMatchCount = all.filter(function(s) { return s.status && s.status.indexOf('WARNUNG_KEIN_FAHRER') >= 0; }).length; const aliasBannerEl = document.getElementById('aliasBanner'); aliasBannerEl.style.display = noMatchCount > 0 ? 'flex' : 'none'; if (noMatchCount > 0) { document.getElementById('aliasBannerCount').textContent = noMatchCount; } const tbody = document.getElementById('tableBody'); if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">Keine Eintraege</td></tr>'; return; } tbody.innerHTML = data.map(function(s) { const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; const mc = s.mietmodell === 'fix' ? 'fix' : s.mietmodell === 'f11' ? 'f11' : s.mietmodell === 'f12' ? 'f12' : 'unknown'; const st = s.status && s.status.indexOf('WARNUNG_KEIN_FAHRER') >= 0 ? '<span class="status warn" title="CSV: '+esc(s.fahrer_name)+'">Kein Match</span>' : (s.status && s.status.indexOf('WARNUNG') >= 0 ? '<span class="status warn">Warnung</span>' : (s.auszahlung < 0 ? '<span class="status err">Schuldet</span>' : '<span class="status ok">OK</span>')); const escapedName = esc(s.fahrer_name).replace(/'/g, "\\'"); return '<tr class="'+(isWarn?'warning':'')+'">' + '<td><div class="fahrer-name" style="cursor:pointer;color:var(--blue)" onclick="printDriver(\''+escapedName+'\')">'+esc(s.fahrer_name)+'</div><div class="fahrer-tel">'+(s.telefon||'-')+'</div></td>' + '<td class="right"><span class="money '+(s.auszahlung>=0?'pos':'neg')+'">'+fmt(s.auszahlung)+'</span></td>' + '<td>'+st+'</td>' + '<td><span class="badge '+mc+'">'+(s.mietmodell||'-')+'</span></td>' + '<td class="right">'+fmt(s.bolt_brutto)+'</td>' + '<td class="right">'+fmt(s.uber_fahrpreis)+'</td>' + '<td class="right">'+fmt(s.mypos_summe)+'</td>' + '<td class="right">'+fmt(s.bruttoumsatz_gesamt)+'</td>' + '<td class="right">'+fmt(s.abzug_gesamt)+'</td>' + '<td class="center"><button class="btn-print" onclick="printDriver(\''+escapedName+'\')" title="Abrechnung drucken">🖨️</button><button class="btn-exclude" onclick="excludeDriver(\''+escapedName+'\')" title="Aus Berechnung ausschließen">🚫</button></td>' + '</tr>'; }).join(''); }
         function fmt(v) { if (v == null) return '-'; const n = parseFloat(v); if (isNaN(n)) return '-'; return (n<0?'-':'') + Math.abs(n).toLocaleString('de-AT',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' \u20AC'; }
         function esc(str) { if (!str) return ''; return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
         function exportCSV() { const data = getData(); const csv = [['Fahrer','Telefon','Auszahlung','Status','Modell','Miete','Bolt','Uber','MyPOS','Gesamt','Abzug','Prozent']].concat(data.map(function(s) { return [s.fahrer_name,s.telefon||'',s.auszahlung,s.status,s.mietmodell,s.miete,s.bolt_brutto,s.uber_fahrpreis,s.mypos_summe,s.bruttoumsatz_gesamt,s.abzug_gesamt,s.prozent_abzug]; })).map(function(r) { return r.join(';'); }).join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); a.download = 'abrechnungen_'+week+'.csv'; a.click(); }
@@ -740,6 +764,58 @@
         function doPrint() { window.print(); }
         async function shareAsImage() { const content = document.getElementById('printContent'); const shareBtn = document.querySelector('.btn-share'); const originalText = shareBtn.textContent; shareBtn.textContent = '\u23F3 Laden...'; shareBtn.disabled = true; try { const canvas = await html2canvas(content, { backgroundColor: '#ffffff', scale: 2, useCORS: true }); const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png')); const file = new File([blob], 'abrechnung.png', { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Abrechnung', text: 'Fahrer-Abrechnung' }); } else { const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = 'abrechnung.png'; link.click(); } } catch (err) { console.error('Share error:', err); if (err.name !== 'AbortError') { alert('Teilen fehlgeschlagen. Bitte Screenshot machen.'); } } finally { shareBtn.textContent = originalText; shareBtn.disabled = false; } }
         document.getElementById('printOverlay').addEventListener('click', function(e) { if (e.target === this) closePrintModal(); });
+        document.getElementById('aliasOverlay').addEventListener('click', function(e) { if (e.target === this) closeAliasModal(); });
+
+        function openAliasModal() {
+            const noMatchDrivers = SETTLEMENTS.filter(function(s) { return s.woche === week && s.status && s.status.indexOf('WARNUNG_KEIN_FAHRER') >= 0; });
+            if (!noMatchDrivers.length) return;
+            const opts = FAHRER_LIST.map(function(f) { return '<option value="'+esc(f.name)+'">'+esc(f.name)+'</option>'; }).join('');
+            document.getElementById('aliasList').innerHTML = noMatchDrivers.map(function(s) {
+                const existing = NAME_ALIASES[s.fahrer_name.toLowerCase()] || '';
+                return '<div class="alias-row"><div class="alias-csv-name">'+esc(s.fahrer_name)+'</div><div class="alias-arrow">\u2192</div><select class="alias-select" data-csv="'+esc(s.fahrer_name)+'"><option value="">-- Fahrer w\u00e4hlen --</option>'+opts.replace('value="'+esc(existing)+'"','value="'+esc(existing)+'" selected')+'</select></div>';
+            }).join('');
+            document.getElementById('aliasOverlay').classList.add('show');
+        }
+        function closeAliasModal() { document.getElementById('aliasOverlay').classList.remove('show'); }
+        async function saveAliases() {
+            const selects = document.querySelectorAll('#aliasList .alias-select');
+            const mappings = [];
+            selects.forEach(function(sel) { if (sel.value) mappings.push({ csvName: sel.dataset.csv, fahrerName: sel.value }); });
+            if (!mappings.length) { alert('Bitte mindestens einen Fahrer zuordnen.'); return; }
+            const saveBtn = document.getElementById('aliasSaveBtn');
+            saveBtn.disabled = true; saveBtn.textContent = '\u23F3 Speichern...';
+            try {
+                const client = getSupabase();
+                const aliasInserts = mappings.map(function(m) { return { csv_name: m.csvName.toLowerCase(), fahrer_name: m.fahrerName }; });
+                const { error: aliasError } = await client.from('name_aliases').upsert(aliasInserts, { onConflict: 'csv_name' });
+                if (aliasError) throw aliasError;
+                for (const m of mappings) {
+                    const fahrer = FAHRER_LIST.find(function(f) { return f.name === m.fahrerName; });
+                    if (!fahrer) continue;
+                    const settlement = SETTLEMENTS.find(function(s) { return s.fahrer_name === m.csvName && s.woche === week; });
+                    if (!settlement) continue;
+                    const brutto = settlement.bruttoumsatz_gesamt || 0;
+                    const wirBekommen = settlement.wir_bekommen || 0;
+                    const mietmodell = fahrer.mietmodell || 'fix';
+                    const miete = fahrer.basis_miete || 0;
+                    let prozentAbzug = 0;
+                    if (mietmodell === 'f11') { prozentAbzug = brutto > 1100 ? (brutto - 1100) * 0.10 : 0; }
+                    else if (mietmodell === 'f12') { prozentAbzug = brutto > 1200 ? (brutto - 1200) * 0.10 : 0; }
+                    else if (fahrer.prozent_satz > 0) { const schwelle = fahrer.prozent_schwelle || 1200; prozentAbzug = brutto > schwelle ? (brutto - schwelle) * (fahrer.prozent_satz / 100) : 0; }
+                    const abzugGesamt = miete + prozentAbzug;
+                    const auszahlung = wirBekommen - abzugGesamt;
+                    const { error: settleError } = await client.from('settlements').update({ mietmodell: mietmodell, miete: miete, prozent_abzug: prozentAbzug, abzug_gesamt: abzugGesamt, auszahlung: auszahlung, telefon: fahrer.telefon || '', status: 'berechnet' }).eq('fahrer_name', m.csvName).eq('woche', week);
+                    if (settleError) throw settleError;
+                }
+                closeAliasModal();
+                await loadData();
+            } catch (err) {
+                console.error('Save aliases error:', err);
+                alert('Fehler beim Speichern: ' + err.message);
+            } finally {
+                saveBtn.disabled = false; saveBtn.textContent = '\uD83D\uDCBE Speichern & Berechnen';
+            }
+        }
 
         /* === TAB NAVIGATION === */
         let reInitialized = false;

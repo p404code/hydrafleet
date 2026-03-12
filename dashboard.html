@@ -1342,9 +1342,21 @@
                         const u = URL.createObjectURL(b);
                         const a = document.createElement('a');
                         a.href = u; a.download = 'abrechnung.csv'; a.click();
-                        s.style.background = 'var(--status-ok-bg)';
-                        s.style.color = 'var(--status-ok)';
-                        s.textContent = 'Abrechnung erstellt. CSV heruntergeladen. Settlements gespeichert.';
+                        s.style.background = 'var(--status-warn-bg)';
+                        s.style.color = 'var(--status-warn)';
+                        s.textContent = 'CSV heruntergeladen. Prüfe Supabase...';
+                        await new Promise(res => setTimeout(res, 3000));
+                        const { data: check } = await getSupabase().from('settlements').select('woche').eq('woche', weekVal).limit(1);
+                        if (check && check.length > 0) {
+                            s.style.background = 'var(--status-ok-bg)';
+                            s.style.color = 'var(--status-ok)';
+                            s.textContent = 'Abrechnung erstellt. CSV heruntergeladen. Settlements gespeichert.';
+                            await loadData();
+                        } else {
+                            s.style.background = 'var(--status-err-bg)';
+                            s.style.color = 'var(--status-err)';
+                            s.textContent = 'CSV heruntergeladen, aber Settlements wurden NICHT in Supabase gespeichert! Bitte nochmals hochladen.';
+                        }
                     } else {
                         const txt = await r.text();
                         s.style.background = 'var(--status-err-bg)';

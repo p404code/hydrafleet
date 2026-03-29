@@ -175,7 +175,7 @@
             @page { size: A4 portrait; margin: 15mm; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; height: auto !important; background: white !important; font-size: 12pt !important; }
-            body > *:not(.print-overlay):not(#printAllContainer) { display: none !important; }
+            body > *:not(#printOverlay):not(#printAllContainer) { display: none !important; }
             #printAllContainer { display: block !important; }
             #printAllContainer .print-page { page-break-after: always; }
             #printAllContainer .print-page:last-child { page-break-after: auto; }
@@ -185,7 +185,7 @@
             #printAllContainer .print-payout { margin-top: 12px !important; padding: 12px !important; border-radius: 4px !important; }
             #printAllContainer .print-payout.positive { background: #ecfdf5 !important; border: 2px solid #10b981 !important; }
             #printAllContainer .print-payout.negative { background: #fef2f2 !important; border: 2px solid #ef4444 !important; }
-            .print-overlay { display: block !important; position: static !important; background: white !important; padding: 0 !important; margin: 0 !important; }
+            #printOverlay { display: block !important; position: static !important; background: white !important; padding: 0 !important; margin: 0 !important; }
             .print-modal { position: static !important; width: 100% !important; max-width: none !important; max-height: none !important; height: auto !important; box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; overflow: visible !important; background: white !important; }
             .print-content { padding: 0 !important; page-break-inside: avoid !important; }
             .print-actions { display: none !important; }
@@ -204,6 +204,7 @@
             .print-payout.negative { background: #fef2f2 !important; border: 2px solid #ef4444 !important; }
             .print-payout-label { font-size: 10pt !important; }
             .print-payout-value { font-size: 24pt !important; }
+            #aliasOverlay { display: none !important; }
         }
         .excluded-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; padding: 14px 16px; margin-bottom: 16px; display: none; }
         .excluded-panel.show { display: block; }
@@ -246,7 +247,7 @@
             .print-section { margin-bottom: 8px; padding: 10px 12px; }
             .print-section h3 { font-size: 10px; margin-bottom: 6px; padding-bottom: 4px; }
             .print-table td { padding: 8px 0 !important; font-size: 14px !important; }
-            .print-table td:first-child { white-space: nowrap !important; }
+            .print-table td:first-child { white-space: normal !important; word-break: break-word !important; }
             .print-table td:last-child { white-space: nowrap !important; }
             .print-table .total td { font-size: 15px !important; }
             .print-payout { padding: 12px; border-radius: 10px; margin-top: 0; }

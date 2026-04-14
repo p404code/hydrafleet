@@ -18,7 +18,10 @@
     <meta name="apple-mobile-web-app-title" content="Hydralink">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Hydralink">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&amp;display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&amp;display=swap" rel="stylesheet"></noscript>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -107,7 +110,7 @@
         tr:hover td { background: var(--bg-hover); }
         tr.warning td { background: var(--warning-row); }
         tr.warning:hover td { background: var(--warning-row-hover); }
-        .fahrer-name { font-weight: 600; font-size: 13px; }
+        .fahrer-name { font-weight: 600; font-size: 13px; cursor: pointer; color: var(--blue); }
         .fahrer-tel { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
         .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
         .badge.fix { background: var(--badge-fix-bg); color: var(--badge-fix); }
@@ -133,15 +136,17 @@
         .btn-include { padding: 4px 8px; background: var(--status-ok-bg); border: 1px solid var(--green); border-radius: 4px; font-size: 11px; cursor: pointer; color: var(--status-ok); }
         .btn-include:hover { background: var(--green); color: #020617; }
         .alias-banner { background: var(--status-warn-bg); border: 1px solid var(--status-warn); color: var(--status-warn); border-radius: 6px; padding: 10px 16px; margin-bottom: 12px; display: none; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
-        .alias-modal-inner { background: var(--bg-card); color: var(--text); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 20px 60px rgba(0,0,0,0.5); padding: 24px; }
+        .alias-modal-inner { background: var(--bg-card); color: var(--text); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 20px 60px rgba(0,0,0,0.5); padding: 24px; transform: translateY(20px); opacity: 0; transition: transform 0.25s ease, opacity 0.2s ease; }
+        .print-overlay.show .alias-modal-inner { transform: translateY(0); opacity: 1; }
         .alias-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
         .alias-row:last-child { border-bottom: none; }
         .alias-csv-name { flex: 1; font-weight: 500; font-size: 13px; word-break: break-word; }
         .alias-arrow { color: var(--text-muted); font-size: 14px; flex-shrink: 0; }
         .alias-select { flex: 1.5; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 7px 10px; font-size: 13px; color: var(--text); }
-        .print-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
-        .print-overlay.show { display: flex; }
-        .print-modal { background: #f1f5f9; color: #1e293b; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.3); }
+        .print-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0); display: none; align-items: center; justify-content: center; z-index: 1000; transition: background 0.2s ease; }
+        .print-overlay.show { display: flex; background: rgba(0,0,0,0.5); }
+        .print-modal { background: #f1f5f9; color: #1e293b; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.3); transform: translateY(20px); opacity: 0; transition: transform 0.25s ease, opacity 0.2s ease; }
+        .print-overlay.show .print-modal { transform: translateY(0); opacity: 1; }
         .print-content { padding: 20px; }
         .print-header { text-align: center; margin-bottom: 16px; }
         .print-header h1 { font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
@@ -216,6 +221,21 @@
         .excluded-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--status-err-bg); border-radius: 4px; font-size: 12px; color: var(--red); border: 1px solid var(--red); }
         .excluded-tag button { background: none; border: none; cursor: pointer; color: var(--red); font-size: 14px; padding: 0; line-height: 1; }
         .excluded-tag button:hover { color: var(--text); }
+        /* === FOCUS ACCESSIBILITY === */
+        :focus-visible { outline: none; box-shadow: 0 0 0 2px var(--green); border-radius: 4px; }
+        button:focus-visible, .tab-btn:focus-visible, .filter-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--green); }
+        select:focus-visible, input:focus-visible, textarea:focus-visible { outline: none; border-color: var(--green); box-shadow: 0 0 0 2px rgba(62,207,142,0.25); }
+        /* === SKELETON LOADER === */
+        @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+        .skeleton-row td { padding: 14px 16px; }
+        .skeleton-bar { height: 14px; border-radius: 4px; background: linear-gradient(90deg, var(--bg-hover) 25%, var(--border) 50%, var(--bg-hover) 75%); background-size: 400px 100%; animation: shimmer 1.5s infinite ease-in-out; }
+        .skeleton-bar.w40 { width: 40%; }
+        .skeleton-bar.w60 { width: 60%; }
+        .skeleton-bar.w30 { width: 30%; }
+        .skeleton-bar.w20 { width: 20%; }
+        /* === STAT CARD TOUCH FEEDBACK === */
+        .stat-card { transition: transform 0.1s ease; }
+        .stat-card:active { transform: scale(0.98); }
         @media (max-width: 768px) {
             .container { padding: 16px 12px; }
             .header { flex-direction: column; gap: 12px; align-items: flex-start; }
@@ -271,13 +291,33 @@
         .abr-file-btn:hover { border-color:var(--blue);background:var(--bg-hover); }
         .abr-file-btn.has-file { border-color:var(--green);border-style:solid;color:var(--green); }
         .abr-file-info { display:none;margin-top:8px;padding:8px 14px;background:var(--status-ok-bg);border-radius:8px;font-size:13px;color:var(--status-ok);font-weight:500; }
+        /* === ABRBOT TAB === */
+        .abr-wrap { max-width: 900px; margin: 0 auto; }
+        .abr-card { background: var(--bg-card); border-radius: 6px; padding: 24px; margin-bottom: 16px; border: 1px solid var(--border); }
+        .abr-card-sm { background: var(--bg-card); border-radius: 6px; padding: 20px; margin-bottom: 16px; border: 1px solid var(--border); }
+        .abr-card h2 { font-size: 15px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+        .abr-week-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .abr-week-label { color: var(--text-secondary); font-size: 14px; white-space: nowrap; }
+        .abr-week-select { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 14px; color: var(--text); font-family: inherit; min-width: 200px; }
+        .abr-week-manual { display: none; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 14px; color: var(--text); font-family: inherit; width: 160px; }
+        .abr-checklist-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+        .abr-checklist { list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 8px; }
+        .abr-upload-label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); margin-bottom: 10px; }
+        .abr-upload-label span { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-muted); font-size: 11px; }
+        .abr-file-wrap { position: relative; }
+        .abr-file-input { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; z-index: 2; }
+        .abr-submit { padding: 12px; background: var(--green); color: #020617; border: none; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; width: 100%; }
+        .abr-submit:hover { opacity: 0.9; }
+        .abr-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+        .abr-status { margin-top: 12px; padding: 12px 16px; border-radius: 4px; text-align: center; font-weight: 500; font-size: 13px; display: none; }
         .tab-nav { display: flex; gap: 0; background: transparent; border: none; border-bottom: 1px solid var(--border); padding: 0; margin-bottom: 24px; }
         .tab-btn { flex: none; padding: 10px 18px; border: none; border-bottom: 2px solid transparent; background: transparent; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 6px; margin-bottom: -1px; }
         .tab-btn:hover { color: var(--text-secondary); }
         .tab-btn.active { color: var(--green); border-bottom-color: var(--green); font-weight: 600; }
         .tab-btn svg { width: 15px; height: 15px; }
         .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        .tab-content.active { display: block; animation: fadeIn 0.15s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         /* === RECHNUNG FORM === */
         .re-wrap { max-width: 900px; margin: 0 auto; }
         .re-sub-tabs { display: flex; gap: 0; background: transparent; border-bottom: 1px solid var(--border); padding: 0; margin-bottom: 20px; }
@@ -286,7 +326,7 @@
         .re-sub-tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 600; }
         .re-sub-tab svg { width: 14px; height: 14px; }
         .re-sub-content { display: none; }
-        .re-sub-content.active { display: block; }
+        .re-sub-content.active { display: block; animation: fadeIn 0.15s ease; }
         /* Archive Table */
         .re-archive-card { background: var(--bg-card); border-radius: 6px; border: 1px solid var(--border); overflow: hidden; }
         .re-archive-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--border-light); flex-wrap: wrap; gap: 12px; }
@@ -367,10 +407,15 @@
         .re-submit:disabled { opacity: 0.4; cursor: not-allowed; }
         .re-logo-preview { max-height: 40px; margin-top: 8px; display: none; border-radius: 4px; }
         .re-logo-preview.show { display: block; }
-        .re-toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 4px; font-weight: 500; font-size: 13px; z-index: 9999; transform: translateY(100px); opacity: 0; transition: all 0.25s; border: 1px solid; }
+        .re-toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 6px; font-weight: 500; font-size: 13px; z-index: 9999; transform: translateY(100px); opacity: 0; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); border: 1px solid; display: flex; align-items: center; gap: 8px; overflow: hidden; }
         .re-toast.show { transform: translateY(0); opacity: 1; }
         .re-toast.success { background: var(--status-ok-bg); color: var(--status-ok); border-color: var(--green); }
         .re-toast.error { background: var(--status-err-bg); color: var(--status-err); border-color: var(--red); }
+        .re-toast::before { flex-shrink: 0; font-size: 16px; }
+        .re-toast.success::before { content: '\2713'; }
+        .re-toast.error::before { content: '\2717'; }
+        .re-toast::after { content: ''; position: absolute; bottom: 0; left: 0; height: 2px; background: currentColor; opacity: 0.3; animation: toast-progress 4s linear forwards; }
+        @keyframes toast-progress { from { width: 100%; } to { width: 0%; } }
         @media (max-width: 768px) {
             .tab-nav { flex-direction: row; }
             .tab-btn { padding: 10px 14px; font-size: 13px; }
@@ -472,7 +517,9 @@
             <table>
                 <thead><tr><th class="sortable" id="sortName">Fahrer <span class="sort-icon">↕</span></th><th class="right sortable" id="sortPayout">Auszahlung <span class="sort-icon">↕</span></th><th>Status</th><th>Modell</th><th class="right">Bolt</th><th class="right">Uber</th><th class="right">MyPOS</th><th class="right">Gesamt</th><th class="right">Abzug</th><th class="center">Aktion</th></tr></thead>
                 <tbody id="tableBody">
-                    <tr><td colspan="10" class="loading"><div class="spinner"></div>Daten werden geladen...</td></tr>
+                    <tr class="skeleton-row"><td><div class="skeleton-bar w60"></div></td><td><div class="skeleton-bar w40"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w20"></div></td></tr>
+                    <tr class="skeleton-row"><td><div class="skeleton-bar w40"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w20"></div></td></tr>
+                    <tr class="skeleton-row"><td><div class="skeleton-bar w60"></div></td><td><div class="skeleton-bar w40"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w20"></div></td></tr>
                 </tbody>
             </table>
         </div>
@@ -628,51 +675,51 @@
     </div><!-- end contentRechnungen -->
 
     <div class="tab-content" id="contentAbrBot">
-        <div style="max-width:900px;margin:0 auto;">
-            <div style="background:var(--bg-card);border-radius:6px;padding:24px;margin-bottom:16px;border:1px solid var(--border);">
-                <h2 style="font-size:15px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px;">AbrechnungsBot</h2>
-                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-                    <label style="color:var(--text-secondary);font-size:14px;white-space:nowrap;">📅 Woche:</label>
-                    <select id="abrWeekSelect" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:14px;color:var(--text);font-family:inherit;min-width:200px;"></select>
-                    <input type="text" id="abrWeekManual" placeholder="z.B. 2026-W07" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:14px;color:var(--text);font-family:inherit;width:160px;">
+        <div class="abr-wrap">
+            <div class="abr-card">
+                <h2>AbrechnungsBot</h2>
+                <div class="abr-week-row">
+                    <label class="abr-week-label">Woche:</label>
+                    <select id="abrWeekSelect" class="abr-week-select"></select>
+                    <input type="text" id="abrWeekManual" placeholder="z.B. 2026-W07" class="abr-week-manual">
                 </div>
             </div>
-            <div style="background:var(--bg-card);border-radius:6px;padding:20px;margin-bottom:16px;border:1px solid var(--border);">
-                <h3 style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Vor dem Upload prüfen</h3>
-                <ul style="list-style:none;padding:0;margin:0;font-size:13px;color:var(--text-secondary);display:flex;flex-direction:column;gap:8px;">
+            <div class="abr-card-sm">
+                <h3 class="abr-checklist-title">Vor dem Upload prüfen</h3>
+                <ul class="abr-checklist">
                     <li>☐ <strong>Notion Fahrer:</strong> Pauschale und Pauschalmodell (fix/f11/f12) aktuell?</li>
                     <li>☐ <strong>MyPOS Terminals:</strong> Alle Terminals dem richtigen Fahrer zugeordnet?</li>
                     <li>☐ <strong>Uber CSV:</strong> Zeitraum Montag 04:00 bis Montag 04:00 Uhr?</li>
                 </ul>
             </div>
             <form id="abrForm" style="display:flex;flex-direction:column;gap:12px;">
-                <div style="background:var(--bg-card);border-radius:6px;padding:20px;border:1px solid var(--border);">
-                    <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-muted);margin-bottom:10px;">Bolt CSV <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);font-size:11px;">(Umsatz nach Fahrer)</span></label>
-                    <div style="position:relative;">
-                        <input type="file" id="abrBolt" accept=".csv" required style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;z-index:2;">
+                <div class="abr-card-sm">
+                    <label class="abr-upload-label">Bolt CSV <span>(Umsatz nach Fahrer)</span></label>
+                    <div class="abr-file-wrap">
+                        <input type="file" id="abrBolt" accept=".csv" required class="abr-file-input">
                         <div class="abr-file-btn" id="abrBoltBtn">Datei auswählen...</div>
                     </div>
                     <div class="abr-file-info" id="abrBoltInfo"></div>
                 </div>
-                <div style="background:var(--bg-card);border-radius:6px;padding:20px;border:1px solid var(--border);">
-                    <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-muted);margin-bottom:10px;">Uber CSV <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);font-size:11px;">(Mo 04:00 – Mo 04:00)</span></label>
-                    <div style="position:relative;">
-                        <input type="file" id="abrUber" accept=".csv" required style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;z-index:2;">
+                <div class="abr-card-sm">
+                    <label class="abr-upload-label">Uber CSV <span>(Mo 04:00 – Mo 04:00)</span></label>
+                    <div class="abr-file-wrap">
+                        <input type="file" id="abrUber" accept=".csv" required class="abr-file-input">
                         <div class="abr-file-btn" id="abrUberBtn">Datei auswählen...</div>
                     </div>
                     <div class="abr-file-info" id="abrUberInfo"></div>
                 </div>
-                <div style="background:var(--bg-card);border-radius:6px;padding:20px;border:1px solid var(--border);">
-                    <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-muted);margin-bottom:10px;">MyPOS CSV <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);font-size:11px;">(Transactions Export)</span></label>
-                    <div style="position:relative;">
-                        <input type="file" id="abrMypos" accept=".csv" required style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;z-index:2;">
+                <div class="abr-card-sm">
+                    <label class="abr-upload-label">MyPOS CSV <span>(Transactions Export)</span></label>
+                    <div class="abr-file-wrap">
+                        <input type="file" id="abrMypos" accept=".csv" required class="abr-file-input">
                         <div class="abr-file-btn" id="abrMyposBtn">Datei auswählen...</div>
                     </div>
                     <div class="abr-file-info" id="abrMyposInfo"></div>
                 </div>
-                <button type="submit" id="abrSubmitBtn" style="padding:12px;background:var(--green);color:#020617;border:none;border-radius:4px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;">Abrechnung erstellen</button>
+                <button type="submit" id="abrSubmitBtn" class="abr-submit">Abrechnung erstellen</button>
             </form>
-            <div id="abrStatus" style="margin-top:12px;padding:12px 16px;border-radius:4px;text-align:center;font-weight:500;font-size:13px;display:none;"></div>
+            <div id="abrStatus" class="abr-status"></div>
         </div>
     </div><!-- end contentAbrBot -->
     <div class="re-toast" id="reToast"></div>
@@ -752,8 +799,20 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- html2canvas loaded lazily on first share -->
     <script>
+        /* Session guard — redirect to login if no valid session */
+        (function() {
+            try {
+                const session = JSON.parse(localStorage.getItem('hydralink_session') || 'null');
+                if (!session || !session.timestamp || Date.now() - session.timestamp > 24 * 60 * 60 * 1000) {
+                    localStorage.removeItem('hydralink_session');
+                    window.location.replace('index.html');
+                    return;
+                }
+            } catch(e) { localStorage.removeItem('hydralink_session'); window.location.replace('index.html'); return; }
+        })();
+
         const SUPABASE_URL = 'https://pkxcwfkfaaorwnbdmylg.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBreGN3ZmtmYWFvcnduYmRteWxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3NTE1ODUsImV4cCI6MjA3OTMyNzU4NX0.xBDHKKXA9DFFwcTO18aDH_VHJr9BZyI__lv-L4Apryo';
         let supabaseClient = null;
@@ -767,8 +826,9 @@
         function saveExcluded() { localStorage.setItem('excludedDrivers', JSON.stringify(excludedDrivers)); updateExcludedUI(); }
         function excludeDriver(name) { if (!excludedDrivers.includes(name)) { excludedDrivers.push(name); saveExcluded(); render(); } }
         function includeDriver(name) { excludedDrivers = excludedDrivers.filter(n => n !== name); saveExcluded(); render(); }
-        function updateExcludedUI() { document.getElementById('excludedCount').textContent = excludedDrivers.length; const list = document.getElementById('excludedList'); if (excludedDrivers.length === 0) { list.innerHTML = '<span style="color: var(--text-muted)">Keine Fahrer ausgeschlossen</span>'; } else { list.innerHTML = excludedDrivers.map(name => `<span class="excluded-tag">${esc(name)} <button onclick="includeDriver('${esc(name.replace(/'/g, "\\\\'"))}')">\u2715</button></span>`).join(''); } }
-        async function loadData() { try { const client = getSupabase(); const [settleRes, aliasRes, fahrerRes] = await Promise.all([ client.from('settlements').select('*'), client.from('name_aliases').select('csv_name,fahrer_name'), client.from('fahrer').select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon').eq('aktiv', true) ]); if (settleRes.error) throw settleRes.error; if (!settleRes.data || settleRes.data.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = settleRes.data.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); NAME_ALIASES = {}; if (!aliasRes.error && aliasRes.data) { aliasRes.data.forEach(a => { NAME_ALIASES[a.csv_name.toLowerCase()] = a.fahrer_name; }); } FAHRER_LIST = (!fahrerRes.error && fahrerRes.data) ? fahrerRes.data : []; WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; document.getElementById('weekFilter').innerHTML = WEEKS.map(w => '<option value="'+w+'">'+w+'</option>').join(''); render(); } catch (err) { console.error('Load error:', err); document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty">Fehler beim Laden: ' + err.message + '</td></tr>'; } }
+        function updateExcludedUI() { document.getElementById('excludedCount').textContent = excludedDrivers.length; const list = document.getElementById('excludedList'); if (excludedDrivers.length === 0) { list.innerHTML = '<span style="color: var(--text-muted)">Keine Fahrer ausgeschlossen</span>'; } else { list.innerHTML = excludedDrivers.map(name => `<span class="excluded-tag">${esc(name)} <button data-include="${esc(name)}">\u2715</button></span>`).join(''); } }
+        document.getElementById('excludedList').addEventListener('click', function(e) { const btn = e.target.closest('[data-include]'); if (btn) includeDriver(btn.dataset.include); });
+        async function loadData() { try { const client = getSupabase(); const [settleRes, aliasRes, fahrerRes] = await Promise.all([ client.from('settlements').select('*'), client.from('name_aliases').select('csv_name,fahrer_name'), client.from('fahrer').select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon').eq('aktiv', true) ]); if (settleRes.error) throw settleRes.error; if (!settleRes.data || settleRes.data.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = settleRes.data.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); NAME_ALIASES = {}; if (!aliasRes.error && aliasRes.data) { aliasRes.data.forEach(a => { NAME_ALIASES[a.csv_name.toLowerCase()] = a.fahrer_name; }); } FAHRER_LIST = (!fahrerRes.error && fahrerRes.data) ? fahrerRes.data : []; WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; document.getElementById('weekFilter').innerHTML = WEEKS.map(w => '<option value="'+w+'">'+w+'</option>').join(''); render(); } catch (err) { console.error('Load error:', err); const offlineHint = !navigator.onLine ? ' (Offline — keine Internetverbindung)' : ''; document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty">Fehler beim Laden: ' + esc(err.message) + offlineHint + '<br><button class="btn" style="margin-top:12px" onclick="loadData()">Erneut versuchen</button></td></tr>'; } }
         function updateThemeUI(isDark) { const icon = document.getElementById('themeIcon'); const text = document.getElementById('themeText'); if (isDark) { icon.innerHTML = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>'; text.textContent = 'Light'; } else { icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'; text.textContent = 'Dark'; } }
         function toggleTheme() { const html = document.documentElement; if (html.getAttribute('data-theme') === 'dark') { html.removeAttribute('data-theme'); localStorage.setItem('theme', 'light'); updateThemeUI(false); } else { html.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); updateThemeUI(true); } }
         function toggleSort(col) { if (col === 'name') { sortBy = sortBy === 'name_asc' ? 'name_desc' : 'name_asc'; } else if (col === 'payout') { sortBy = sortBy === 'payout_desc' ? 'payout_asc' : 'payout_desc'; } updateSortUI(); render(); }
@@ -777,9 +837,19 @@
         document.addEventListener('DOMContentLoaded', function() { initTheme(); updateExcludedUI(); updateSortUI(); 
             // Typewriter
             (function(){ const h=document.querySelector('.hydra'),l=document.querySelector('.link'),c=document.getElementById('cursor'),ht='HYDRA',lt='link'; let i=0; function tH(){if(i<ht.length){h.textContent+=ht[i];i++;setTimeout(tH,100)}else{i=0;setTimeout(tL,150)}} function tL(){if(i<lt.length){l.textContent+=lt[i];i++;setTimeout(tL,100)}else{setTimeout(()=>{if(c)c.style.display='none'},1200)}} tH()})();
-            document.getElementById('themeToggle').addEventListener('click', toggleTheme); document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); }); document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); render(); }); document.getElementById('sortName').addEventListener('click', function() { toggleSort('name'); }); document.getElementById('sortPayout').addEventListener('click', function() { toggleSort('payout'); }); document.getElementById('warningFilter').addEventListener('click', function() { warn = !warn; this.classList.toggle('active', warn); render(); }); document.getElementById('excludedFilter').addEventListener('click', function() { showExcluded = !showExcluded; this.classList.toggle('excluded', showExcluded); document.getElementById('excludedPanel').classList.toggle('show', showExcluded); }); document.getElementById('printAllBtn').addEventListener('click', printAllDrivers); document.getElementById('exportBtn').addEventListener('click', exportCSV); document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); }); document.getElementById('logoutBtn').addEventListener('click', function() { localStorage.removeItem('hydralink_session'); window.location.href = 'index.html'; }); loadData(); });
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme); document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); }); var _searchTimer = null; document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); clearTimeout(_searchTimer); _searchTimer = setTimeout(render, 200); }); document.getElementById('sortName').addEventListener('click', function() { toggleSort('name'); }); document.getElementById('sortPayout').addEventListener('click', function() { toggleSort('payout'); }); document.getElementById('warningFilter').addEventListener('click', function() { warn = !warn; this.classList.toggle('active', warn); render(); }); document.getElementById('excludedFilter').addEventListener('click', function() { showExcluded = !showExcluded; this.classList.toggle('excluded', showExcluded); document.getElementById('excludedPanel').classList.toggle('show', showExcluded); }); document.getElementById('printAllBtn').addEventListener('click', printAllDrivers); document.getElementById('exportBtn').addEventListener('click', exportCSV); document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); }); document.getElementById('logoutBtn').addEventListener('click', function() { localStorage.removeItem('hydralink_session'); window.location.href = 'index.html'; });
+            /* Event delegation for table actions */
+            document.getElementById('tableBody').addEventListener('click', function(e) {
+                const driver = e.target.closest('[data-driver]');
+                if (driver) { printDriver(driver.dataset.driver); return; }
+                const print = e.target.closest('[data-print]');
+                if (print) { printDriver(print.dataset.print); return; }
+                const exclude = e.target.closest('[data-exclude]');
+                if (exclude) { excludeDriver(exclude.dataset.exclude); return; }
+            });
+            loadData(); });
         function getData() { let data = SETTLEMENTS.filter(function(s) { const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; const isExcluded = excludedDrivers.includes(s.fahrer_name); return s.woche === week && s.fahrer_name && s.fahrer_name !== '__TRANSFER__' && s.fahrer_name.toLowerCase().indexOf(search) >= 0 && (!warn || isWarn) && !isExcluded; }); data.sort(function(a, b) { if (sortBy === 'name_asc') return (a.fahrer_name || '').localeCompare(b.fahrer_name || ''); if (sortBy === 'name_desc') return (b.fahrer_name || '').localeCompare(a.fahrer_name || ''); if (sortBy === 'payout_desc') return (b.auszahlung || 0) - (a.auszahlung || 0); if (sortBy === 'payout_asc') return (a.auszahlung || 0) - (b.auszahlung || 0); return 0; }); return data; }
-        function render() { const data = getData(); const all = SETTLEMENTS.filter(function(s) { return s.woche === week && s.fahrer_name !== '__TRANSFER__' && !excludedDrivers.includes(s.fahrer_name); }); const warnCount = all.filter(function(s) { return (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; }).length; const totalAbzug = data.reduce(function(a,s) { return a + (s.abzug_gesamt || 0); }, 0); const totalMieten = data.reduce(function(a,s) { return a + (s.miete || 0); }, 0); const totalProzent = data.reduce(function(a,s) { return a + (s.prozent_abzug || 0); }, 0); const auszahlungPositiv = data.reduce(function(a,s) { return a + (s.auszahlung > 0 ? s.auszahlung : 0); }, 0); const auszahlungNegativ = data.reduce(function(a,s) { return a + (s.auszahlung < 0 ? Math.abs(s.auszahlung) : 0); }, 0); document.getElementById('statFahrer').textContent = data.length; document.getElementById('statBleibt').textContent = fmt(totalAbzug); document.getElementById('statBleibtSub').textContent = fmt(totalMieten) + ' Mieten + ' + fmt(totalProzent) + ' %'; document.getElementById('statAuszahlung').textContent = fmt(auszahlungPositiv); document.getElementById('statKassieren').textContent = fmt(auszahlungNegativ); document.getElementById('statProbleme').textContent = warnCount; var transferRow = SETTLEMENTS.find(function(s) { return s.woche === week && s.fahrer_name === '__TRANSFER__'; }); var boltTransfer = transferRow ? (transferRow.bolt_auszahlung || 0) : data.reduce(function(a,s) { return a + (s.bolt_auszahlung || 0); }, 0); var uberTransfer = transferRow ? (transferRow.uber_auszahlung || 0) : data.reduce(function(a,s) { return a + (s.uber_auszahlung || 0); }, 0); var myposTransfer = transferRow ? (transferRow.mypos_summe || 0) : data.reduce(function(a,s) { return a + (s.mypos_summe || 0); }, 0); document.getElementById('statBoltTransfer').textContent = fmt(boltTransfer); document.getElementById('statUberTransfer').textContent = fmt(uberTransfer); document.getElementById('statMyposTransfer').textContent = fmt(myposTransfer); document.getElementById('statTransferTotal').textContent = fmt(boltTransfer + uberTransfer + myposTransfer); document.getElementById('tableCount').textContent = ' (' + data.length + ')'; const noMatchCount = all.filter(function(s) { return s.status && s.status.indexOf('WARNUNG_KEIN_FAHRER') >= 0; }).length; const aliasBannerEl = document.getElementById('aliasBanner'); aliasBannerEl.style.display = noMatchCount > 0 ? 'flex' : 'none'; if (noMatchCount > 0) { document.getElementById('aliasBannerCount').textContent = noMatchCount; } const tbody = document.getElementById('tableBody'); if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">Keine Eintraege</td></tr>'; return; } tbody.innerHTML = data.map(function(s) { const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; const mc = s.mietmodell === 'fix' ? 'fix' : s.mietmodell === 'f11' ? 'f11' : s.mietmodell === 'f12' ? 'f12' : 'unknown'; const st = s.status && s.status.indexOf('WARNUNG_KEIN_FAHRER') >= 0 ? '<span class="status warn" title="CSV: '+esc(s.fahrer_name)+'">Kein Match</span>' : (s.status && s.status.indexOf('WARNUNG') >= 0 ? '<span class="status warn">Warnung</span>' : (s.auszahlung < 0 ? '<span class="status err">Schuldet</span>' : '<span class="status ok">OK</span>')); const escapedName = esc(s.fahrer_name).replace(/'/g, "\\'"); return '<tr class="'+(isWarn?'warning':'')+'">' + '<td><div class="fahrer-name" style="cursor:pointer;color:var(--blue)" onclick="printDriver(\''+escapedName+'\')">'+esc(s.fahrer_name)+'</div><div class="fahrer-tel">'+(s.telefon||'-')+'</div></td>' + '<td class="right"><span class="money '+(s.auszahlung>=0?'pos':'neg')+'">'+fmt(s.auszahlung)+'</span></td>' + '<td>'+st+'</td>' + '<td><span class="badge '+mc+'">'+(s.mietmodell||'-')+'</span></td>' + '<td class="right">'+fmt(s.bolt_brutto)+'</td>' + '<td class="right">'+fmt(s.uber_fahrpreis)+'</td>' + '<td class="right">'+fmt(s.mypos_summe)+'</td>' + '<td class="right">'+fmt(s.bruttoumsatz_gesamt)+'</td>' + '<td class="right">'+fmt(s.abzug_gesamt)+'</td>' + '<td class="center"><button class="btn-print" onclick="printDriver(\''+escapedName+'\')" title="Abrechnung drucken">🖨️</button><button class="btn-exclude" onclick="excludeDriver(\''+escapedName+'\')" title="Aus Berechnung ausschließen">🚫</button></td>' + '</tr>'; }).join(''); }
+        function render() { const data = getData(); const all = SETTLEMENTS.filter(function(s) { return s.woche === week && s.fahrer_name !== '__TRANSFER__' && !excludedDrivers.includes(s.fahrer_name); }); const warnCount = all.filter(function(s) { return (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; }).length; const totalAbzug = data.reduce(function(a,s) { return a + (s.abzug_gesamt || 0); }, 0); const totalMieten = data.reduce(function(a,s) { return a + (s.miete || 0); }, 0); const totalProzent = data.reduce(function(a,s) { return a + (s.prozent_abzug || 0); }, 0); const auszahlungPositiv = data.reduce(function(a,s) { return a + (s.auszahlung > 0 ? s.auszahlung : 0); }, 0); const auszahlungNegativ = data.reduce(function(a,s) { return a + (s.auszahlung < 0 ? Math.abs(s.auszahlung) : 0); }, 0); document.getElementById('statFahrer').textContent = data.length; document.getElementById('statBleibt').textContent = fmt(totalAbzug); document.getElementById('statBleibtSub').textContent = fmt(totalMieten) + ' Mieten + ' + fmt(totalProzent) + ' %'; document.getElementById('statAuszahlung').textContent = fmt(auszahlungPositiv); document.getElementById('statKassieren').textContent = fmt(auszahlungNegativ); document.getElementById('statProbleme').textContent = warnCount; var transferRow = SETTLEMENTS.find(function(s) { return s.woche === week && s.fahrer_name === '__TRANSFER__'; }); var boltTransfer = transferRow ? (transferRow.bolt_auszahlung || 0) : data.reduce(function(a,s) { return a + (s.bolt_auszahlung || 0); }, 0); var uberTransfer = transferRow ? (transferRow.uber_auszahlung || 0) : data.reduce(function(a,s) { return a + (s.uber_auszahlung || 0); }, 0); var myposTransfer = transferRow ? (transferRow.mypos_summe || 0) : data.reduce(function(a,s) { return a + (s.mypos_summe || 0); }, 0); document.getElementById('statBoltTransfer').textContent = fmt(boltTransfer); document.getElementById('statUberTransfer').textContent = fmt(uberTransfer); document.getElementById('statMyposTransfer').textContent = fmt(myposTransfer); document.getElementById('statTransferTotal').textContent = fmt(boltTransfer + uberTransfer + myposTransfer); document.getElementById('tableCount').textContent = ' (' + data.length + ')'; const noMatchCount = all.filter(function(s) { return s.status && s.status.indexOf('WARNUNG_KEIN_FAHRER') >= 0; }).length; const aliasBannerEl = document.getElementById('aliasBanner'); aliasBannerEl.style.display = noMatchCount > 0 ? 'flex' : 'none'; if (noMatchCount > 0) { document.getElementById('aliasBannerCount').textContent = noMatchCount; } const tbody = document.getElementById('tableBody'); if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">Keine Eintraege</td></tr>'; return; } tbody.innerHTML = data.map(function(s) { const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; const mc = s.mietmodell === 'fix' ? 'fix' : s.mietmodell === 'f11' ? 'f11' : s.mietmodell === 'f12' ? 'f12' : 'unknown'; const st = s.status && s.status.indexOf('WARNUNG_KEIN_FAHRER') >= 0 ? '<span class="status warn" title="CSV: '+esc(s.fahrer_name)+'">Kein Match</span>' : (s.status && s.status.indexOf('WARNUNG') >= 0 ? '<span class="status warn">Warnung</span>' : (s.auszahlung < 0 ? '<span class="status err">Schuldet</span>' : '<span class="status ok">OK</span>')); return '<tr class="'+(isWarn?'warning':'')+'">' + '<td><div class="fahrer-name" data-driver="'+esc(s.fahrer_name)+'">'+esc(s.fahrer_name)+'</div><div class="fahrer-tel">'+(s.telefon||'-')+'</div></td>' + '<td class="right"><span class="money '+(s.auszahlung>=0?'pos':'neg')+'">'+fmt(s.auszahlung)+'</span></td>' + '<td>'+st+'</td>' + '<td><span class="badge '+mc+'">'+(s.mietmodell||'-')+'</span></td>' + '<td class="right">'+fmt(s.bolt_brutto)+'</td>' + '<td class="right">'+fmt(s.uber_fahrpreis)+'</td>' + '<td class="right">'+fmt(s.mypos_summe)+'</td>' + '<td class="right">'+fmt(s.bruttoumsatz_gesamt)+'</td>' + '<td class="right">'+fmt(s.abzug_gesamt)+'</td>' + '<td class="center"><button class="btn-print" data-print="'+esc(s.fahrer_name)+'" title="Abrechnung drucken">\ud83d\udda8\ufe0f</button><button class="btn-exclude" data-exclude="'+esc(s.fahrer_name)+'" title="Aus Berechnung ausschlie\u00dfen">\ud83d\udeab</button></td>' + '</tr>'; }).join(''); }
         function fmt(v) { if (v == null) return '-'; const n = parseFloat(v); if (isNaN(n)) return '-'; return (n<0?'-':'') + Math.abs(n).toLocaleString('de-AT',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' \u20AC'; }
         function esc(str) { if (!str) return ''; return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
         function exportCSV() { const data = getData(); const csv = [['Fahrer','Telefon','Auszahlung','Status','Modell','Miete','Bolt','Uber','MyPOS','Gesamt','Abzug','Prozent']].concat(data.map(function(s) { return [s.fahrer_name,s.telefon||'',s.auszahlung,s.status,s.mietmodell,s.miete,s.bolt_brutto,s.uber_fahrpreis,s.mypos_summe,s.bruttoumsatz_gesamt,s.abzug_gesamt,s.prozent_abzug]; })).map(function(r) { return r.join(';'); }).join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); a.download = 'abrechnungen_'+week+'.csv'; a.click(); }
@@ -787,7 +857,17 @@
         function closePrintModal() { document.getElementById('printOverlay').classList.remove('show'); }
         function printAllDrivers() { const drivers = SETTLEMENTS.filter(function(s) { return s.woche === week && s.fahrer_name !== '__TRANSFER__' && s.auszahlung > 0 && !excludedDrivers.includes(s.fahrer_name); }).sort(function(a, b) { return (a.fahrer_name || '').localeCompare(b.fahrer_name || ''); }); if (!drivers.length) { alert('Keine Fahrer mit Auszahlung'); return; } var container = document.getElementById('printAllContainer'); container.innerHTML = drivers.map(function(d, i) { var payoutClass = d.auszahlung >= 0 ? 'positive' : 'negative'; return '<div class="print-page"><div class="print-content"><div class="print-header"><h1>Abrechnung</h1><p>Abrechnungswoche: ' + esc(week) + '</p></div><div class="print-envelope-top"><div class="print-driver"><h2>' + esc(d.fahrer_name) + '</h2><p>' + (d.telefon ? 'Tel: ' + esc(d.telefon) : '') + '</p></div><div class="print-payout"><div class="print-payout-label">Auszahlung</div><div class="print-payout-value">' + fmt(d.auszahlung) + '</div></div></div><div class="print-body"><div class="print-section"><h3>Einnahmen (Brutto)</h3><table class="print-table"><tr><td>Bolt Brutto</td><td>' + fmt(d.bolt_brutto) + '</td></tr><tr><td>Uber Fahrpreis</td><td>' + fmt(d.uber_fahrpreis) + '</td></tr><tr><td>MyPOS Summe</td><td>' + fmt(d.mypos_summe) + '</td></tr><tr class="total"><td>Brutto Gesamt</td><td>' + fmt(d.bruttoumsatz_gesamt) + '</td></tr></table></div><div class="print-section"><h3>Wir bekommen (Netto)</h3><table class="print-table"><tr><td>Bolt Auszahlung</td><td>' + fmt(d.bolt_auszahlung) + '</td></tr><tr><td>Uber Auszahlung</td><td>' + fmt(d.uber_auszahlung) + '</td></tr><tr><td>MyPOS</td><td>' + fmt(d.mypos_summe) + '</td></tr><tr class="total"><td>Wir bekommen</td><td>' + fmt(d.wir_bekommen) + '</td></tr></table></div><div class="print-section"><h3>Abz\u00fcge</h3><table class="print-table"><tr><td>Miete</td><td>' + fmt(d.miete) + '</td></tr><tr><td>Prozent-Abzug</td><td>' + fmt(d.prozent_abzug) + '</td></tr><tr class="total"><td>Abzug Gesamt</td><td>' + fmt(d.abzug_gesamt) + '</td></tr></table></div></div></div></div>'; }).join(''); document.getElementById('printOverlay').classList.remove('show'); container.style.display = 'block'; window.print(); container.style.display = 'none'; }
         function doPrint() { document.getElementById('printAllContainer').style.display = 'none'; document.getElementById('printAllContainer').innerHTML = ''; window.print(); }
-        async function shareAsImage() { const content = document.getElementById('printContent'); const shareBtn = document.querySelector('.btn-share'); const originalText = shareBtn.textContent; shareBtn.textContent = '\u23F3 Laden...'; shareBtn.disabled = true; try { const canvas = await html2canvas(content, { backgroundColor: '#ffffff', scale: 2, useCORS: true }); const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png')); const file = new File([blob], 'abrechnung.png', { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Abrechnung', text: 'Fahrer-Abrechnung' }); } else { const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = 'abrechnung.png'; link.click(); } } catch (err) { console.error('Share error:', err); if (err.name !== 'AbortError') { alert('Teilen fehlgeschlagen. Bitte Screenshot machen.'); } } finally { shareBtn.textContent = originalText; shareBtn.disabled = false; } }
+        function loadHtml2Canvas() {
+            if (window.html2canvas) return Promise.resolve(window.html2canvas);
+            return new Promise(function(resolve, reject) {
+                var s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+                s.onload = function() { resolve(window.html2canvas); };
+                s.onerror = function() { reject(new Error('html2canvas konnte nicht geladen werden')); };
+                document.head.appendChild(s);
+            });
+        }
+        async function shareAsImage() { const content = document.getElementById('printContent'); const shareBtn = document.querySelector('.btn-share'); const originalText = shareBtn.textContent; shareBtn.textContent = '\u23F3 Laden...'; shareBtn.disabled = true; try { const h2c = await loadHtml2Canvas(); const canvas = await h2c(content, { backgroundColor: '#ffffff', scale: 2, useCORS: true }); const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png')); const file = new File([blob], 'abrechnung.png', { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Abrechnung', text: 'Fahrer-Abrechnung' }); } else { const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = 'abrechnung.png'; link.click(); } } catch (err) { console.error('Share error:', err); if (err.name !== 'AbortError') { alert('Teilen fehlgeschlagen. Bitte Screenshot machen.'); } } finally { shareBtn.textContent = originalText; shareBtn.disabled = false; } }
         document.getElementById('printOverlay').addEventListener('click', function(e) { if (e.target === this) closePrintModal(); });
         document.getElementById('aliasOverlay').addEventListener('click', function(e) { if (e.target === this) closeAliasModal(); });
 

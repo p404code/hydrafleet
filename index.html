@@ -17,47 +17,53 @@
     <meta name="application-name" content="Hydralink">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&amp;family=Fraunces:opsz,wght@9..144,700;9..144,900&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&amp;family=Fraunces:opsz,wght@9..144,700;9..144,900&amp;display=swap" rel="stylesheet"></noscript>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --bg: #f8fafc; --bg-card: #ffffff; --bg-hover: #f1f5f9;
-            --border: #e2e8f0; --text: #0f172a; --text-secondary: #475569; --text-muted: #94a3b8;
-            --green: #3ecf8e; --red: #f43f5e;
+            --bg: #f5f3f0; --bg-card: #ffffff; --bg-hover: #ece9e4;
+            --border: #e0dcd6; --text: #1a1714; --text-secondary: #5c5550; --text-muted: #9e958c;
+            --gold: #d4a012; --gold-glow: rgba(212,160,18,0.15);
+            --green: #2d8a6e; --red: #c4364a;
         }
         [data-theme="dark"] {
-            --bg: #020617; --bg-card: #0f172a; --bg-hover: #1e293b;
-            --border: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #475569;
+            --bg: #0c0a09; --bg-card: #1a1816; --bg-hover: #262320;
+            --border: #2e2a26; --text: #f0ede8; --text-secondary: #a09890; --text-muted: #5c5550;
+            --gold: #f5c131; --gold-glow: rgba(245,193,49,0.08);
+            --green: #4dd6a5; --red: #f55a6a;
         }
-        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; transition: background 0.2s; }
-        .login-container { width: 100%; max-width: 400px; }
-        .login-card { background: var(--bg-card); border-radius: 8px; padding: 36px 32px; border: 1px solid var(--border); }
-        .logo { text-align: center; margin-bottom: 28px; }
-        .logo-icon { width: 64px; height: 64px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; }
-        .logo-icon svg { width: 64px; height: 64px; }
-        .logo h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; color: var(--text); letter-spacing: 1px; }
+        body { font-family: 'DM Sans', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; transition: background 0.3s; -webkit-font-smoothing: antialiased; }
+        [data-theme="dark"] body { background: var(--bg) url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.015'/%3E%3C/svg%3E"); }
+        .login-container { width: 100%; max-width: 400px; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .login-card { background: var(--bg-card); border-radius: 16px; padding: 40px 36px; border: 1px solid var(--border); box-shadow: 0 4px 24px rgba(26,23,20,0.06), 0 1px 3px rgba(26,23,20,0.04); }
+        [data-theme="dark"] .login-card { box-shadow: 0 4px 24px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.15); }
+        .logo { text-align: center; margin-bottom: 32px; }
+        .logo-icon { width: 72px; height: 72px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 0 12px var(--gold-glow)); }
+        .logo-icon svg { width: 72px; height: 72px; }
+        .logo h1 { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 900; margin-bottom: 6px; color: var(--text); letter-spacing: 2px; }
         .logo p { color: var(--text-secondary); font-size: 13px; }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text-secondary); }
-        .form-group input { width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; font-size: 14px; color: var(--text); outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
-        .form-group input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.12); }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-group input { width: 100%; padding: 12px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; font-size: 14px; color: var(--text); outline: none; transition: all 0.2s; font-family: inherit; }
+        .form-group input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
         .form-group input::placeholder { color: var(--text-muted); }
-        .pin-container { display: flex; gap: 10px; justify-content: center; }
-        .pin-input { width: 52px; height: 56px; text-align: center; font-size: 22px; font-weight: 600; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); outline: none; transition: border-color 0.15s, box-shadow 0.15s; -moz-appearance: textfield; }
+        .pin-container { display: flex; gap: 12px; justify-content: center; }
+        .pin-input { width: 56px; height: 60px; text-align: center; font-size: 24px; font-weight: 700; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); outline: none; transition: all 0.2s; -moz-appearance: textfield; font-family: inherit; }
         .pin-input::-webkit-outer-spin-button, .pin-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        .pin-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.12); }
-        .pin-input.filled { border-color: var(--green); }
-        .btn-login { width: 100%; padding: 10px 24px; background: var(--green); border: none; border-radius: 4px; font-size: 14px; font-weight: 600; color: #020617; cursor: pointer; transition: opacity 0.15s, transform 0.1s; margin-top: 4px; }
-        .btn-login:hover { opacity: 0.88; }
+        .pin-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); transform: translateY(-2px); }
+        .pin-input.filled { border-color: var(--gold); background: var(--gold-glow); }
+        .btn-login { width: 100%; padding: 14px 24px; background: linear-gradient(135deg, var(--green), var(--gold)); border: none; border-radius: 10px; font-size: 14px; font-weight: 700; color: #0c0a09; cursor: pointer; transition: all 0.25s; margin-top: 8px; font-family: inherit; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .btn-login:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
         .btn-login:active { transform: scale(0.99); }
-        .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
-        .error-message { color: var(--red); font-size: 13px; text-align: center; margin-bottom: 14px; min-height: 18px; }
-        .theme-toggle { position: fixed; top: 16px; right: 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 7px 11px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; line-height: 1; }
-        .theme-toggle:hover { background: var(--bg-hover); color: var(--text); }
+        .btn-login:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .error-message { color: var(--red); font-size: 13px; text-align: center; margin-bottom: 14px; min-height: 18px; font-weight: 500; }
+        .theme-toggle { position: fixed; top: 16px; right: 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; line-height: 1; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .theme-toggle:hover { background: var(--bg-hover); color: var(--text); transform: translateY(-1px); }
         @media (max-width: 480px) {
-            .login-card { padding: 28px 20px; }
-            .pin-input { width: 44px; height: 50px; font-size: 18px; }
+            .login-card { padding: 32px 24px; border-radius: 14px; }
+            .pin-input { width: 48px; height: 54px; font-size: 20px; border-radius: 10px; }
         }
     </style>
 </head>

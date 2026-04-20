@@ -162,8 +162,11 @@ async function readFile(f) {
 async function computeKw16Correct() {
     const boltFile = document.getElementById('csvBolt').files[0];
     const uberFile = document.getElementById('csvUber').files[0];
-    const myposFile = document.getElementById('csvMypos').files[0];
     if (!boltFile || !uberFile) throw new Error('Bolt und Uber CSV sind Pflicht (MyPOS optional)');
+    // Note: Das MyPOS-Feld existiert im UI für Konsistenz mit dem regulären AbrBot-Flow,
+    // wird aber hier NICHT geparst. Terminal→Fahrer-Mapping lebt in Notion, nicht im Frontend.
+    // Stattdessen: mypos_summe aus den bestehenden KW16-settlements als Fallback verwenden.
+    if (document.getElementById('csvMypos').files[0]) log('Hinweis: MyPOS-CSV wird ignoriert — Fallback auf gespeicherte mypos_summe aus KW16-settlements');
     const srcWoche = document.getElementById('srcWoche').value.trim();
     log(`Rekalkulation für ${srcWoche}...`);
 
@@ -218,7 +221,10 @@ async function computeKw16Correct() {
 
     function findFahrer(name) {
         const nn = normalizeName(name);
-        if (aliasDict[nn] && fahrerDict[aliasDict[nn]]) return { key: aliasDict[nn], data: fahrerDict[aliasDict[nn]] };
+        if (aliasDict[nn] && fahrerDict[aliasDict[nn]]) {
+            log(`Alias: "${name}" → "${aliasDict[nn]}"`);
+            return { key: aliasDict[nn], data: fahrerDict[aliasDict[nn]] };
+        }
         if (fahrerDict[name]) return { key: name, data: fahrerDict[name] };
         for (const k of Object.keys(fahrerDict)) if (normalizeName(k) === nn) return { key: k, data: fahrerDict[k] };
         let best = null, score = 0;
@@ -226,33 +232,49 @@ async function computeKw16Correct() {
             const sc = nameSim(name, k);
             if (sc >= 0.92 && sc > score) { best = { key: k, data: fahrerDict[k] }; score = sc; }
         }
+        if (best) log(`Fuzzy: "${name}" → "${best.key}" (score: ${score.toFixed(3)})`);
         return best;
     }
 
-    const correctByFahrer = {};
-    const allNames = new Set();
-    for (const n of Object.keys(uberDict)) allNames.add(n);
-    for (const n of Object.keys(boltDict)) allNames.add(n);
+    // Group Bolt + Uber by resolved fahrer key (handles different spellings across CSVs)
+    const byKey = {}; // key -> { fahrer, bolt_brutto, bolt_ausz, uber_fp, uber_ausz, rawNames }
 
-    for (const name of allNames) {
-        const fahrer = findFahrer(name);
-        const key = fahrer ? fahrer.key : name;
-        const bolt = boltDict[name] || { brutto: 0, auszahlung: 0 };
-        const uber = uberDict[name] || { fahrpreis: 0, auszahlung: 0 };
+    function ensureGroup(rawName) {
+        const fahrer = findFahrer(rawName);
+        const key = fahrer ? fahrer.key : rawName;
+        if (!byKey[key]) byKey[key] = { fahrer, bolt_brutto: 0, bolt_ausz: 0, uber_fp: 0, uber_ausz: 0, rawNames: new Set() };
+        byKey[key].rawNames.add(rawName);
+        return byKey[key];
+    }
+
+    for (const [name, b] of Object.entries(boltDict)) {
+        const g = ensureGroup(name);
+        g.bolt_brutto += b.brutto;
+        g.bolt_ausz += b.auszahlung;
+    }
+    for (const [name, u] of Object.entries(uberDict)) {
+        const g = ensureGroup(name);
+        g.uber_fp += u.fahrpreis;
+        g.uber_ausz += u.auszahlung;
+    }
+
+    const correctByFahrer = {};
+    for (const [key, g] of Object.entries(byKey)) {
         const existing = existingDict[key] || {};
         const mypos = parseFloat(existing.mypos_summe) || 0;
-        const brutto_gesamt = bolt.brutto + uber.fahrpreis + mypos;
-        const wir_bekommen = bolt.auszahlung + uber.auszahlung + mypos;
+        const brutto_gesamt = g.bolt_brutto + g.uber_fp + mypos;
+        const wir_bekommen = g.bolt_ausz + g.uber_ausz + mypos;
         let miete = 0, prozent_abzug = 0;
-        if (fahrer) {
-            miete = fahrer.data.basis_miete;
-            if (fahrer.data.mietmodell === 'f11' && brutto_gesamt > 1100) prozent_abzug = (brutto_gesamt - 1100) * 0.10;
-            else if (fahrer.data.mietmodell === 'f12' && brutto_gesamt > 1200) prozent_abzug = (brutto_gesamt - 1200) * 0.10;
-            else if (fahrer.data.prozent_satz > 0 && brutto_gesamt > fahrer.data.prozent_schwelle)
-                prozent_abzug = (brutto_gesamt - fahrer.data.prozent_schwelle) * (fahrer.data.prozent_satz / 100);
+        if (g.fahrer) {
+            miete = g.fahrer.data.basis_miete;
+            if (g.fahrer.data.mietmodell === 'f11' && brutto_gesamt > 1100) prozent_abzug = (brutto_gesamt - 1100) * 0.10;
+            else if (g.fahrer.data.mietmodell === 'f12' && brutto_gesamt > 1200) prozent_abzug = (brutto_gesamt - 1200) * 0.10;
+            else if (g.fahrer.data.prozent_satz > 0 && brutto_gesamt > g.fahrer.data.prozent_schwelle)
+                prozent_abzug = (brutto_gesamt - g.fahrer.data.prozent_schwelle) * (g.fahrer.data.prozent_satz / 100);
         }
         const korrekt_auszahlung = wir_bekommen - miete - prozent_abzug;
-        correctByFahrer[key] = { korrekt_auszahlung, brutto_gesamt, wir_bekommen, miete, prozent_abzug, matched: !!fahrer };
+        correctByFahrer[key] = { korrekt_auszahlung, brutto_gesamt, wir_bekommen, miete, prozent_abzug, matched: !!g.fahrer };
+        if (g.rawNames.size > 1) log(`Multi-Spelling: "${[...g.rawNames].join('" + "')}" → "${key}"`);
     }
 
     log(`Rekalkulation OK: ${Object.keys(correctByFahrer).length} Fahrer`);

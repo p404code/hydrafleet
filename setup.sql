@@ -66,3 +66,11 @@ CREATE POLICY "anon_select_aliases" ON name_aliases FOR SELECT TO anon USING (tr
 CREATE POLICY "anon_insert_aliases" ON name_aliases FOR INSERT TO anon WITH CHECK (true);
 CREATE POLICY "anon_update_aliases" ON name_aliases FOR UPDATE TO anon USING (true);
 CREATE POLICY "anon_delete_aliases" ON name_aliases FOR DELETE TO anon USING (true);
+
+-- ============================================
+-- SETTLEMENTS: Korrektur-Feld (eingeführt 2026-04-20, KW16-Fehler)
+-- Migration separat: migrations/2026-04-20-add-korrektur-columns.sql
+-- ============================================
+-- ALTER TABLE settlements
+--   ADD COLUMN IF NOT EXISTS korrektur NUMERIC(10,2) DEFAULT 0,
+--   ADD COLUMN IF NOT EXISTS korrektur_note TEXT;

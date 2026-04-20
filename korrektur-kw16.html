@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KW16 Korrektur-Tool (Einmalig)</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+    body { font-family: system-ui, sans-serif; max-width: 1100px; margin: 20px auto; padding: 20px; background: #1a1714; color: #e5e1db; }
+    h1 { color: #F5B51B; }
+    .warn { background: #4a2c1a; border: 1px solid #d4a012; padding: 12px; border-radius: 6px; margin-bottom: 20px; }
+    .step { background: #2a2520; padding: 16px; border-radius: 8px; margin-bottom: 16px; }
+    .step h2 { margin-top: 0; color: #F5B51B; font-size: 16px; }
+    input, button { padding: 8px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #4a4238; background: #1a1714; color: #e5e1db; }
+    button { cursor: pointer; background: #F5B51B; color: #1a1714; font-weight: 600; }
+    button:hover { background: #ffc93d; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .danger { background: #c4364a; color: white; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    th, td { padding: 8px; border-bottom: 1px solid #4a4238; text-align: left; }
+    th { background: #2a2520; position: sticky; top: 0; }
+    .num { text-align: right; font-family: monospace; }
+    .pos { color: #34D186; }
+    .neg { color: #ff6b7a; }
+    .hidden { display: none; }
+    pre { background: #0d0b08; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px; max-height: 300px; }
+    #log { background: #0d0b08; padding: 8px; border-radius: 6px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>⚠️ KW16 Korrektur-Tool (Einmalig)</h1>
+<div class="warn">
+    <strong>Achtung:</strong> Dieses Tool schreibt Korrektur-Beträge in die <code>settlements</code>-Tabelle für KW17.
+    Es darf nur nach regulärer KW17-Berechnung verwendet werden. Rollback via
+    <code>UPDATE settlements SET auszahlung = auszahlung - korrektur, korrektur = 0, korrektur_note = NULL WHERE woche = '2026-W17';</code>
+</div>
+
+<div class="step" id="stepAuth">
+    <h2>1. Login</h2>
+    <input type="text" id="pinName" placeholder="Name (z.B. Boyko)">
+    <input type="password" id="pinCode" placeholder="PIN">
+    <button id="btnLogin">Anmelden</button>
+    <div id="authMsg"></div>
+</div>
+
+<div class="step hidden" id="stepUpload">
+    <h2>2. Korrekte KW16-CSVs hochladen</h2>
+    <p>Bolt-CSV: <input type="file" id="csvBolt" accept=".csv"></p>
+    <p>Uber-CSV: <input type="file" id="csvUber" accept=".csv"></p>
+    <p>MyPOS-CSV: <input type="file" id="csvMypos" accept=".csv"></p>
+    <p>Quell-Woche: <input type="text" id="srcWoche" value="2026-W16" readonly style="width: 100px;"></p>
+    <p>Ziel-Woche (Korrektur wird dort eingetragen): <input type="text" id="dstWoche" value="2026-W17" style="width: 100px;"></p>
+    <button id="btnCompute" disabled>Deltas berechnen</button>
+</div>
+
+<div class="step hidden" id="stepReview">
+    <h2>3. Review Deltas</h2>
+    <div id="summaryBox"></div>
+    <div id="tableContainer"></div>
+    <p style="margin-top: 16px;">
+        <button id="btnPreview">SQL-Preview</button>
+        <button id="btnWrite" class="danger">In KW17 schreiben</button>
+        <button id="btnDownloadLog">Audit-Log herunterladen</button>
+    </p>
+</div>
+
+<div class="step hidden" id="stepLog">
+    <h2>4. Audit-Log</h2>
+    <div id="log"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://pkxcwfkfaaorwnbdmylg.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBreGN3ZmtmYWFvcnduYmRteWxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3NTE1ODUsImV4cCI6MjA3OTMyNzU4NX0.xBDHKKXA9DFFwcTO18aDH_VHJr9BZyI__lv-L4Apryo';
+let supa = null;
+let currentUser = null;
+let logLines = [];
+
+function log(msg) {
+    const ts = new Date().toISOString();
+    logLines.push(`[${ts}] ${msg}`);
+    const el = document.getElementById('log');
+    if (el) el.textContent = logLines.join('\n');
+    console.log(msg);
+}
+
+async function login() {
+    const name = document.getElementById('pinName').value.trim();
+    const pin = document.getElementById('pinCode').value.trim();
+    if (!name || !pin) { document.getElementById('authMsg').textContent = 'Name + PIN nötig'; return; }
+    supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data, error } = await supa.from('app_users').select('name,role').eq('name', name).eq('pin', pin).single();
+    if (error || !data) { document.getElementById('authMsg').textContent = 'Login fehlgeschlagen'; return; }
+    currentUser = data.name;
+    log(`Login OK: ${currentUser} (${data.role})`);
+    document.getElementById('stepAuth').classList.add('hidden');
+    document.getElementById('stepUpload').classList.remove('hidden');
+    document.getElementById('stepLog').classList.remove('hidden');
+}
+
+document.getElementById('btnLogin').addEventListener('click', login);
+// Compute/write/preview wiring kommt in späteren Tasks
+</script>
+</body>
+</html>

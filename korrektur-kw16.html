@@ -283,6 +283,16 @@ async function computeKw16Correct() {
 
 let currentDeltas = []; // in-memory state for review
 
+function updateSummary() {
+    const rows = currentDeltas;
+    const totalDelta = rows.filter(r => r.enabled).reduce((a, r) => a + r.delta, 0);
+    const activeCount = rows.filter(r => r.enabled && r.delta !== 0).length;
+    document.getElementById('summaryBox').innerHTML =
+        `<p><strong>Fahrer mit Delta ≠ 0 (aktiviert):</strong> ${activeCount} von ${rows.length}</p>` +
+        `<p><strong>Nettosumme aller aktivierten Deltas:</strong> ${totalDelta.toFixed(2)} € ` +
+        `<em>(sollte nahe 0 sein wenn KW16 Netto korrekt war)</em></p>`;
+}
+
 function escHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -322,11 +332,7 @@ async function renderReview() {
             }
         }
         currentDeltas = rows;
-        const totalDelta = rows.filter(r => r.enabled).reduce((a, r) => a + r.delta, 0);
-        document.getElementById('summaryBox').innerHTML =
-            `<p><strong>Fahrer mit Delta ≠ 0:</strong> ${rows.filter(r => r.delta !== 0).length} von ${rows.length}</p>` +
-            `<p><strong>Nettosumme aller aktivierten Deltas:</strong> ${totalDelta.toFixed(2)} € ` +
-            `<em>(sollte nahe 0 sein wenn KW16 Netto korrekt ausbezahlt wurde)</em></p>`;
+        updateSummary();
         renderTable();
         document.getElementById('stepReview').classList.remove('hidden');
         log(`Review bereit: ${rows.length} Zeilen, davon ${rows.filter(r=>r.delta!==0).length} mit Delta`);
@@ -355,9 +361,11 @@ function renderTable() {
     // Wire up edits
     document.querySelectorAll('.cbEnable').forEach(el => el.addEventListener('change', e => {
         currentDeltas[+e.target.dataset.idx].enabled = e.target.checked;
+        updateSummary();
     }));
     document.querySelectorAll('.inpDelta').forEach(el => el.addEventListener('input', e => {
         currentDeltas[+e.target.dataset.idx].delta = parseFloat(e.target.value) || 0;
+        updateSummary();
     }));
     document.querySelectorAll('.inpNote').forEach(el => el.addEventListener('input', e => {
         currentDeltas[+e.target.dataset.idx].note = e.target.value;

@@ -76,12 +76,187 @@ let supa = null;
 let currentUser = null;
 let logLines = [];
 
+function normalizeName(n) { return (n || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+function parseMoney(v) {
+    if (!v) return 0;
+    let x = String(v).replace(/EUR|€|\u20ac/g, '').trim();
+    if (!x) return 0;
+    if (x.includes(',') && x.includes('.')) {
+        if (x.lastIndexOf(',') > x.lastIndexOf('.')) x = x.replace(/\./g, '').replace(',', '.');
+        else x = x.replace(/,/g, '');
+    } else if (x.includes(',')) x = x.replace(',', '.');
+    return parseFloat(x) || 0;
+}
+function cleanBOM(t) { return t.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n'); }
+function detectDelimiter(t) {
+    for (const line of t.split('\n')) {
+        const s = line.trim(); if (!s) continue;
+        const sc = (s.match(/;/g) || []).length, cm = (s.match(/,/g) || []).length;
+        if (sc > 2) return ';';
+        if (cm > 2) return ',';
+    }
+    return ',';
+}
+function parseCSV(text, delim) {
+    text = cleanBOM(text);
+    const lines = text.split('\n').filter(l => l.trim());
+    if (!lines.length) return [];
+    let hdr = 0;
+    for (let i = 0; i < Math.min(5, lines.length); i++) {
+        const parts = lines[i].split(delim).filter(p => p.trim().replace(/"/g, ''));
+        if (parts.length >= 3) { hdr = i; break; }
+    }
+    const headers = lines[hdr].split(delim).map(h => h.trim().replace(/^"|"$/g, '').replace(/^\uFEFF/, ''));
+    const rows = [];
+    for (let i = hdr + 1; i < lines.length; i++) {
+        const line = lines[i].trim(); if (!line) continue;
+        const vals = line.split(delim).map(v => v.trim().replace(/^"|"$/g, ''));
+        if (vals.length < 2) continue;
+        const row = {}; headers.forEach((h, idx) => row[h] = vals[idx] || '');
+        rows.push(row);
+    }
+    return rows;
+}
+function cleanMyposCSV(t) {
+    t = cleanBOM(t);
+    const lines = t.split('\n');
+    let start = 0;
+    for (let i = 0; i < lines.length; i++) {
+        const lo = lines[i].toLowerCase();
+        if (lo.includes('datum') && lo.includes('betrag') && (lo.includes('terminal') || lo.includes('name des terminals'))) { start = i; break; }
+    }
+    return lines.slice(start).join('\n');
+}
+function nameSim(a, b) {
+    const s1 = normalizeName(a), s2 = normalizeName(b);
+    if (s1 === s2) return 1;
+    if (!s1.length || !s2.length) return 0;
+    const m = [];
+    for (let i = 0; i <= s1.length; i++) {
+        m[i] = [i];
+        for (let j = 1; j <= s2.length; j++) {
+            if (!i) { m[i][j] = j; continue; }
+            m[i][j] = Math.min(m[i-1][j]+1, m[i][j-1]+1, m[i-1][j-1] + (s1[i-1]===s2[j-1]?0:1));
+        }
+    }
+    return 1 - m[s1.length][s2.length] / Math.max(s1.length, s2.length);
+}
+
 function log(msg) {
     const ts = new Date().toISOString();
     logLines.push(`[${ts}] ${msg}`);
     const el = document.getElementById('log');
     if (el) el.textContent = logLines.join('\n');
     console.log(msg);
+}
+
+async function readFile(f) {
+    return new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result);
+        r.onerror = () => rej(new Error('File read error'));
+        r.readAsText(f, 'utf-8');
+    });
+}
+
+async function computeKw16Correct() {
+    const boltFile = document.getElementById('csvBolt').files[0];
+    const uberFile = document.getElementById('csvUber').files[0];
+    const myposFile = document.getElementById('csvMypos').files[0];
+    if (!boltFile || !uberFile) throw new Error('Bolt und Uber CSV sind Pflicht (MyPOS optional)');
+    const srcWoche = document.getElementById('srcWoche').value.trim();
+    log(`Rekalkulation für ${srcWoche}...`);
+
+    const { data: fahrerData, error: fErr } = await supa.from('fahrer')
+        .select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon')
+        .eq('aktiv', true);
+    if (fErr) throw fErr;
+    const fahrerDict = {};
+    for (const f of fahrerData) fahrerDict[f.name] = {
+        mietmodell: f.mietmodell || 'fix',
+        basis_miete: parseFloat(f.basis_miete) || 0,
+        prozent_satz: parseFloat(f.prozent_satz) || 0,
+        prozent_schwelle: parseFloat(f.prozent_schwelle) || 1200
+    };
+
+    const { data: aliasData } = await supa.from('name_aliases').select('csv_name,fahrer_name');
+    const aliasDict = {};
+    for (const a of (aliasData || [])) aliasDict[normalizeName(a.csv_name)] = a.fahrer_name;
+
+    const { data: existingKw16, error: exErr } = await supa.from('settlements').select('*').eq('woche', srcWoche);
+    if (exErr) throw exErr;
+    const existingDict = {};
+    for (const s of existingKw16) existingDict[s.fahrer_name] = s;
+
+    const boltRaw = await readFile(boltFile);
+    const boltRows = parseCSV(boltRaw, detectDelimiter(boltRaw));
+    const boltDict = {};
+    for (const row of boltRows) {
+        const name = (row['Fahrer:in'] || row['Fahrer/in'] || row['Fahrer'] || row['Driver name'] || row['Driver'] || '').trim();
+        if (!name) continue;
+        const keys = Object.keys(row);
+        let bK = keys.find(k => k.includes('Bruttoverdienst') && k.includes('insgesamt'));
+        if (!bK) bK = keys.find(k => k.includes('Bruttoverdienst') && !k.includes('pro Stunde'));
+        if (!bK) bK = keys.find(k => k.toLowerCase().includes('gross earnings'));
+        let aK = keys.find(k => k.includes('Voraussichtliche Auszahlung'));
+        if (!aK) aK = keys.find(k => k.toLowerCase().includes('payout'));
+        boltDict[name] = { brutto: parseMoney(bK ? row[bK] : 0), auszahlung: parseMoney(aK ? row[aK] : 0) };
+    }
+
+    const uberRaw = await readFile(uberFile);
+    const uberRows = parseCSV(uberRaw, detectDelimiter(uberRaw));
+    const uberDict = {};
+    for (const row of uberRows) {
+        const vor = (row['Vorname des Fahrers'] || '').trim();
+        const nach = (row['Nachname des Fahrers'] || '').trim();
+        const full = `${vor} ${nach}`.trim();
+        if (!full) continue;
+        let fp = parseMoney(row['An dein Unternehmen gezahlt : Deine Umsätze : Fahrpreis']);
+        if (!fp) fp = parseMoney(row['An dein Unternehmen gezahlt:Deine Umsätze:Fahrpreis:Fahrpreis']);
+        uberDict[full] = { fahrpreis: fp, auszahlung: parseMoney(row['An dein Unternehmen gezahlt']) };
+    }
+
+    function findFahrer(name) {
+        const nn = normalizeName(name);
+        if (aliasDict[nn] && fahrerDict[aliasDict[nn]]) return { key: aliasDict[nn], data: fahrerDict[aliasDict[nn]] };
+        if (fahrerDict[name]) return { key: name, data: fahrerDict[name] };
+        for (const k of Object.keys(fahrerDict)) if (normalizeName(k) === nn) return { key: k, data: fahrerDict[k] };
+        let best = null, score = 0;
+        for (const k of Object.keys(fahrerDict)) {
+            const sc = nameSim(name, k);
+            if (sc >= 0.92 && sc > score) { best = { key: k, data: fahrerDict[k] }; score = sc; }
+        }
+        return best;
+    }
+
+    const correctByFahrer = {};
+    const allNames = new Set();
+    for (const n of Object.keys(uberDict)) allNames.add(n);
+    for (const n of Object.keys(boltDict)) allNames.add(n);
+
+    for (const name of allNames) {
+        const fahrer = findFahrer(name);
+        const key = fahrer ? fahrer.key : name;
+        const bolt = boltDict[name] || { brutto: 0, auszahlung: 0 };
+        const uber = uberDict[name] || { fahrpreis: 0, auszahlung: 0 };
+        const existing = existingDict[key] || {};
+        const mypos = parseFloat(existing.mypos_summe) || 0;
+        const brutto_gesamt = bolt.brutto + uber.fahrpreis + mypos;
+        const wir_bekommen = bolt.auszahlung + uber.auszahlung + mypos;
+        let miete = 0, prozent_abzug = 0;
+        if (fahrer) {
+            miete = fahrer.data.basis_miete;
+            if (fahrer.data.mietmodell === 'f11' && brutto_gesamt > 1100) prozent_abzug = (brutto_gesamt - 1100) * 0.10;
+            else if (fahrer.data.mietmodell === 'f12' && brutto_gesamt > 1200) prozent_abzug = (brutto_gesamt - 1200) * 0.10;
+            else if (fahrer.data.prozent_satz > 0 && brutto_gesamt > fahrer.data.prozent_schwelle)
+                prozent_abzug = (brutto_gesamt - fahrer.data.prozent_schwelle) * (fahrer.data.prozent_satz / 100);
+        }
+        const korrekt_auszahlung = wir_bekommen - miete - prozent_abzug;
+        correctByFahrer[key] = { korrekt_auszahlung, brutto_gesamt, wir_bekommen, miete, prozent_abzug, matched: !!fahrer };
+    }
+
+    log(`Rekalkulation OK: ${Object.keys(correctByFahrer).length} Fahrer`);
+    return { correctByFahrer, existingDict };
 }
 
 async function login() {
@@ -100,6 +275,14 @@ async function login() {
 
 document.getElementById('btnLogin').addEventListener('click', login);
 // Compute/write/preview wiring kommt in späteren Tasks
+
+function checkComputeReady() {
+    const ok = document.getElementById('csvBolt').files[0] && document.getElementById('csvUber').files[0];
+    document.getElementById('btnCompute').disabled = !ok;
+}
+['csvBolt', 'csvUber', 'csvMypos'].forEach(id => {
+    document.getElementById(id).addEventListener('change', checkComputeReady);
+});
 </script>
 </body>
 </html>

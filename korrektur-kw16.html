@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KW16 Korrektur-Tool (Einmalig)</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+    body { font-family: system-ui, sans-serif; max-width: 1100px; margin: 20px auto; padding: 20px; background: #1a1714; color: #e5e1db; }
+    h1 { color: #F5B51B; }
+    .warn { background: #4a2c1a; border: 1px solid #d4a012; padding: 12px; border-radius: 6px; margin-bottom: 20px; }
+    .step { background: #2a2520; padding: 16px; border-radius: 8px; margin-bottom: 16px; }
+    .step h2 { margin-top: 0; color: #F5B51B; font-size: 16px; }
+    input, button { padding: 8px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #4a4238; background: #1a1714; color: #e5e1db; }
+    button { cursor: pointer; background: #F5B51B; color: #1a1714; font-weight: 600; }
+    button:hover { background: #ffc93d; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .danger { background: #c4364a; color: white; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    th, td { padding: 8px; border-bottom: 1px solid #4a4238; text-align: left; }
+    th { background: #2a2520; position: sticky; top: 0; }
+    .num { text-align: right; font-family: monospace; }
+    .pos { color: #34D186; }
+    .neg { color: #ff6b7a; }
+    .hidden { display: none; }
+    pre { background: #0d0b08; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px; max-height: 300px; }
+    #log { background: #0d0b08; padding: 8px; border-radius: 6px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>⚠️ KW16 Korrektur-Tool (Einmalig)</h1>
+<div class="warn">
+    <strong>Achtung:</strong> Dieses Tool schreibt Korrektur-Beträge in die <code>settlements</code>-Tabelle für KW17.
+    Es darf nur nach regulärer KW17-Berechnung verwendet werden. Rollback via
+    <code>UPDATE settlements SET auszahlung = auszahlung - korrektur, korrektur = 0, korrektur_note = NULL WHERE woche = '2026-W17';</code>
+</div>
+
+<div class="step" id="stepAuth">
+    <h2>1. Login</h2>
+    <input type="text" id="pinName" placeholder="Name (z.B. Boyko)">
+    <input type="password" id="pinCode" placeholder="PIN">
+    <button id="btnLogin">Anmelden</button>
+    <div id="authMsg"></div>
+</div>
+
+<div class="step hidden" id="stepUpload">
+    <h2>2. Korrekte KW16-CSVs hochladen</h2>
+    <p>Bolt-CSV: <input type="file" id="csvBolt" accept=".csv"></p>
+    <p>Uber-CSV: <input type="file" id="csvUber" accept=".csv"></p>
+    <p>MyPOS-CSV: <input type="file" id="csvMypos" accept=".csv"></p>
+    <p>Quell-Woche: <input type="text" id="srcWoche" value="2026-W16" readonly style="width: 100px;"></p>
+    <p>Ziel-Woche (Korrektur wird dort eingetragen): <input type="text" id="dstWoche" value="2026-W17" style="width: 100px;"></p>
+    <button id="btnCompute" disabled>Deltas berechnen</button>
+</div>
+
+<div class="step hidden" id="stepReview">
+    <h2>3. Review Deltas</h2>
+    <div id="summaryBox"></div>
+    <div id="tableContainer"></div>
+    <p style="margin-top: 16px;">
+        <button id="btnPreview">SQL-Preview</button>
+        <button id="btnWrite" class="danger">In KW17 schreiben</button>
+        <button id="btnDownloadLog">Audit-Log herunterladen</button>
+    </p>
+</div>
+
+<div class="step hidden" id="stepLog">
+    <h2>4. Audit-Log</h2>
+    <div id="log"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://pkxcwfkfaaorwnbdmylg.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBreGN3ZmtmYWFvcnduYmRteWxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3NTE1ODUsImV4cCI6MjA3OTMyNzU4NX0.xBDHKKXA9DFFwcTO18aDH_VHJr9BZyI__lv-L4Apryo';
+let supa = null;
+let currentUser = null;
+let logLines = [];
+
+function normalizeName(n) { return (n || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+function parseMoney(v) {
+    if (!v) return 0;
+    let x = String(v).replace(/EUR|€|\u20ac/g, '').trim();
+    if (!x) return 0;
+    if (x.includes(',') && x.includes('.')) {
+        if (x.lastIndexOf(',') > x.lastIndexOf('.')) x = x.replace(/\./g, '').replace(',', '.');
+        else x = x.replace(/,/g, '');
+    } else if (x.includes(',')) x = x.replace(',', '.');
+    return parseFloat(x) || 0;
+}
+function cleanBOM(t) { return t.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n'); }
+function detectDelimiter(t) {
+    for (const line of t.split('\n')) {
+        const s = line.trim(); if (!s) continue;
+        const sc = (s.match(/;/g) || []).length, cm = (s.match(/,/g) || []).length;
+        if (sc > 2) return ';';
+        if (cm > 2) return ',';
+    }
+    return ',';
+}
+function parseCSV(text, delim) {
+    text = cleanBOM(text);
+    const lines = text.split('\n').filter(l => l.trim());
+    if (!lines.length) return [];
+    let hdr = 0;
+    for (let i = 0; i < Math.min(5, lines.length); i++) {
+        const parts = lines[i].split(delim).filter(p => p.trim().replace(/"/g, ''));
+        if (parts.length >= 3) { hdr = i; break; }
+    }
+    const headers = lines[hdr].split(delim).map(h => h.trim().replace(/^"|"$/g, '').replace(/^\uFEFF/, ''));
+    const rows = [];
+    for (let i = hdr + 1; i < lines.length; i++) {
+        const line = lines[i].trim(); if (!line) continue;
+        const vals = line.split(delim).map(v => v.trim().replace(/^"|"$/g, ''));
+        if (vals.length < 2) continue;
+        const row = {}; headers.forEach((h, idx) => row[h] = vals[idx] || '');
+        rows.push(row);
+    }
+    return rows;
+}
+function cleanMyposCSV(t) {
+    t = cleanBOM(t);
+    const lines = t.split('\n');
+    let start = 0;
+    for (let i = 0; i < lines.length; i++) {
+        const lo = lines[i].toLowerCase();
+        if (lo.includes('datum') && lo.includes('betrag') && (lo.includes('terminal') || lo.includes('name des terminals'))) { start = i; break; }
+    }
+    return lines.slice(start).join('\n');
+}
+function nameSim(a, b) {
+    const s1 = normalizeName(a), s2 = normalizeName(b);
+    if (s1 === s2) return 1;
+    if (!s1.length || !s2.length) return 0;
+    const m = [];
+    for (let i = 0; i <= s1.length; i++) {
+        m[i] = [i];
+        for (let j = 1; j <= s2.length; j++) {
+            if (!i) { m[i][j] = j; continue; }
+            m[i][j] = Math.min(m[i-1][j]+1, m[i][j-1]+1, m[i-1][j-1] + (s1[i-1]===s2[j-1]?0:1));
+        }
+    }
+    return 1 - m[s1.length][s2.length] / Math.max(s1.length, s2.length);
+}
+
+function log(msg) {
+    const ts = new Date().toISOString();
+    logLines.push(`[${ts}] ${msg}`);
+    const el = document.getElementById('log');
+    if (el) el.textContent = logLines.join('\n');
+    console.log(msg);
+}
+
+async function readFile(f) {
+    return new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result);
+        r.onerror = () => rej(new Error('File read error'));
+        r.readAsText(f, 'utf-8');
+    });
+}
+
+async function computeKw16Correct() {
+    const boltFile = document.getElementById('csvBolt').files[0];
+    const uberFile = document.getElementById('csvUber').files[0];
+    if (!boltFile || !uberFile) throw new Error('Bolt und Uber CSV sind Pflicht (MyPOS optional)');
+    // Note: Das MyPOS-Feld existiert im UI für Konsistenz mit dem regulären AbrBot-Flow,
+    // wird aber hier NICHT geparst. Terminal→Fahrer-Mapping lebt in Notion, nicht im Frontend.
+    // Stattdessen: mypos_summe aus den bestehenden KW16-settlements als Fallback verwenden.
+    if (document.getElementById('csvMypos').files[0]) log('Hinweis: MyPOS-CSV wird ignoriert — Fallback auf gespeicherte mypos_summe aus KW16-settlements');
+    const srcWoche = document.getElementById('srcWoche').value.trim();
+    log(`Rekalkulation für ${srcWoche}...`);
+
+    const { data: fahrerData, error: fErr } = await supa.from('fahrer')
+        .select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon')
+        .eq('aktiv', true);
+    if (fErr) throw fErr;
+    const fahrerDict = {};
+    for (const f of fahrerData) fahrerDict[f.name] = {
+        mietmodell: f.mietmodell || 'fix',
+        basis_miete: parseFloat(f.basis_miete) || 0,
+        prozent_satz: parseFloat(f.prozent_satz) || 0,
+        prozent_schwelle: parseFloat(f.prozent_schwelle) || 1200
+    };
+
+    const { data: aliasData } = await supa.from('name_aliases').select('csv_name,fahrer_name');
+    const aliasDict = {};
+    for (const a of (aliasData || [])) aliasDict[normalizeName(a.csv_name)] = a.fahrer_name;
+
+    const { data: existingKw16, error: exErr } = await supa.from('settlements').select('*').eq('woche', srcWoche);
+    if (exErr) throw exErr;
+    const existingDict = {};
+    for (const s of existingKw16) existingDict[s.fahrer_name] = s;
+
+    const boltRaw = await readFile(boltFile);
+    const boltRows = parseCSV(boltRaw, detectDelimiter(boltRaw));
+    const boltDict = {};
+    for (const row of boltRows) {
+        const name = (row['Fahrer:in'] || row['Fahrer/in'] || row['Fahrer'] || row['Driver name'] || row['Driver'] || '').trim();
+        if (!name) continue;
+        const keys = Object.keys(row);
+        let bK = keys.find(k => k.includes('Bruttoverdienst') && k.includes('insgesamt'));
+        if (!bK) bK = keys.find(k => k.includes('Bruttoverdienst') && !k.includes('pro Stunde'));
+        if (!bK) bK = keys.find(k => k.toLowerCase().includes('gross earnings'));
+        let aK = keys.find(k => k.includes('Voraussichtliche Auszahlung'));
+        if (!aK) aK = keys.find(k => k.toLowerCase().includes('payout'));
+        boltDict[name] = { brutto: parseMoney(bK ? row[bK] : 0), auszahlung: parseMoney(aK ? row[aK] : 0) };
+    }
+
+    const uberRaw = await readFile(uberFile);
+    const uberRows = parseCSV(uberRaw, detectDelimiter(uberRaw));
+    const uberDict = {};
+    for (const row of uberRows) {
+        const vor = (row['Vorname des Fahrers'] || '').trim();
+        const nach = (row['Nachname des Fahrers'] || '').trim();
+        const full = `${vor} ${nach}`.trim();
+        if (!full) continue;
+        let fp = parseMoney(row['An dein Unternehmen gezahlt : Deine Umsätze : Fahrpreis']);
+        if (!fp) fp = parseMoney(row['An dein Unternehmen gezahlt:Deine Umsätze:Fahrpreis:Fahrpreis']);
+        uberDict[full] = { fahrpreis: fp, auszahlung: parseMoney(row['An dein Unternehmen gezahlt']) };
+    }
+
+    function findFahrer(name) {
+        const nn = normalizeName(name);
+        if (aliasDict[nn] && fahrerDict[aliasDict[nn]]) {
+            log(`Alias: "${name}" → "${aliasDict[nn]}"`);
+            return { key: aliasDict[nn], data: fahrerDict[aliasDict[nn]] };
+        }
+        if (fahrerDict[name]) return { key: name, data: fahrerDict[name] };
+        for (const k of Object.keys(fahrerDict)) if (normalizeName(k) === nn) return { key: k, data: fahrerDict[k] };
+        let best = null, score = 0;
+        for (const k of Object.keys(fahrerDict)) {
+            const sc = nameSim(name, k);
+            if (sc >= 0.92 && sc > score) { best = { key: k, data: fahrerDict[k] }; score = sc; }
+        }
+        if (best) log(`Fuzzy: "${name}" → "${best.key}" (score: ${score.toFixed(3)})`);
+        return best;
+    }
+
+    // Group Bolt + Uber by resolved fahrer key (handles different spellings across CSVs)
+    const byKey = {}; // key -> { fahrer, bolt_brutto, bolt_ausz, uber_fp, uber_ausz, rawNames }
+
+    function ensureGroup(rawName) {
+        const fahrer = findFahrer(rawName);
+        const key = fahrer ? fahrer.key : rawName;
+        if (!byKey[key]) byKey[key] = { fahrer, bolt_brutto: 0, bolt_ausz: 0, uber_fp: 0, uber_ausz: 0, rawNames: new Set() };
+        byKey[key].rawNames.add(rawName);
+        return byKey[key];
+    }
+
+    for (const [name, b] of Object.entries(boltDict)) {
+        const g = ensureGroup(name);
+        g.bolt_brutto += b.brutto;
+        g.bolt_ausz += b.auszahlung;
+    }
+    for (const [name, u] of Object.entries(uberDict)) {
+        const g = ensureGroup(name);
+        g.uber_fp += u.fahrpreis;
+        g.uber_ausz += u.auszahlung;
+    }
+
+    const correctByFahrer = {};
+    for (const [key, g] of Object.entries(byKey)) {
+        const existing = existingDict[key] || {};
+        const mypos = parseFloat(existing.mypos_summe) || 0;
+        const brutto_gesamt = g.bolt_brutto + g.uber_fp + mypos;
+        const wir_bekommen = g.bolt_ausz + g.uber_ausz + mypos;
+        let miete = 0, prozent_abzug = 0;
+        if (g.fahrer) {
+            miete = g.fahrer.data.basis_miete;
+            if (g.fahrer.data.mietmodell === 'f11' && brutto_gesamt > 1100) prozent_abzug = (brutto_gesamt - 1100) * 0.10;
+            else if (g.fahrer.data.mietmodell === 'f12' && brutto_gesamt > 1200) prozent_abzug = (brutto_gesamt - 1200) * 0.10;
+            else if (g.fahrer.data.prozent_satz > 0 && brutto_gesamt > g.fahrer.data.prozent_schwelle)
+                prozent_abzug = (brutto_gesamt - g.fahrer.data.prozent_schwelle) * (g.fahrer.data.prozent_satz / 100);
+        }
+        const korrekt_auszahlung = wir_bekommen - miete - prozent_abzug;
+        correctByFahrer[key] = { korrekt_auszahlung, brutto_gesamt, wir_bekommen, miete, prozent_abzug, matched: !!g.fahrer };
+        if (g.rawNames.size > 1) log(`Multi-Spelling: "${[...g.rawNames].join('" + "')}" → "${key}"`);
+    }
+
+    log(`Rekalkulation OK: ${Object.keys(correctByFahrer).length} Fahrer`);
+    return { correctByFahrer, existingDict };
+}
+
+let currentDeltas = []; // in-memory state for review
+
+function updateSummary() {
+    const rows = currentDeltas;
+    const totalDelta = rows.filter(r => r.enabled).reduce((a, r) => a + r.delta, 0);
+    const activeCount = rows.filter(r => r.enabled && r.delta !== 0).length;
+    document.getElementById('summaryBox').innerHTML =
+        `<p><strong>Fahrer mit Delta ≠ 0 (aktiviert):</strong> ${activeCount} von ${rows.length}</p>` +
+        `<p><strong>Nettosumme aller aktivierten Deltas:</strong> ${totalDelta.toFixed(2)} € ` +
+        `<em>(sollte nahe 0 sein wenn KW16 Netto korrekt war)</em></p>`;
+}
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function renderReview() {
+    try {
+        const { correctByFahrer, existingDict } = await computeKw16Correct();
+        const rows = [];
+        for (const [name, existing] of Object.entries(existingDict)) {
+            if (name === '__TRANSFER__') continue;
+            const ausgezahlt = parseFloat(existing.auszahlung) || 0;
+            const korrekt = correctByFahrer[name] ? correctByFahrer[name].korrekt_auszahlung : ausgezahlt;
+            const delta = Math.round((korrekt - ausgezahlt) * 100) / 100;
+            rows.push({
+                fahrer_name: name,
+                ausgezahlt: ausgezahlt,
+                korrekt: korrekt,
+                delta: delta,
+                note: 'Nachzahlung KW16 falsche CSV',
+                enabled: delta !== 0,
+                matched: correctByFahrer[name] ? correctByFahrer[name].matched : false
+            });
+        }
+        // Neue Fahrer (in korrekter CSV, aber nicht in existing) hinzufügen
+        for (const name of Object.keys(correctByFahrer)) {
+            if (!existingDict[name]) {
+                const korrekt = correctByFahrer[name].korrekt_auszahlung;
+                rows.push({
+                    fahrer_name: name,
+                    ausgezahlt: 0,
+                    korrekt: korrekt,
+                    delta: Math.round(korrekt * 100) / 100,
+                    note: 'Nachzahlung KW16 (nicht in alter Abrechnung)',
+                    enabled: true,
+                    matched: correctByFahrer[name].matched
+                });
+            }
+        }
+        currentDeltas = rows;
+        updateSummary();
+        renderTable();
+        document.getElementById('stepReview').classList.remove('hidden');
+        log(`Review bereit: ${rows.length} Zeilen, davon ${rows.filter(r=>r.delta!==0).length} mit Delta`);
+    } catch (e) {
+        log(`FEHLER: ${e.message}`);
+        alert('Fehler: ' + e.message);
+    }
+}
+
+function renderTable() {
+    let html = '<table><thead><tr><th>✓</th><th>Fahrer</th><th class="num">Ausgezahlt</th><th class="num">Korrekt</th><th class="num">Delta</th><th>Note</th></tr></thead><tbody>';
+    for (let i = 0; i < currentDeltas.length; i++) {
+        const r = currentDeltas[i];
+        if (r.delta === 0) continue; // hide zero rows
+        const cls = r.delta > 0 ? 'pos' : 'neg';
+        const warn = !r.matched ? ' ⚠' : '';
+        html += `<tr><td><input type="checkbox" data-idx="${i}" class="cbEnable" ${r.enabled?'checked':''}></td>` +
+            `<td>${escHtml(r.fahrer_name)}${warn}</td>` +
+            `<td class="num">${r.ausgezahlt.toFixed(2)}</td>` +
+            `<td class="num">${r.korrekt.toFixed(2)}</td>` +
+            `<td class="num ${cls}"><input type="number" step="0.01" data-idx="${i}" class="inpDelta" value="${r.delta}" style="width:90px;text-align:right;"></td>` +
+            `<td><input type="text" data-idx="${i}" class="inpNote" value="${escHtml(r.note)}" style="width:100%;"></td></tr>`;
+    }
+    html += '</tbody></table>';
+    document.getElementById('tableContainer').innerHTML = html;
+    // Wire up edits
+    document.querySelectorAll('.cbEnable').forEach(el => el.addEventListener('change', e => {
+        currentDeltas[+e.target.dataset.idx].enabled = e.target.checked;
+        updateSummary();
+    }));
+    document.querySelectorAll('.inpDelta').forEach(el => el.addEventListener('input', e => {
+        currentDeltas[+e.target.dataset.idx].delta = parseFloat(e.target.value) || 0;
+        updateSummary();
+    }));
+    document.querySelectorAll('.inpNote').forEach(el => el.addEventListener('input', e => {
+        currentDeltas[+e.target.dataset.idx].note = e.target.value;
+    }));
+}
+
+function buildUpdates() {
+    const dstWoche = document.getElementById('dstWoche').value.trim();
+    const updates = [];
+    for (const r of currentDeltas) {
+        if (!r.enabled) continue;
+        if (r.delta === 0) continue;
+        updates.push({
+            woche: dstWoche,
+            fahrer_name: r.fahrer_name,
+            delta: r.delta,
+            note: r.note
+        });
+    }
+    return { dstWoche, updates };
+}
+
+async function previewSql() {
+    const { dstWoche, updates } = buildUpdates();
+    if (!updates.length) { log('Preview: keine aktivierten Deltas'); alert('Keine aktivierten Deltas'); return; }
+    const { data: kw17, error } = await supa.from('settlements').select('fahrer_name,auszahlung,korrektur').eq('woche', dstWoche);
+    if (error) { alert('DB-Fehler: ' + error.message); return; }
+    const kw17Map = {};
+    for (const s of kw17) kw17Map[s.fahrer_name] = s;
+    const missing = updates.filter(u => !kw17Map[u.fahrer_name]);
+    if (missing.length) {
+        log(`Preview ABORT: ${missing.length} Fahrer ohne ${dstWoche}-Zeile`);
+        alert(`ABORT: ${missing.length} Fahrer haben keine ${dstWoche}-Zeile: ${missing.map(m=>m.fahrer_name).join(', ')}. Bitte KW17-CSVs zuerst verarbeiten oder diese Fahrer deaktivieren.`);
+        return;
+    }
+    const sql = updates.map(u => {
+        const row = kw17Map[u.fahrer_name];
+        const alteKorr = parseFloat(row.korrektur) || 0;
+        const warn = alteKorr !== 0 ? ` -- WARNUNG: alte Korrektur ${alteKorr} wird überschrieben` : '';
+        const noteEsc = u.note.replace(/'/g, "''");
+        return `UPDATE settlements SET auszahlung = auszahlung - korrektur + ${u.delta}, korrektur = ${u.delta}, korrektur_note = '${noteEsc}' WHERE woche = '${u.woche}' AND fahrer_name = '${u.fahrer_name.replace(/'/g, "''")}';${warn}`;
+    }).join('\n');
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;padding:40px;overflow:auto;';
+    const pre = document.createElement('pre');
+    pre.style.cssText = 'background:#1a1714;color:#e5e1db;padding:20px;border-radius:8px;max-width:1000px;margin:0 auto;';
+    pre.textContent = sql;
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Schließen';
+    closeBtn.onclick = () => modal.remove();
+    const btnWrap = document.createElement('p');
+    btnWrap.style.cssText = 'text-align:center;margin-top:16px;';
+    btnWrap.appendChild(closeBtn);
+    modal.appendChild(pre);
+    modal.appendChild(btnWrap);
+    document.body.appendChild(modal);
+    log(`SQL-Preview: ${updates.length} UPDATEs generiert`);
+}
+
+async function writeCorrections() {
+    const btn = document.getElementById('btnWrite');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    try {
+        const { dstWoche, updates } = buildUpdates();
+        if (!updates.length) { log('Write: keine aktivierten Deltas'); alert('Keine aktivierten Deltas'); return; }
+
+        const { data: kw17, error: preErr } = await supa.from('settlements').select('fahrer_name,korrektur').eq('woche', dstWoche);
+        if (preErr) { alert('DB-Fehler: ' + preErr.message); return; }
+        const kw17Map = {};
+        for (const s of kw17) kw17Map[s.fahrer_name] = s;
+        const missing = updates.filter(u => !kw17Map[u.fahrer_name]);
+        if (missing.length) {
+            log(`Write ABORT: ${missing.length} Fahrer ohne ${dstWoche}-Zeile`);
+            alert(`ABORT: ${missing.length} Fahrer haben keine ${dstWoche}-Zeile`);
+            return;
+        }
+        const existingCorr = updates.filter(u => (parseFloat(kw17Map[u.fahrer_name].korrektur) || 0) !== 0);
+        const confirmMsg = `${updates.length} Korrekturen in ${dstWoche} schreiben.` +
+            (existingCorr.length ? `\n\n⚠ ${existingCorr.length} Zeilen haben bereits eine Korrektur — wird überschrieben.` : '') +
+            `\n\nFortfahren?`;
+        if (!confirm(confirmMsg)) { log('Abbruch durch User'); return; }
+
+        log(`START: ${updates.length} UPDATEs...`);
+        let ok = 0, err = 0;
+        for (const u of updates) {
+            const row = kw17Map[u.fahrer_name];
+            const alteKorr = parseFloat(row.korrektur) || 0;
+            const { data: current, error: readErr } = await supa.from('settlements')
+                .select('auszahlung').eq('woche', u.woche).eq('fahrer_name', u.fahrer_name).single();
+            if (readErr) { log(`FEHLER read ${u.fahrer_name}: ${readErr.message}`); err++; continue; }
+            const newAuszahlung = (parseFloat(current.auszahlung) || 0) - alteKorr + u.delta;
+            const { error: upErr } = await supa.from('settlements').update({
+                auszahlung: Math.round(newAuszahlung * 100) / 100,
+                korrektur: u.delta,
+                korrektur_note: u.note
+            }).eq('woche', u.woche).eq('fahrer_name', u.fahrer_name);
+            if (upErr) { log(`FEHLER update ${u.fahrer_name}: ${upErr.message}`); err++; continue; }
+            log(`OK ${u.fahrer_name}: korrektur=${u.delta}, auszahlung=${newAuszahlung.toFixed(2)}`);
+            ok++;
+        }
+        log(`FERTIG: ${ok} OK, ${err} Fehler`);
+        alert(`${ok} Korrekturen geschrieben, ${err} Fehler. Siehe Audit-Log.`);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+document.getElementById('btnPreview').addEventListener('click', previewSql);
+document.getElementById('btnWrite').addEventListener('click', writeCorrections);
+
+function downloadLog() {
+    const blob = new Blob([logLines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `korrektur-audit-${new Date().toISOString().replace(/[:.]/g,'-')}.txt`;
+    a.click();
+}
+document.getElementById('btnDownloadLog').addEventListener('click', downloadLog);
+
+async function login() {
+    const name = document.getElementById('pinName').value.trim();
+    const pin = document.getElementById('pinCode').value.trim();
+    if (!name || !pin) { document.getElementById('authMsg').textContent = 'Name + PIN nötig'; return; }
+    supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data, error } = await supa.from('app_users').select('name,role').eq('name', name).eq('pin', pin).single();
+    if (error || !data) { document.getElementById('authMsg').textContent = 'Login fehlgeschlagen'; return; }
+    currentUser = data.name;
+    log(`Login OK: ${currentUser} (${data.role})`);
+    document.getElementById('stepAuth').classList.add('hidden');
+    document.getElementById('stepUpload').classList.remove('hidden');
+    document.getElementById('stepLog').classList.remove('hidden');
+}
+
+document.getElementById('btnLogin').addEventListener('click', login);
+document.getElementById('btnCompute').addEventListener('click', renderReview);
+
+function checkComputeReady() {
+    const ok = document.getElementById('csvBolt').files[0] && document.getElementById('csvUber').files[0];
+    document.getElementById('btnCompute').disabled = !ok;
+}
+['csvBolt', 'csvUber', 'csvMypos'].forEach(id => {
+    document.getElementById(id).addEventListener('change', checkComputeReady);
+});
+</script>
+</body>
+</html>

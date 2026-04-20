@@ -382,13 +382,14 @@ function buildUpdates() {
 
 async function previewSql() {
     const { dstWoche, updates } = buildUpdates();
-    if (!updates.length) { alert('Keine aktivierten Deltas'); return; }
+    if (!updates.length) { log('Preview: keine aktivierten Deltas'); alert('Keine aktivierten Deltas'); return; }
     const { data: kw17, error } = await supa.from('settlements').select('fahrer_name,auszahlung,korrektur').eq('woche', dstWoche);
     if (error) { alert('DB-Fehler: ' + error.message); return; }
     const kw17Map = {};
     for (const s of kw17) kw17Map[s.fahrer_name] = s;
     const missing = updates.filter(u => !kw17Map[u.fahrer_name]);
     if (missing.length) {
+        log(`Preview ABORT: ${missing.length} Fahrer ohne ${dstWoche}-Zeile`);
         alert(`ABORT: ${missing.length} Fahrer haben keine ${dstWoche}-Zeile: ${missing.map(m=>m.fahrer_name).join(', ')}. Bitte KW17-CSVs zuerst verarbeiten oder diese Fahrer deaktivieren.`);
         return;
     }
@@ -417,44 +418,52 @@ async function previewSql() {
 }
 
 async function writeCorrections() {
-    const { dstWoche, updates } = buildUpdates();
-    if (!updates.length) { alert('Keine aktivierten Deltas'); return; }
+    const btn = document.getElementById('btnWrite');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    try {
+        const { dstWoche, updates } = buildUpdates();
+        if (!updates.length) { log('Write: keine aktivierten Deltas'); alert('Keine aktivierten Deltas'); return; }
 
-    const { data: kw17, error: preErr } = await supa.from('settlements').select('fahrer_name,korrektur').eq('woche', dstWoche);
-    if (preErr) { alert('DB-Fehler: ' + preErr.message); return; }
-    const kw17Map = {};
-    for (const s of kw17) kw17Map[s.fahrer_name] = s;
-    const missing = updates.filter(u => !kw17Map[u.fahrer_name]);
-    if (missing.length) {
-        alert(`ABORT: ${missing.length} Fahrer haben keine ${dstWoche}-Zeile`);
-        return;
-    }
-    const existingCorr = updates.filter(u => (parseFloat(kw17Map[u.fahrer_name].korrektur) || 0) !== 0);
-    const confirmMsg = `${updates.length} Korrekturen in ${dstWoche} schreiben.` +
-        (existingCorr.length ? `\n\n⚠ ${existingCorr.length} Zeilen haben bereits eine Korrektur — wird überschrieben.` : '') +
-        `\n\nFortfahren?`;
-    if (!confirm(confirmMsg)) { log('Abbruch durch User'); return; }
+        const { data: kw17, error: preErr } = await supa.from('settlements').select('fahrer_name,korrektur').eq('woche', dstWoche);
+        if (preErr) { alert('DB-Fehler: ' + preErr.message); return; }
+        const kw17Map = {};
+        for (const s of kw17) kw17Map[s.fahrer_name] = s;
+        const missing = updates.filter(u => !kw17Map[u.fahrer_name]);
+        if (missing.length) {
+            log(`Write ABORT: ${missing.length} Fahrer ohne ${dstWoche}-Zeile`);
+            alert(`ABORT: ${missing.length} Fahrer haben keine ${dstWoche}-Zeile`);
+            return;
+        }
+        const existingCorr = updates.filter(u => (parseFloat(kw17Map[u.fahrer_name].korrektur) || 0) !== 0);
+        const confirmMsg = `${updates.length} Korrekturen in ${dstWoche} schreiben.` +
+            (existingCorr.length ? `\n\n⚠ ${existingCorr.length} Zeilen haben bereits eine Korrektur — wird überschrieben.` : '') +
+            `\n\nFortfahren?`;
+        if (!confirm(confirmMsg)) { log('Abbruch durch User'); return; }
 
-    log(`START: ${updates.length} UPDATEs...`);
-    let ok = 0, err = 0;
-    for (const u of updates) {
-        const row = kw17Map[u.fahrer_name];
-        const alteKorr = parseFloat(row.korrektur) || 0;
-        const { data: current, error: readErr } = await supa.from('settlements')
-            .select('auszahlung').eq('woche', u.woche).eq('fahrer_name', u.fahrer_name).single();
-        if (readErr) { log(`FEHLER read ${u.fahrer_name}: ${readErr.message}`); err++; continue; }
-        const newAuszahlung = (parseFloat(current.auszahlung) || 0) - alteKorr + u.delta;
-        const { error: upErr } = await supa.from('settlements').update({
-            auszahlung: Math.round(newAuszahlung * 100) / 100,
-            korrektur: u.delta,
-            korrektur_note: u.note
-        }).eq('woche', u.woche).eq('fahrer_name', u.fahrer_name);
-        if (upErr) { log(`FEHLER update ${u.fahrer_name}: ${upErr.message}`); err++; continue; }
-        log(`OK ${u.fahrer_name}: korrektur=${u.delta}, auszahlung=${newAuszahlung.toFixed(2)}`);
-        ok++;
+        log(`START: ${updates.length} UPDATEs...`);
+        let ok = 0, err = 0;
+        for (const u of updates) {
+            const row = kw17Map[u.fahrer_name];
+            const alteKorr = parseFloat(row.korrektur) || 0;
+            const { data: current, error: readErr } = await supa.from('settlements')
+                .select('auszahlung').eq('woche', u.woche).eq('fahrer_name', u.fahrer_name).single();
+            if (readErr) { log(`FEHLER read ${u.fahrer_name}: ${readErr.message}`); err++; continue; }
+            const newAuszahlung = (parseFloat(current.auszahlung) || 0) - alteKorr + u.delta;
+            const { error: upErr } = await supa.from('settlements').update({
+                auszahlung: Math.round(newAuszahlung * 100) / 100,
+                korrektur: u.delta,
+                korrektur_note: u.note
+            }).eq('woche', u.woche).eq('fahrer_name', u.fahrer_name);
+            if (upErr) { log(`FEHLER update ${u.fahrer_name}: ${upErr.message}`); err++; continue; }
+            log(`OK ${u.fahrer_name}: korrektur=${u.delta}, auszahlung=${newAuszahlung.toFixed(2)}`);
+            ok++;
+        }
+        log(`FERTIG: ${ok} OK, ${err} Fehler`);
+        alert(`${ok} Korrekturen geschrieben, ${err} Fehler. Siehe Audit-Log.`);
+    } finally {
+        btn.disabled = false;
     }
-    log(`FERTIG: ${ok} OK, ${err} Fehler`);
-    alert(`${ok} Korrekturen geschrieben, ${err} Fehler. Siehe Audit-Log.`);
 }
 
 document.getElementById('btnPreview').addEventListener('click', previewSql);

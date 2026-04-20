@@ -469,6 +469,15 @@ async function writeCorrections() {
 document.getElementById('btnPreview').addEventListener('click', previewSql);
 document.getElementById('btnWrite').addEventListener('click', writeCorrections);
 
+function downloadLog() {
+    const blob = new Blob([logLines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `korrektur-audit-${new Date().toISOString().replace(/[:.]/g,'-')}.txt`;
+    a.click();
+}
+document.getElementById('btnDownloadLog').addEventListener('click', downloadLog);
+
 async function login() {
     const name = document.getElementById('pinName').value.trim();
     const pin = document.getElementById('pinCode').value.trim();

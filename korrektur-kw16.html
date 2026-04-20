@@ -281,6 +281,89 @@ async function computeKw16Correct() {
     return { correctByFahrer, existingDict };
 }
 
+let currentDeltas = []; // in-memory state for review
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function renderReview() {
+    try {
+        const { correctByFahrer, existingDict } = await computeKw16Correct();
+        const rows = [];
+        for (const [name, existing] of Object.entries(existingDict)) {
+            if (name === '__TRANSFER__') continue;
+            const ausgezahlt = parseFloat(existing.auszahlung) || 0;
+            const korrekt = correctByFahrer[name] ? correctByFahrer[name].korrekt_auszahlung : ausgezahlt;
+            const delta = Math.round((korrekt - ausgezahlt) * 100) / 100;
+            rows.push({
+                fahrer_name: name,
+                ausgezahlt: ausgezahlt,
+                korrekt: korrekt,
+                delta: delta,
+                note: 'Nachzahlung KW16 falsche CSV',
+                enabled: delta !== 0,
+                matched: correctByFahrer[name] ? correctByFahrer[name].matched : false
+            });
+        }
+        // Neue Fahrer (in korrekter CSV, aber nicht in existing) hinzufügen
+        for (const name of Object.keys(correctByFahrer)) {
+            if (!existingDict[name]) {
+                const korrekt = correctByFahrer[name].korrekt_auszahlung;
+                rows.push({
+                    fahrer_name: name,
+                    ausgezahlt: 0,
+                    korrekt: korrekt,
+                    delta: Math.round(korrekt * 100) / 100,
+                    note: 'Nachzahlung KW16 (nicht in alter Abrechnung)',
+                    enabled: true,
+                    matched: correctByFahrer[name].matched
+                });
+            }
+        }
+        currentDeltas = rows;
+        const totalDelta = rows.filter(r => r.enabled).reduce((a, r) => a + r.delta, 0);
+        document.getElementById('summaryBox').innerHTML =
+            `<p><strong>Fahrer mit Delta ≠ 0:</strong> ${rows.filter(r => r.delta !== 0).length} von ${rows.length}</p>` +
+            `<p><strong>Nettosumme aller aktivierten Deltas:</strong> ${totalDelta.toFixed(2)} € ` +
+            `<em>(sollte nahe 0 sein wenn KW16 Netto korrekt ausbezahlt wurde)</em></p>`;
+        renderTable();
+        document.getElementById('stepReview').classList.remove('hidden');
+        log(`Review bereit: ${rows.length} Zeilen, davon ${rows.filter(r=>r.delta!==0).length} mit Delta`);
+    } catch (e) {
+        log(`FEHLER: ${e.message}`);
+        alert('Fehler: ' + e.message);
+    }
+}
+
+function renderTable() {
+    let html = '<table><thead><tr><th>✓</th><th>Fahrer</th><th class="num">Ausgezahlt</th><th class="num">Korrekt</th><th class="num">Delta</th><th>Note</th></tr></thead><tbody>';
+    for (let i = 0; i < currentDeltas.length; i++) {
+        const r = currentDeltas[i];
+        if (r.delta === 0) continue; // hide zero rows
+        const cls = r.delta > 0 ? 'pos' : 'neg';
+        const warn = !r.matched ? ' ⚠' : '';
+        html += `<tr><td><input type="checkbox" data-idx="${i}" class="cbEnable" ${r.enabled?'checked':''}></td>` +
+            `<td>${escHtml(r.fahrer_name)}${warn}</td>` +
+            `<td class="num">${r.ausgezahlt.toFixed(2)}</td>` +
+            `<td class="num">${r.korrekt.toFixed(2)}</td>` +
+            `<td class="num ${cls}"><input type="number" step="0.01" data-idx="${i}" class="inpDelta" value="${r.delta}" style="width:90px;text-align:right;"></td>` +
+            `<td><input type="text" data-idx="${i}" class="inpNote" value="${escHtml(r.note)}" style="width:100%;"></td></tr>`;
+    }
+    html += '</tbody></table>';
+    document.getElementById('tableContainer').innerHTML = html;
+    // Wire up edits
+    document.querySelectorAll('.cbEnable').forEach(el => el.addEventListener('change', e => {
+        currentDeltas[+e.target.dataset.idx].enabled = e.target.checked;
+    }));
+    document.querySelectorAll('.inpDelta').forEach(el => el.addEventListener('input', e => {
+        currentDeltas[+e.target.dataset.idx].delta = parseFloat(e.target.value) || 0;
+    }));
+    document.querySelectorAll('.inpNote').forEach(el => el.addEventListener('input', e => {
+        currentDeltas[+e.target.dataset.idx].note = e.target.value;
+    }));
+}
+
 async function login() {
     const name = document.getElementById('pinName').value.trim();
     const pin = document.getElementById('pinCode').value.trim();
@@ -296,7 +379,7 @@ async function login() {
 }
 
 document.getElementById('btnLogin').addEventListener('click', login);
-// Compute/write/preview wiring kommt in späteren Tasks
+document.getElementById('btnCompute').addEventListener('click', renderReview);
 
 function checkComputeReady() {
     const ok = document.getElementById('csvBolt').files[0] && document.getElementById('csvUber').files[0];

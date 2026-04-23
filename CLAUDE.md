@@ -8,7 +8,7 @@ HYDRAlink is the internal web dashboard for **HYDRAFLEET**, a taxi/ride-sharing 
 
 - **Frontend**: Single-page HTML/JS app (no framework, vanilla JS)
 - **Database**: Supabase (project: `pkxcwfkfaaorwnbdmylg.supabase.co`)
-- **Hosting**: Cloudflare Pages (`hydrafleet.pages.dev` / `hydrafleet.at`)
+- **Hosting**: Cloudflare Pages — Dashboard läuft auf `hydrafleet.pages.dev` (`hydrafleet.at` ist eine andere Seite, NICHT das Dashboard)
 - **Automation**: n8n (self-hosted on Hetzner) — handles CSV processing, invoice PDF generation, Notion sync
 - **Driver/Vehicle master data**: Notion (source of truth — never replace)
 - **Notifications**: Telegram (implemented but currently deactivated)
@@ -48,7 +48,9 @@ The dashboard (`dashboard.html`) has 3 tabs:
 - **AbrechnungsBot** (`RTeVugetfAjSTPQs`) — CSV settlement processing
 - **Fahrer-Sync** (`ERBnlIVSkteL90Bg`) — Notion → Supabase driver sync via webhook
 - **Full-Sync** (`bCyUwmFeuoG762yC`) — Full Notion → Supabase sync
-- **Webhook endpoint**: `https://webhook.hydrafleet.at/webhook/fahrer-sync`
+- **Webhook endpoints (nach Domain-Outage April 2026 temporär umgestellt):**
+  - Dashboard → n8n: `https://n8n.vertrag-erstellen.at/webhook/abrechnung-upload` + `/webhook/invoice`
+  - Notion → n8n (fahrer-sync): `https://webhook.hydrafleet.at/webhook/fahrer-sync` (zurück wenn `.at`-Domain reaktiviert ist)
 
 ## Important Patterns & Gotchas
 

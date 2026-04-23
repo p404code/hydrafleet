@@ -264,17 +264,24 @@ async function computeKw16Correct() {
         const mypos = parseFloat(existing.mypos_summe) || 0;
         const brutto_gesamt = g.bolt_brutto + g.uber_fp + mypos;
         const wir_bekommen = g.bolt_ausz + g.uber_ausz + mypos;
-        let miete = 0, prozent_abzug = 0;
-        if (g.fahrer) {
-            miete = g.fahrer.data.basis_miete;
-            if (g.fahrer.data.mietmodell === 'f11' && brutto_gesamt > 1100) prozent_abzug = (brutto_gesamt - 1100) * 0.10;
-            else if (g.fahrer.data.mietmodell === 'f12' && brutto_gesamt > 1200) prozent_abzug = (brutto_gesamt - 1200) * 0.10;
-            else if (g.fahrer.data.prozent_satz > 0 && brutto_gesamt > g.fahrer.data.prozent_schwelle)
-                prozent_abzug = (brutto_gesamt - g.fahrer.data.prozent_schwelle) * (g.fahrer.data.prozent_satz / 100);
-        }
+        // WICHTIG: Miete + Mietmodell aus der gespeicherten KW16-Zeile nehmen
+        // (nicht fahrer.basis_miete), weil sich Stammdaten seit KW16 geändert haben können
+        // und die tatsächlich in KW16 angewandten Werte die "Ground Truth" sind.
+        const mm = existing.mietmodell || (g.fahrer ? g.fahrer.data.mietmodell : 'fix');
+        const miete = (existing.miete !== undefined && existing.miete !== null)
+            ? (parseFloat(existing.miete) || 0)
+            : (g.fahrer ? g.fahrer.data.basis_miete : 0);
+        let prozent_abzug = 0;
+        if (mm === 'f11' && brutto_gesamt > 1100) prozent_abzug = (brutto_gesamt - 1100) * 0.10;
+        else if (mm === 'f12' && brutto_gesamt > 1200) prozent_abzug = (brutto_gesamt - 1200) * 0.10;
+        else if (g.fahrer && g.fahrer.data.prozent_satz > 0 && brutto_gesamt > g.fahrer.data.prozent_schwelle)
+            prozent_abzug = (brutto_gesamt - g.fahrer.data.prozent_schwelle) * (g.fahrer.data.prozent_satz / 100);
         const korrekt_auszahlung = wir_bekommen - miete - prozent_abzug;
         correctByFahrer[key] = { korrekt_auszahlung, brutto_gesamt, wir_bekommen, miete, prozent_abzug, matched: !!g.fahrer };
         if (g.rawNames.size > 1) log(`Multi-Spelling: "${[...g.rawNames].join('" + "')}" → "${key}"`);
+        if (existing.miete !== undefined && g.fahrer && parseFloat(existing.miete) !== g.fahrer.data.basis_miete) {
+            log(`Miete-Override: "${key}" KW16-Miete=${existing.miete} (nicht Stamm=${g.fahrer.data.basis_miete})`);
+        }
     }
 
     log(`Rekalkulation OK: ${Object.keys(correctByFahrer).length} Fahrer`);

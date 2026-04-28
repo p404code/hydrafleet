@@ -981,7 +981,7 @@
         let reSelectedCustomer = null;
         let reArchivData = [];
         let reArchivLoaded = false;
-        const RE_INVOICE_URL = 'https://n8n.vertrag-erstellen.at/webhook/invoice';
+        const RE_INVOICE_URL = 'https://n8n.hydrafleet.at/webhook/invoice';
         const RE_COLOR_MAP = { blau:'#2c3e50', gruen:'#27ae60', rot:'#c0392b', orange:'#e67e22', lila:'#8e44ad', tuerkis:'#16a085', grau:'#7f8c8d', schwarz:'#1a1a1a' };
 
         /* Restore last tab (MUST be after all let/const declarations above) */
@@ -1474,7 +1474,7 @@
                 d.append('uber', document.getElementById('abrUber').files[0]);
                 d.append('mypos', document.getElementById('abrMypos').files[0]);
                 try {
-                    const r = await fetch('https://n8n.vertrag-erstellen.at/webhook/abrechnung-upload', { method: 'POST', body: d });
+                    const r = await fetch('https://n8n.hydrafleet.at/webhook/abrechnung-upload', { method: 'POST', body: d });
                     if (r.ok) {
                         const b = await r.blob();
                         const u = URL.createObjectURL(b);

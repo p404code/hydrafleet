@@ -48,9 +48,9 @@ The dashboard (`dashboard.html`) has 3 tabs:
 - **AbrechnungsBot** (`RTeVugetfAjSTPQs`) — CSV settlement processing
 - **Fahrer-Sync** (`ERBnlIVSkteL90Bg`) — Notion → Supabase driver sync via webhook
 - **Full-Sync** (`bCyUwmFeuoG762yC`) — Full Notion → Supabase sync
-- **Webhook endpoints (nach Domain-Outage April 2026 temporär umgestellt):**
-  - Dashboard → n8n: `https://n8n.vertrag-erstellen.at/webhook/abrechnung-upload` + `/webhook/invoice`
-  - Notion → n8n (fahrer-sync): `https://webhook.hydrafleet.at/webhook/fahrer-sync` (zurück wenn `.at`-Domain reaktiviert ist)
+- **Webhook endpoints:**
+  - Dashboard → n8n: `https://n8n.hydrafleet.at/webhook/abrechnung-upload` + `/webhook/invoice`
+  - Notion → n8n (fahrer-sync): `https://webhook.hydrafleet.at/webhook/fahrer-sync`
 
 ## Important Patterns & Gotchas
 

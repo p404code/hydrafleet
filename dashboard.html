@@ -1359,6 +1359,29 @@
                 }
                 const form = document.getElementById('invoiceForm');
                 const formData = new FormData(form);
+                /* Pre-compute per-item tax + totals client-side so the PDF
+                   template can read them directly. Avoids n8n bug where
+                   `Number(item_vat) || 20` defaults a selected 0% back to 20%. */
+                let sumNet = 0, sumTax = 0, sumGross = 0;
+                for (let i = 1; i <= rePositionCount; i++) {
+                    if (!document.getElementById('rePos' + i)) continue;
+                    const qty = parseFloat(formData.get('item' + i + '_qty')) || 0;
+                    const price = parseFloat(formData.get('item' + i + '_price')) || 0;
+                    const vatRaw = formData.get('item' + i + '_vat');
+                    const vat = (vatRaw === '' || vatRaw == null) ? 20 : parseFloat(vatRaw);
+                    const net = qty * price;
+                    const tax = net * vat / 100;
+                    const gross = net + tax;
+                    formData.set('item' + i + '_vat', String(vat));
+                    formData.set('item' + i + '_vatRate', String(vat));
+                    formData.set('item' + i + '_net', net.toFixed(2));
+                    formData.set('item' + i + '_tax', tax.toFixed(2));
+                    formData.set('item' + i + '_gross', gross.toFixed(2));
+                    sumNet += net; sumTax += tax; sumGross += gross;
+                }
+                formData.set('totalNet', sumNet.toFixed(2));
+                formData.set('totalTax', sumTax.toFixed(2));
+                formData.set('totalGross', sumGross.toFixed(2));
                 const response = await fetch(RE_INVOICE_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

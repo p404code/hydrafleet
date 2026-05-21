@@ -868,6 +868,42 @@
         </div>
     </div>
     <div id="printAllContainer" style="display:none;"></div>
+    <div class="print-overlay" id="mzModalOverlay">
+        <div class="alias-modal-inner" style="max-width:480px">
+            <h2 style="margin-bottom:8px;font-size:20px">Kassieren eintragen</h2>
+            <p style="color:var(--text-secondary);margin-bottom:20px;font-size:14px">
+                <span id="mzModalFahrer">—</span> · <span id="mzModalWoche">—</span> · offen: <strong id="mzModalOffen">—</strong>
+            </p>
+            <div style="display:flex;flex-direction:column;gap:14px">
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--text-secondary)">
+                    Betrag (€)
+                    <input type="number" id="mzModalBetrag" step="0.01" min="0.01" style="font-size:18px;padding:10px;font-family:'JetBrains Mono',monospace">
+                </label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--text-secondary)">
+                    Typ
+                    <select id="mzModalTyp" style="font-size:14px;padding:10px">
+                        <option value="bar">Bar</option>
+                        <option value="ueberweisung">Überweisung</option>
+                        <option value="verrechnet">Verrechnet mit Woche…</option>
+                    </select>
+                </label>
+                <label id="mzModalVerrechnetLabel" style="display:none;flex-direction:column;gap:4px;font-size:13px;color:var(--text-secondary)">
+                    Verrechnet mit Woche
+                    <select id="mzModalVerrechnetWoche" style="font-size:14px;padding:10px"></select>
+                </label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--text-secondary)">
+                    Notiz (optional)
+                    <input type="text" id="mzModalNote" maxlength="200" style="font-size:14px;padding:10px">
+                </label>
+                <div id="mzModalWarn" style="display:none;font-size:13px;color:#c4364a;padding:8px 12px;background:#fce8eb;border-radius:6px"></div>
+                <div id="mzModalError" style="display:none;font-size:13px;color:#c4364a"></div>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
+                <button class="btn" id="mzModalSaveBtn" style="background:var(--green);color:#020617;border:none;">Speichern</button>
+                <button class="btn" style="background:var(--bg-hover);color:var(--text);border:1px solid var(--border)" id="mzModalCancelBtn">Abbrechen</button>
+            </div>
+        </div>
+    </div>
     <div class="print-overlay" id="aliasOverlay">
         <div class="alias-modal-inner">
             <h2 style="margin-bottom:8px;font-size:20px">Fahrer zuordnen</h2>
@@ -940,6 +976,30 @@
             const ageMs = Date.now() - new Date(debt.lastPaymentAt).getTime();
             return ageMs > 60 * 24 * 60 * 60 * 1000;
         }
+        function openKassierModal(fahrer, woche) {
+            const debt = getOpenDebts().find(d => d.fahrer_name === fahrer && d.woche === woche);
+            if (!debt) return;
+            document.getElementById('mzModalFahrer').textContent = fahrer;
+            document.getElementById('mzModalWoche').textContent = woche;
+            document.getElementById('mzModalOffen').textContent = fmt(debt.offen);
+            document.getElementById('mzModalBetrag').value = debt.offen.toFixed(2);
+            document.getElementById('mzModalTyp').value = 'bar';
+            document.getElementById('mzModalNote').value = '';
+            document.getElementById('mzModalWarn').style.display = 'none';
+            document.getElementById('mzModalError').style.display = 'none';
+            document.getElementById('mzModalVerrechnetLabel').style.display = 'none';
+            const vSel = document.getElementById('mzModalVerrechnetWoche');
+            vSel.innerHTML = WEEKS.filter(w => w !== woche).map(w => '<option value="' + w + '">' + w + '</option>').join('');
+            const overlay = document.getElementById('mzModalOverlay');
+            overlay.dataset.fahrer = fahrer;
+            overlay.dataset.woche = woche;
+            overlay.dataset.offen = debt.offen;
+            overlay.classList.add('show');
+            setTimeout(() => document.getElementById('mzModalBetrag').focus(), 50);
+        }
+        function closeKassierModal() {
+            document.getElementById('mzModalOverlay').classList.remove('show');
+        }
         function renderMuessenZahlen() {
             let debts = getOpenDebts();
             if (!mzShowOldErledigt) {
@@ -984,7 +1044,7 @@
                     + '<td class="right"><span class="money ' + (d.offen > 0 ? 'neg' : 'pos') + '">' + fmt(d.offen) + '</span></td>'
                     + '<td><span class="mz-status ' + d.status + '">' + d.status + '</span></td>'
                     + '<td>' + lastDate + '</td>'
-                    + '<td class="center">—</td>'
+                    + '<td class="center">' + (d.offen > 0 ? '<button class="btn-print" data-mz-kassier="' + esc(d.fahrer_name) + '|' + esc(d.woche) + '" title="Kassieren eintragen">💰</button>' : '<span style="color:var(--text-muted)">✓</span>') + '</td>'
                     + '</tr>';
             }).join('');
         }
@@ -1118,6 +1178,28 @@
                     mzShowOldErledigt = e.target.checked;
                     renderMuessenZahlen();
                 });
+                document.getElementById('mzTableBody').addEventListener('click', function(e) {
+                    const btn = e.target.closest('[data-mz-kassier]');
+                    if (!btn) return;
+                    const [fahrer, woche] = btn.dataset.mzKassier.split('|');
+                    openKassierModal(fahrer, woche);
+                });
+                document.getElementById('mzModalTyp').addEventListener('change', function(e) {
+                    document.getElementById('mzModalVerrechnetLabel').style.display = e.target.value === 'verrechnet' ? 'flex' : 'none';
+                });
+                document.getElementById('mzModalBetrag').addEventListener('input', function(e) {
+                    const offen = parseFloat(document.getElementById('mzModalOverlay').dataset.offen) || 0;
+                    const v = parseFloat(e.target.value) || 0;
+                    const warn = document.getElementById('mzModalWarn');
+                    if (v > offen + 0.01) {
+                        warn.textContent = 'Betrag ist höher als offener Rest (' + fmt(offen) + '). Bitte Notiz hinterlassen.';
+                        warn.style.display = 'block';
+                    } else {
+                        warn.style.display = 'none';
+                    }
+                });
+                document.getElementById('mzModalCancelBtn').addEventListener('click', closeKassierModal);
+                // save button wired in Task 7
             }
             renderMuessenZahlen();
         }

@@ -1055,6 +1055,24 @@
                 saveBtn.textContent = 'Speichern';
             }
         }
+        async function deleteKassier(id) {
+            const session = JSON.parse(localStorage.getItem('hydralink_session') || 'null');
+            if (!session || session.role !== 'admin') {
+                alert('Nur Admin darf Zahlungen löschen.');
+                return;
+            }
+            if (!confirm('Diese Zahlung wirklich löschen? Aktion kann nicht rückgängig gemacht werden.')) return;
+            try {
+                const client = getSupabase();
+                const { error } = await client.from('kassier_zahlungen').delete().eq('id', id);
+                if (error) throw error;
+                KASSIER = KASSIER.filter(k => k.id !== id);
+                renderMuessenZahlen();
+            } catch (err) {
+                console.error('Kassier delete error:', err);
+                alert('Fehler beim Löschen: ' + (err.message || err));
+            }
+        }
         const TYP_LABEL = { bar: 'Bar', ueberweisung: 'Überweisung', verrechnet: 'Verrechnet' };
         function renderHistoryHtml(debt) {
             const session = JSON.parse(localStorage.getItem('hydralink_session') || 'null');
@@ -1276,6 +1294,11 @@
                         const key = hBtn.dataset.mzHistory;
                         const row = document.querySelector('[data-mz-history-row="' + key.replace(/"/g, '\\"') + '"]');
                         if (row) row.style.display = row.style.display === 'none' ? '' : 'none';
+                        return;
+                    }
+                    const dBtn = e.target.closest('[data-mz-delete]');
+                    if (dBtn) {
+                        deleteKassier(dBtn.dataset.mzDelete);
                         return;
                     }
                 });

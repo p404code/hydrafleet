@@ -1055,6 +1055,31 @@
                 saveBtn.textContent = 'Speichern';
             }
         }
+        const TYP_LABEL = { bar: 'Bar', ueberweisung: 'Überweisung', verrechnet: 'Verrechnet' };
+        function renderHistoryHtml(debt) {
+            const session = JSON.parse(localStorage.getItem('hydralink_session') || 'null');
+            const isAdmin = session && session.role === 'admin';
+            const rows = [...debt.payments].sort((a, b) =>
+                (b.kassiert_at || '').localeCompare(a.kassiert_at || '')
+            ).map(p => {
+                const dt = p.kassiert_at
+                    ? new Date(p.kassiert_at).toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
+                    : '—';
+                const typLabel = (TYP_LABEL[p.typ] || p.typ) + (p.typ === 'verrechnet' && p.verrechnet_mit_woche ? ' (' + esc(p.verrechnet_mit_woche) + ')' : '');
+                const noteHtml = p.note ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px">' + esc(p.note) + '</div>' : '';
+                const delBtn = isAdmin
+                    ? '<button class="btn-print" data-mz-delete="' + esc(p.id) + '" title="Löschen" style="color:#c4364a">🗑</button>'
+                    : '';
+                return '<tr>'
+                    + '<td class="right" style="font-family:monospace;font-weight:600">' + fmt(p.betrag) + '</td>'
+                    + '<td>' + typLabel + '</td>'
+                    + '<td>' + esc(p.kassiert_von || '—') + '</td>'
+                    + '<td>' + dt + noteHtml + '</td>'
+                    + '<td class="center">' + delBtn + '</td>'
+                    + '</tr>';
+            }).join('');
+            return '<table><thead><tr><th class="right">Betrag</th><th>Typ</th><th>Wer</th><th>Wann / Notiz</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+        }
         function renderMuessenZahlen() {
             let debts = getOpenDebts();
             if (!mzShowOldErledigt) {
@@ -1099,8 +1124,14 @@
                     + '<td class="right"><span class="money ' + (d.offen > 0 ? 'neg' : 'pos') + '">' + fmt(d.offen) + '</span></td>'
                     + '<td><span class="mz-status ' + d.status + '">' + d.status + '</span></td>'
                     + '<td>' + lastDate + '</td>'
-                    + '<td class="center">' + (d.offen > 0 ? '<button class="btn-print" data-mz-kassier="' + esc(d.fahrer_name) + '|' + esc(d.woche) + '" title="Kassieren eintragen">💰</button>' : '<span style="color:var(--text-muted)">✓</span>') + '</td>'
-                    + '</tr>';
+                    + '<td class="center">'
+                        + (d.offen > 0 ? '<button class="btn-print" data-mz-kassier="' + esc(d.fahrer_name) + '|' + esc(d.woche) + '" title="Kassieren eintragen">💰</button>' : '<span style="color:var(--text-muted)">✓</span>')
+                        + (d.payments.length ? ' <button class="btn-print" data-mz-history="' + esc(d.fahrer_name) + '|' + esc(d.woche) + '" title="Historie zeigen">📜</button>' : '')
+                    + '</td>'
+                    + '</tr>'
+                    + (d.payments.length
+                        ? '<tr class="mz-history-row" data-mz-history-row="' + esc(d.fahrer_name) + '|' + esc(d.woche) + '" style="display:none"><td colspan="8" class="mz-history">' + renderHistoryHtml(d) + '</td></tr>'
+                        : '');
             }).join('');
         }
         function saveExcluded() { localStorage.setItem('excludedDrivers', JSON.stringify(excludedDrivers)); updateExcludedUI(); }
@@ -1234,10 +1265,19 @@
                     renderMuessenZahlen();
                 });
                 document.getElementById('mzTableBody').addEventListener('click', function(e) {
-                    const btn = e.target.closest('[data-mz-kassier]');
-                    if (!btn) return;
-                    const [fahrer, woche] = btn.dataset.mzKassier.split('|');
-                    openKassierModal(fahrer, woche);
+                    const kBtn = e.target.closest('[data-mz-kassier]');
+                    if (kBtn) {
+                        const [fahrer, woche] = kBtn.dataset.mzKassier.split('|');
+                        openKassierModal(fahrer, woche);
+                        return;
+                    }
+                    const hBtn = e.target.closest('[data-mz-history]');
+                    if (hBtn) {
+                        const key = hBtn.dataset.mzHistory;
+                        const row = document.querySelector('[data-mz-history-row="' + key.replace(/"/g, '\\"') + '"]');
+                        if (row) row.style.display = row.style.display === 'none' ? '' : 'none';
+                        return;
+                    }
                 });
                 document.getElementById('mzModalTyp').addEventListener('change', function(e) {
                     document.getElementById('mzModalVerrechnetLabel').style.display = e.target.value === 'verrechnet' ? 'flex' : 'none';

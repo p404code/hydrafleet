@@ -146,6 +146,18 @@
         .status.warn::before { animation: pulse-dot 2s ease-in-out infinite; }
         .status.err::before { animation: pulse-dot 1.5s ease-in-out infinite; }
         @keyframes pulse-dot { 0%, 100% { box-shadow: 0 0 0 0 currentColor; } 50% { box-shadow: 0 0 6px 2px currentColor; } }
+        .mz-status { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .mz-status.offen { background: #fce8eb; color: #c4364a; }
+        .mz-status.teilweise { background: #fff4d6; color: #8a5a00; }
+        .mz-status.erledigt { background: #e8f5ee; color: #1a6b4a; }
+        [data-theme="dark"] .mz-status.offen { background: rgba(196,54,74,0.18); color: #ff8a9a; }
+        [data-theme="dark"] .mz-status.teilweise { background: rgba(138,90,0,0.22); color: #ffd76a; }
+        [data-theme="dark"] .mz-status.erledigt { background: rgba(26,107,74,0.22); color: #6ee7a8; }
+        .mz-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+        .mz-history { background: var(--bg-table-head); padding: 12px 16px; font-size: 12px; }
+        .mz-history table { width: 100%; }
+        .mz-history th, .mz-history td { padding: 6px 10px; font-size: 12px; text-align: left; }
+        .mz-history th.right, .mz-history td.right { text-align: right; }
         .empty { text-align: center; padding: 60px; color: var(--text-muted); font-size: 13px; }
         .loading { text-align: center; padding: 60px; color: var(--text-muted); }
         .loading .spinner { width: 32px; height: 32px; border: 2px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
@@ -752,8 +764,26 @@
         </div>
     </div><!-- end contentAbrBot -->
     <div class="tab-content" id="contentMuessenZahlen">
-        <div id="mzPlaceholder" style="padding:40px;text-align:center;color:var(--text-muted)">
-            Müssen-zahlen Tab — wird in nächsten Schritten gefüllt.
+        <div class="mz-toolbar" id="mzToolbar">
+            <span id="mzSummary" style="color:var(--text-muted);font-size:13px">Lade...</span>
+        </div>
+        <div class="table-card">
+            <div class="table-header">
+                <h2>Müssen zahlen<span id="mzCount"></span></h2>
+            </div>
+            <table>
+                <thead><tr>
+                    <th>Fahrer</th>
+                    <th>Woche</th>
+                    <th class="right">Schuld</th>
+                    <th class="right">Kassiert</th>
+                    <th class="right">Offen</th>
+                    <th>Status</th>
+                    <th>Letzte Zahlung</th>
+                    <th class="center">Aktion</th>
+                </tr></thead>
+                <tbody id="mzTableBody"></tbody>
+            </table>
         </div>
     </div>
     <div class="re-toast" id="reToast"></div>
@@ -890,6 +920,42 @@
                 });
             return debts;
         }
+        function renderMuessenZahlen() {
+            const debts = getOpenDebts();
+            const statusOrder = { offen: 0, teilweise: 1, erledigt: 2 };
+            debts.sort((a, b) => {
+                const so = statusOrder[a.status] - statusOrder[b.status];
+                if (so !== 0) return so;
+                return (b.woche || '').localeCompare(a.woche || '');
+            });
+            document.getElementById('mzCount').textContent = ' (' + debts.length + ')';
+            const offenCount = debts.filter(d => d.status === 'offen').length;
+            const teilCount = debts.filter(d => d.status === 'teilweise').length;
+            const erlCount = debts.filter(d => d.status === 'erledigt').length;
+            const totalOffen = debts.reduce((s, d) => s + d.offen, 0);
+            document.getElementById('mzSummary').textContent =
+                offenCount + ' offen, ' + teilCount + ' teilweise, ' + erlCount + ' erledigt — gesamt offen: ' + fmt(totalOffen);
+            const tbody = document.getElementById('mzTableBody');
+            if (!debts.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="empty">Keine Schulden vorhanden</td></tr>';
+                return;
+            }
+            tbody.innerHTML = debts.map(d => {
+                const lastDate = d.lastPaymentAt
+                    ? new Date(d.lastPaymentAt).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: '2-digit' })
+                    : '—';
+                return '<tr>'
+                    + '<td><div class="fahrer-name">' + esc(d.fahrer_name) + '</div><div class="fahrer-tel">' + esc(d.telefon || '-') + '</div></td>'
+                    + '<td>' + esc(d.woche) + '</td>'
+                    + '<td class="right"><span class="money neg">' + fmt(d.schuld) + '</span></td>'
+                    + '<td class="right">' + fmt(d.kassiert) + '</td>'
+                    + '<td class="right"><span class="money ' + (d.offen > 0 ? 'neg' : 'pos') + '">' + fmt(d.offen) + '</span></td>'
+                    + '<td><span class="mz-status ' + d.status + '">' + d.status + '</span></td>'
+                    + '<td>' + lastDate + '</td>'
+                    + '<td class="center">—</td>'
+                    + '</tr>';
+            }).join('');
+        }
         function saveExcluded() { localStorage.setItem('excludedDrivers', JSON.stringify(excludedDrivers)); updateExcludedUI(); }
         function excludeDriver(name) { if (!excludedDrivers.includes(name)) { excludedDrivers.push(name); saveExcluded(); render(); } }
         function includeDriver(name) { excludedDrivers = excludedDrivers.filter(n => n !== name); saveExcluded(); render(); }
@@ -994,12 +1060,11 @@
         let abrInitialized = false;
         let mzInitialized = false;
         function initMuessenZahlen() {
-            if (mzInitialized) return;
-            mzInitialized = true;
-            const debts = getOpenDebts();
-            console.log('Debts loaded:', debts.length, debts);
-            document.getElementById('mzPlaceholder').textContent =
-                debts.length + ' Schulden gefunden (siehe console). Rendering kommt in Task 4.';
+            if (!mzInitialized) {
+                mzInitialized = true;
+                // initial event handlers added in Task 5
+            }
+            renderMuessenZahlen();
         }
         function switchTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));

@@ -158,6 +158,17 @@
         .mz-history table { width: 100%; }
         .mz-history th, .mz-history td { padding: 6px 10px; font-size: 12px; text-align: left; }
         .mz-history th.right, .mz-history td.right { text-align: right; }
+        @media (max-width: 768px) {
+            .mz-toolbar { gap: 8px; margin-bottom: 12px; }
+            .mz-toolbar > div[style*="display:flex"] { width: 100%; gap: 4px; }
+            .mz-toolbar > div[style*="display:flex"] .filter-btn { flex: 1; width: auto; min-width: 0; padding: 8px 4px; font-size: 12px; }
+            #mzSearchInput { max-width: 100% !important; width: 100%; }
+            #mzWeekFilter { width: 100%; }
+            #mzSummary { margin-left: 0 !important; width: 100%; font-size: 12px; }
+            .mz-history { padding: 8px 10px; overflow-x: auto; }
+            .mz-history table { min-width: 420px; }
+            .mz-history th, .mz-history td { padding: 5px 6px; font-size: 11px; }
+        }
         .empty { text-align: center; padding: 60px; color: var(--text-muted); font-size: 13px; }
         .loading { text-align: center; padding: 60px; color: var(--text-muted); }
         .loading .spinner { width: 32px; height: 32px; border: 2px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
@@ -790,7 +801,7 @@
                     <th class="right">Kassiert</th>
                     <th class="right">Offen</th>
                     <th>Status</th>
-                    <th>Letzte Zahlung</th>
+                    <th>Letzte Zahlung / Wer</th>
                     <th class="center">Aktion</th>
                 </tr></thead>
                 <tbody id="mzTableBody"></tbody>
@@ -958,15 +969,17 @@
                     if (kassiert <= 0) status = 'offen';
                     else if (kassiert >= schuld) status = 'erledigt';
                     else status = 'teilweise';
-                    const lastPaymentAt = payments.length
-                        ? payments.map(p => p.kassiert_at).sort().reverse()[0]
-                        : null;
+                    const sortedByDate = payments.slice().sort((a, b) =>
+                        (b.kassiert_at || '').localeCompare(a.kassiert_at || '')
+                    );
+                    const lastPaymentAt = sortedByDate.length ? sortedByDate[0].kassiert_at : null;
+                    const lastPaymentBy = sortedByDate.length ? (sortedByDate[0].kassiert_von || '') : '';
                     return {
                         fahrer_name: s.fahrer_name,
                         woche: s.woche,
                         telefon: s.telefon || '',
                         schuld, kassiert, offen, status,
-                        payments, lastPaymentAt
+                        payments, lastPaymentAt, lastPaymentBy
                     };
                 });
             return debts;
@@ -1134,6 +1147,9 @@
                 const lastDate = d.lastPaymentAt
                     ? new Date(d.lastPaymentAt).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: '2-digit' })
                     : '—';
+                const lastByCell = d.lastPaymentAt
+                    ? '<div>' + lastDate + '</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">' + esc(d.lastPaymentBy || '—') + '</div>'
+                    : '—';
                 return '<tr>'
                     + '<td><div class="fahrer-name">' + esc(d.fahrer_name) + '</div><div class="fahrer-tel">' + esc(d.telefon || '-') + '</div></td>'
                     + '<td>' + esc(d.woche) + '</td>'
@@ -1141,7 +1157,7 @@
                     + '<td class="right">' + fmt(d.kassiert) + '</td>'
                     + '<td class="right"><span class="money ' + (d.offen > 0 ? 'neg' : 'pos') + '">' + fmt(d.offen) + '</span></td>'
                     + '<td><span class="mz-status ' + d.status + '">' + d.status + '</span></td>'
-                    + '<td>' + lastDate + '</td>'
+                    + '<td>' + lastByCell + '</td>'
                     + '<td class="center">'
                         + (d.offen > 0 ? '<button class="btn-print" data-mz-kassier="' + esc(d.fahrer_name) + '|' + esc(d.woche) + '" title="Kassieren eintragen">💰</button>' : '<span style="color:var(--text-muted)">✓</span>')
                         + (d.payments.length ? ' <button class="btn-print" data-mz-history="' + esc(d.fahrer_name) + '|' + esc(d.woche) + '" title="Historie zeigen">📜</button>' : '')

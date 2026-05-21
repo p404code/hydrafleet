@@ -765,7 +765,18 @@
     </div><!-- end contentAbrBot -->
     <div class="tab-content" id="contentMuessenZahlen">
         <div class="mz-toolbar" id="mzToolbar">
-            <span id="mzSummary" style="color:var(--text-muted);font-size:13px">Lade...</span>
+            <div style="display:flex;gap:4px">
+                <button class="filter-btn active" data-mz-status="alle">Alle</button>
+                <button class="filter-btn" data-mz-status="offen">Offen</button>
+                <button class="filter-btn" data-mz-status="teilweise">Teilweise</button>
+                <button class="filter-btn" data-mz-status="erledigt">Erledigt</button>
+            </div>
+            <input type="text" id="mzSearchInput" placeholder="Fahrer suchen..." style="max-width:200px">
+            <select id="mzWeekFilter"><option value="">Alle Wochen</option></select>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer">
+                <input type="checkbox" id="mzShowOld"> Alte erledigte (>60 Tage) zeigen
+            </label>
+            <span id="mzSummary" style="color:var(--text-muted);font-size:13px;margin-left:auto">Lade...</span>
         </div>
         <div class="table-card">
             <div class="table-header">
@@ -893,6 +904,10 @@
         let NAME_ALIASES = {};
         let FAHRER_LIST = [];
         let KASSIER = []; // all rows from kassier_zahlungen
+        let mzStatusFilter = 'alle';
+        let mzSearch = '';
+        let mzWeek = '';
+        let mzShowOldErledigt = false;
         function getSupabase() { if (!supabaseClient) { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } return supabaseClient; }
         /* === MÜSSEN-ZAHLEN HELPERS === */
         function getOpenDebts() {
@@ -920,8 +935,25 @@
                 });
             return debts;
         }
+        function isOldErledigt(debt) {
+            if (debt.status !== 'erledigt' || !debt.lastPaymentAt) return false;
+            const ageMs = Date.now() - new Date(debt.lastPaymentAt).getTime();
+            return ageMs > 60 * 24 * 60 * 60 * 1000;
+        }
         function renderMuessenZahlen() {
-            const debts = getOpenDebts();
+            let debts = getOpenDebts();
+            if (!mzShowOldErledigt) {
+                debts = debts.filter(d => !isOldErledigt(d));
+            }
+            if (mzStatusFilter !== 'alle') {
+                debts = debts.filter(d => d.status === mzStatusFilter);
+            }
+            if (mzSearch) {
+                debts = debts.filter(d => (d.fahrer_name || '').toLowerCase().indexOf(mzSearch) >= 0);
+            }
+            if (mzWeek) {
+                debts = debts.filter(d => d.woche === mzWeek);
+            }
             const statusOrder = { offen: 0, teilweise: 1, erledigt: 2 };
             debts.sort((a, b) => {
                 const so = statusOrder[a.status] - statusOrder[b.status];
@@ -1062,7 +1094,30 @@
         function initMuessenZahlen() {
             if (!mzInitialized) {
                 mzInitialized = true;
-                // initial event handlers added in Task 5
+                document.getElementById('mzToolbar').addEventListener('click', function(e) {
+                    const btn = e.target.closest('[data-mz-status]');
+                    if (!btn) return;
+                    mzStatusFilter = btn.dataset.mzStatus;
+                    document.querySelectorAll('[data-mz-status]').forEach(b => b.classList.toggle('active', b === btn));
+                    renderMuessenZahlen();
+                });
+                let mzSearchTimer = null;
+                document.getElementById('mzSearchInput').addEventListener('input', function(e) {
+                    mzSearch = e.target.value.toLowerCase();
+                    clearTimeout(mzSearchTimer);
+                    mzSearchTimer = setTimeout(renderMuessenZahlen, 200);
+                });
+                const weekSel = document.getElementById('mzWeekFilter');
+                weekSel.innerHTML = '<option value="">Alle Wochen</option>' +
+                    WEEKS.map(w => '<option value="' + w + '">' + w + '</option>').join('');
+                weekSel.addEventListener('change', function(e) {
+                    mzWeek = e.target.value;
+                    renderMuessenZahlen();
+                });
+                document.getElementById('mzShowOld').addEventListener('change', function(e) {
+                    mzShowOldErledigt = e.target.checked;
+                    renderMuessenZahlen();
+                });
             }
             renderMuessenZahlen();
         }

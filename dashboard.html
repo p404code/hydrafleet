@@ -1000,6 +1000,61 @@
         function closeKassierModal() {
             document.getElementById('mzModalOverlay').classList.remove('show');
         }
+        async function submitKassier() {
+            const overlay = document.getElementById('mzModalOverlay');
+            const fahrer = overlay.dataset.fahrer;
+            const woche = overlay.dataset.woche;
+            const betrag = parseFloat(document.getElementById('mzModalBetrag').value);
+            const typ = document.getElementById('mzModalTyp').value;
+            const note = document.getElementById('mzModalNote').value.trim() || null;
+            const verrechnetMitWoche = typ === 'verrechnet'
+                ? document.getElementById('mzModalVerrechnetWoche').value
+                : null;
+            const errorEl = document.getElementById('mzModalError');
+            errorEl.style.display = 'none';
+            if (!betrag || betrag <= 0) {
+                errorEl.textContent = 'Betrag muss größer als 0 sein.';
+                errorEl.style.display = 'block';
+                return;
+            }
+            if (typ === 'verrechnet' && !verrechnetMitWoche) {
+                errorEl.textContent = 'Bei Verrechnung bitte eine Woche auswählen.';
+                errorEl.style.display = 'block';
+                return;
+            }
+            const session = JSON.parse(localStorage.getItem('hydralink_session') || 'null');
+            if (!session || !session.name) {
+                errorEl.textContent = 'Session abgelaufen. Bitte neu einloggen.';
+                errorEl.style.display = 'block';
+                return;
+            }
+            const saveBtn = document.getElementById('mzModalSaveBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Speichere...';
+            try {
+                const client = getSupabase();
+                const { data, error } = await client.from('kassier_zahlungen').insert({
+                    fahrer_name: fahrer,
+                    woche: woche,
+                    betrag: betrag,
+                    typ: typ,
+                    verrechnet_mit_woche: verrechnetMitWoche,
+                    kassiert_von: session.name,
+                    note: note
+                }).select();
+                if (error) throw error;
+                if (data && data[0]) KASSIER.push(data[0]);
+                closeKassierModal();
+                renderMuessenZahlen();
+            } catch (err) {
+                console.error('Kassier insert error:', err);
+                errorEl.textContent = 'Fehler beim Speichern: ' + (err.message || err);
+                errorEl.style.display = 'block';
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Speichern';
+            }
+        }
         function renderMuessenZahlen() {
             let debts = getOpenDebts();
             if (!mzShowOldErledigt) {
@@ -1199,7 +1254,7 @@
                     }
                 });
                 document.getElementById('mzModalCancelBtn').addEventListener('click', closeKassierModal);
-                // save button wired in Task 7
+                document.getElementById('mzModalSaveBtn').addEventListener('click', submitKassier);
             }
             renderMuessenZahlen();
         }

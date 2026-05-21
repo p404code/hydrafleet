@@ -28,11 +28,12 @@ sw.js               — Service worker
 
 ## Dashboard Tabs
 
-The dashboard (`dashboard.html`) has 3 tabs:
+The dashboard (`dashboard.html`) has 4 tabs:
 
 1. **Abrechnungen** — Driver settlement overview per week. Filters by week/driver/status. Shows earnings, deductions, payout per driver. Print/share individual settlements via WhatsApp.
-2. **Rechnungen** — Invoice creation and archive. Company cards, line items, VAT handling, sequential auto-numbering (HF-YYYY-NNNN). PDF storage in Supabase.
-3. **CSV Upload** (AbrBot) — Upload Bolt/Uber/MyPOS CSVs per week. Triggers n8n webhook for processing.
+2. **CSV Upload** (AbrBot) — Upload Bolt/Uber/MyPOS CSVs per week. Triggers n8n webhook for processing.
+3. **Müssen zahlen** — Cross-week view of all driver debts (where `settlements.auszahlung < 0`). Users record collected payments (cash/transfer/offset) into `kassier_zahlungen`; "offen" amount is computed live as `abs(auszahlung) − Σ payments`. Existing settlement calculation is never touched. Admin (role=admin) can delete payment entries. Erledigte debts older than 60 days are hidden by default.
+4. **Rechnungen** — Invoice creation and archive. Company cards, line items, VAT handling, sequential auto-numbering (HF-YYYY-NNNN). PDF storage in Supabase.
 
 ## Key Supabase Tables
 
@@ -42,6 +43,7 @@ The dashboard (`dashboard.html`) has 3 tabs:
 - `companies` — Invoice recipient companies
 - `customers` — Customer/company data for Rechnungen tab
 - `app_users` — Dashboard login credentials (PIN-based)
+- `kassier_zahlungen` — Collected-payment log per driver debt (fahrer_name + woche → many payments). Append + delete only; no update.
 
 ## Key n8n Workflows
 

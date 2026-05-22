@@ -148,18 +148,19 @@
         @keyframes pulse-dot { 0%, 100% { box-shadow: 0 0 0 0 currentColor; } 50% { box-shadow: 0 0 6px 2px currentColor; } }
         #mzTableBody tr.mz-week-divider > td { border-top: 2px solid var(--gold); padding-top: 18px; }
         #mzTableBody tr.mz-week-divider:first-child > td { border-top: 1px solid var(--border); padding-top: 12px; }
-        .btn-mz { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease; white-space: nowrap; letter-spacing: 0.2px; }
-        .btn-mz:active { transform: translateY(0); }
-        .btn-mz svg { width: 14px; height: 14px; flex-shrink: 0; }
-        .btn-mz-primary { background: linear-gradient(180deg, #F8C547 0%, #F5B51B 100%); border: 1px solid #d99a0c; color: #1a1714; box-shadow: 0 1px 0 rgba(255,255,255,0.4) inset, 0 1px 2px rgba(0,0,0,0.08); }
-        .btn-mz-primary:hover { transform: translateY(-1px); box-shadow: 0 1px 0 rgba(255,255,255,0.5) inset, 0 4px 12px rgba(245,181,27,0.45); }
-        .btn-mz-primary:active { box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset, 0 1px 3px rgba(0,0,0,0.15); }
-        .btn-mz-secondary { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); }
-        .btn-mz-secondary:hover { background: var(--bg-hover); border-color: var(--text-muted); color: var(--text); transform: translateY(-1px); }
+        .btn-mz { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 13px; border-radius: 8px; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease; white-space: nowrap; letter-spacing: 0.1px; }
+        .btn-mz:active { transform: translateY(1px); }
+        .btn-mz svg { width: 13px; height: 13px; flex-shrink: 0; }
+        .btn-mz-primary { background: rgba(245,181,27,0.12); border: 1px solid rgba(245,181,27,0.55); color: var(--gold); }
+        .btn-mz-primary:hover { background: rgba(245,181,27,0.22); border-color: var(--gold); }
+        [data-theme="dark"] .btn-mz-primary { background: rgba(245,181,27,0.14); }
+        [data-theme="dark"] .btn-mz-primary:hover { background: rgba(245,181,27,0.24); }
+        .btn-mz-secondary { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+        .btn-mz-secondary:hover { background: var(--bg-hover); border-color: var(--text-muted); color: var(--text); }
         .btn-mz-danger { background: transparent; border: 1px solid transparent; color: #c4364a; padding: 5px 10px; font-size: 11px; }
         .btn-mz-danger:hover { background: rgba(196,54,74,0.12); border-color: rgba(196,54,74,0.35); }
-        .mz-done { display: inline-flex; align-items: center; gap: 5px; color: #1a6b4a; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; padding: 5px 10px; background: #e8f5ee; border-radius: 999px; }
-        [data-theme="dark"] .mz-done { background: rgba(26,107,74,0.22); color: #6ee7a8; }
+        .mz-done { display: inline-flex; align-items: center; gap: 5px; color: #1a6b4a; font-size: 11px; font-weight: 600; letter-spacing: 0.4px; padding: 5px 10px; background: rgba(26,107,74,0.1); border: 1px solid rgba(26,107,74,0.25); border-radius: 999px; }
+        [data-theme="dark"] .mz-done { background: rgba(26,107,74,0.18); border-color: rgba(110,231,168,0.25); color: #6ee7a8; }
         .mz-done svg { width: 12px; height: 12px; }
         .mz-status { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
         .mz-status.offen { background: #fce8eb; color: #c4364a; }
@@ -186,41 +187,42 @@
             .mz-history th, .mz-history td { padding: 5px 6px; font-size: 11px; }
         }
         @media (max-width: 640px) {
-            #contentMuessenZahlen .table-card { background: transparent; border: none; box-shadow: none; margin: 0 -4px; }
-            #contentMuessenZahlen .table-card .table-header { padding: 8px 12px 12px; }
-            #contentMuessenZahlen .table-card { overflow-x: visible; }
-            #contentMuessenZahlen .table-card table { min-width: 0; width: 100%; display: block; }
+            #contentMuessenZahlen .table-card { background: transparent; border: none; box-shadow: none; margin: 0; overflow: visible; }
+            #contentMuessenZahlen .table-card .table-header { padding: 4px 4px 12px; border-bottom: none; }
+            #contentMuessenZahlen .table-card table,
+            #contentMuessenZahlen .table-card tbody { display: block; min-width: 0; width: 100%; }
             #contentMuessenZahlen .table-card thead { display: none; }
-            #contentMuessenZahlen .table-card tbody { display: block; }
-            #contentMuessenZahlen .table-card tbody tr { display: grid; grid-template-columns: 1fr auto; column-gap: 10px; row-gap: 6px; align-items: center; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: var(--card-shadow); }
-            #contentMuessenZahlen #mzTableBody tr.mz-week-divider { border-top: 1px solid var(--border); }
-            #contentMuessenZahlen #mzTableBody tr.mz-week-divider > td { border-top: none; padding-top: 0; }
-            #contentMuessenZahlen #mzTableBody tr.mz-week-divider { position: relative; margin-top: 22px; }
-            #contentMuessenZahlen #mzTableBody tr.mz-week-divider::before { content: attr(data-kw); position: absolute; top: -18px; left: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; color: var(--gold); text-transform: uppercase; }
+            #contentMuessenZahlen #mzTableBody tr { display: block; position: relative; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--card-shadow); }
+            #contentMuessenZahlen #mzTableBody tr.mz-week-divider { margin-top: 10px; }
+            #contentMuessenZahlen #mzTableBody tr.mz-week-divider > td { border-top: none; padding-top: 4px; }
             #contentMuessenZahlen #mzTableBody tr.mz-week-divider:first-child { margin-top: 0; }
-            #contentMuessenZahlen #mzTableBody tr.mz-week-divider:first-child::before { top: -16px; }
-            #contentMuessenZahlen .table-card tbody td { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; border: none; font-size: 13px; }
-            #contentMuessenZahlen .table-card tbody td::before { content: attr(data-label); color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 8px; }
-            #contentMuessenZahlen .table-card tbody td.mz-fahrer { grid-column: 1 / -1; flex-direction: column; align-items: flex-start; padding-bottom: 6px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
-            #contentMuessenZahlen .table-card tbody td.mz-fahrer::before { display: none; }
-            #contentMuessenZahlen .table-card tbody td.mz-fahrer .fahrer-name { font-size: 15px; font-weight: 700; }
-            #contentMuessenZahlen .table-card tbody td.mz-fahrer .fahrer-tel { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-            #contentMuessenZahlen .table-card tbody td.mz-kw { display: none; }
-            #contentMuessenZahlen .table-card tbody td.mz-offen { font-weight: 700; font-size: 15px; }
-            #contentMuessenZahlen .table-card tbody td.mz-stat { grid-column: 2; justify-content: flex-end; }
-            #contentMuessenZahlen .table-card tbody td.mz-stat::before { display: none; }
-            #contentMuessenZahlen .table-card tbody td.mz-when { font-size: 12px; }
-            #contentMuessenZahlen .table-card tbody td.mz-act { grid-column: 1 / -1; justify-content: stretch; padding-top: 8px; margin-top: 6px; border-top: 1px solid var(--border); gap: 8px; }
-            #contentMuessenZahlen .table-card tbody td.mz-act::before { display: none; }
-            #contentMuessenZahlen .table-card tbody td.mz-act .btn-mz { flex: 1; padding: 11px 14px; font-size: 13px; }
-            #contentMuessenZahlen .table-card tbody td.mz-act .mz-done { flex: 1; justify-content: center; padding: 10px; font-size: 12px; }
-            #contentMuessenZahlen .table-card tbody tr.mz-history-row { display: block; padding: 0; margin: -8px 0 12px; background: var(--bg-table-head); border: 1px solid var(--border); border-radius: 0 0 14px 14px; box-shadow: none; }
-            #contentMuessenZahlen .table-card tbody tr.mz-history-row td { display: block; padding: 0; }
-            #contentMuessenZahlen .table-card tbody tr.mz-history-row td::before { display: none; }
-            #contentMuessenZahlen .table-card tbody tr.mz-history-row .mz-history { padding: 10px 12px; }
-            #contentMuessenZahlen .table-card tbody tr.mz-empty-row { display: block; padding: 40px 20px; text-align: center; }
-            #contentMuessenZahlen .table-card tbody tr.mz-empty-row td { display: block; padding: 0; border: none; }
-            #contentMuessenZahlen .table-card tbody tr.mz-empty-row td::before { display: none; }
+            #contentMuessenZahlen #mzTableBody tr.mz-week-divider::before { content: none; }
+            #contentMuessenZahlen #mzTableBody td { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; border: none; font-size: 13px; }
+            #contentMuessenZahlen #mzTableBody td::before { content: attr(data-label); color: var(--text-muted); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
+            #contentMuessenZahlen #mzTableBody td.mz-fahrer { display: block; padding: 0 70px 8px 0; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+            #contentMuessenZahlen #mzTableBody td.mz-fahrer::before { display: none; }
+            #contentMuessenZahlen #mzTableBody td.mz-fahrer .fahrer-name { font-size: 14.5px; font-weight: 700; }
+            #contentMuessenZahlen #mzTableBody td.mz-fahrer .fahrer-tel { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+            #contentMuessenZahlen #mzTableBody td.mz-stat { position: absolute; top: 12px; right: 14px; padding: 0; }
+            #contentMuessenZahlen #mzTableBody td.mz-stat::before { display: none; }
+            #contentMuessenZahlen #mzTableBody td.mz-kw { color: var(--gold); font-weight: 600; }
+            #contentMuessenZahlen #mzTableBody td.mz-kw::before { color: var(--gold); }
+            #contentMuessenZahlen #mzTableBody td.mz-offen { font-weight: 700; font-size: 14px; }
+            #contentMuessenZahlen #mzTableBody td.mz-when { font-size: 12px; }
+            #contentMuessenZahlen #mzTableBody td.mz-when div:first-child { font-size: 12px; }
+            #contentMuessenZahlen #mzTableBody td.mz-act { display: flex; gap: 8px; padding-top: 10px; margin-top: 8px; border-top: 1px solid var(--border); justify-content: stretch; }
+            #contentMuessenZahlen #mzTableBody td.mz-act::before { display: none; }
+            #contentMuessenZahlen #mzTableBody td.mz-act .btn-mz { flex: 1; padding: 8px 10px; font-size: 12px; }
+            #contentMuessenZahlen #mzTableBody td.mz-act .mz-done { flex: 1; justify-content: center; padding: 7px; font-size: 11px; }
+            #contentMuessenZahlen #mzTableBody tr.mz-history-row { display: block; padding: 10px 12px; margin: -6px 0 10px; background: var(--bg-table-head); border: 1px solid var(--border); border-radius: 0 0 12px 12px; box-shadow: none; }
+            #contentMuessenZahlen #mzTableBody tr.mz-history-row td { display: block; padding: 0; }
+            #contentMuessenZahlen #mzTableBody tr.mz-history-row td::before { display: none; }
+            #contentMuessenZahlen #mzTableBody tr.mz-empty-row { display: block; padding: 40px 20px; text-align: center; }
+            #contentMuessenZahlen #mzTableBody tr.mz-empty-row td { display: block; padding: 0; border: none; }
+            #contentMuessenZahlen #mzTableBody tr.mz-empty-row td::before { display: none; }
+            #mzModalOverlay .alias-modal-inner { max-width: calc(100vw - 24px) !important; width: calc(100vw - 24px) !important; padding: 20px; max-height: calc(100vh - 24px); }
+            #mzModalOverlay .alias-modal-inner h2 { font-size: 17px; }
+            #mzModalOverlay input, #mzModalOverlay select { width: 100%; box-sizing: border-box; }
         }
         .empty { text-align: center; padding: 60px; color: var(--text-muted); font-size: 13px; }
         .loading { text-align: center; padding: 60px; color: var(--text-muted); }

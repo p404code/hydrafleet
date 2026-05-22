@@ -187,6 +187,7 @@
             .mz-history th, .mz-history td { padding: 5px 6px; font-size: 11px; }
         }
         @media (max-width: 640px) {
+            html, body { overflow-x: hidden !important; max-width: 100vw !important; }
             #contentMuessenZahlen .table-card { background: transparent; border: none; box-shadow: none; margin: 0; overflow: visible; }
             #contentMuessenZahlen .table-card .table-header { padding: 4px 4px 12px; border-bottom: none; }
             #contentMuessenZahlen .table-card table,
@@ -965,8 +966,8 @@
     </div>
     <div id="printAllContainer" style="display:none;"></div>
     <div class="print-overlay" id="mzModalOverlay">
-        <div class="alias-modal-inner mz-modal-inner" style="box-sizing:border-box;width:min(480px,calc(100vw - 24px));max-width:min(480px,calc(100vw - 24px));padding:clamp(14px,4vw,28px)">
-            <h2 style="margin-bottom:8px;font-size:20px">Kassieren eintragen <span style="font-size:10px;color:var(--gold);font-weight:400;vertical-align:super">v7</span></h2>
+        <div class="alias-modal-inner mz-modal-inner" style="box-sizing:border-box;width:calc(100% - 24px);max-width:480px;padding:clamp(14px,4vw,28px)">
+            <h2 style="margin-bottom:8px;font-size:20px">Kassieren eintragen <span style="font-size:10px;color:var(--gold);font-weight:400;vertical-align:super">v8</span></h2>
             <p style="color:var(--text-secondary);margin-bottom:20px;font-size:14px">
                 <span id="mzModalFahrer">—</span> · <span id="mzModalWoche">—</span> · offen: <strong id="mzModalOffen">—</strong>
             </p>

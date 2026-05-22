@@ -965,19 +965,19 @@
     </div>
     <div id="printAllContainer" style="display:none;"></div>
     <div class="print-overlay" id="mzModalOverlay">
-        <div class="alias-modal-inner mz-modal-inner">
-            <h2 style="margin-bottom:8px;font-size:20px">Kassieren eintragen</h2>
+        <div class="alias-modal-inner mz-modal-inner" style="box-sizing:border-box;width:min(480px,calc(100vw - 24px));max-width:min(480px,calc(100vw - 24px));padding:clamp(14px,4vw,28px)">
+            <h2 style="margin-bottom:8px;font-size:20px">Kassieren eintragen <span style="font-size:10px;color:var(--gold);font-weight:400;vertical-align:super">v7</span></h2>
             <p style="color:var(--text-secondary);margin-bottom:20px;font-size:14px">
                 <span id="mzModalFahrer">—</span> · <span id="mzModalWoche">—</span> · offen: <strong id="mzModalOffen">—</strong>
             </p>
             <div style="display:flex;flex-direction:column;gap:14px">
                 <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--text-secondary)">
                     Betrag (€)
-                    <input type="number" id="mzModalBetrag" step="0.01" min="0.01" style="font-size:18px;padding:10px;font-family:'JetBrains Mono',monospace">
+                    <input type="number" id="mzModalBetrag" step="0.01" min="0.01" style="font-size:18px;padding:10px;font-family:'JetBrains Mono',monospace;width:100%;min-width:0;max-width:100%;box-sizing:border-box">
                 </label>
                 <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--text-secondary)">
                     Typ
-                    <select id="mzModalTyp" style="font-size:14px;padding:10px">
+                    <select id="mzModalTyp" style="font-size:14px;padding:10px;width:100%;min-width:0;max-width:100%;box-sizing:border-box">
                         <option value="bar">Bar</option>
                         <option value="ueberweisung">Überweisung</option>
                         <option value="verrechnet">Verrechnet mit Woche…</option>
@@ -985,11 +985,11 @@
                 </label>
                 <label id="mzModalVerrechnetLabel" style="display:none;flex-direction:column;gap:4px;font-size:13px;color:var(--text-secondary)">
                     Verrechnet mit Woche
-                    <select id="mzModalVerrechnetWoche" style="font-size:14px;padding:10px"></select>
+                    <select id="mzModalVerrechnetWoche" style="font-size:14px;padding:10px;width:100%;min-width:0;max-width:100%;box-sizing:border-box"></select>
                 </label>
                 <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--text-secondary)">
                     Notiz (optional)
-                    <input type="text" id="mzModalNote" maxlength="200" style="font-size:14px;padding:10px">
+                    <input type="text" id="mzModalNote" maxlength="200" style="font-size:14px;padding:10px;width:100%;min-width:0;max-width:100%;box-sizing:border-box">
                 </label>
                 <div id="mzModalWarn" style="display:none;font-size:13px;color:#c4364a;padding:8px 12px;background:#fce8eb;border-radius:6px"></div>
                 <div id="mzModalError" style="display:none;font-size:13px;color:#c4364a"></div>

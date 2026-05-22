@@ -1086,14 +1086,18 @@
         }
         async function deleteKassier(id) {
             const session = JSON.parse(localStorage.getItem('hydralink_session') || 'null');
-            if (!session || session.role !== 'admin') {
-                alert('Nur Admin darf Zahlungen löschen.');
+            if (!session || session.role !== 'admin' || !session.name || !session.pin) {
+                alert('Nur Admin darf Zahlungen löschen. Bitte neu einloggen.');
                 return;
             }
             if (!confirm('Diese Zahlung wirklich löschen? Aktion kann nicht rückgängig gemacht werden.')) return;
             try {
                 const client = getSupabase();
-                const { error } = await client.from('kassier_zahlungen').delete().eq('id', id);
+                const { error } = await client.rpc('delete_kassier_admin', {
+                    p_id: id,
+                    p_name: session.name,
+                    p_pin: session.pin
+                });
                 if (error) throw error;
                 KASSIER = KASSIER.filter(k => k.id !== id);
                 renderMuessenZahlen();

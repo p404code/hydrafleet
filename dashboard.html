@@ -166,8 +166,9 @@
             #mzWeekFilter { width: 100%; }
             #mzSummary { margin-left: 0 !important; width: 100%; font-size: 12px; }
             .mz-history { padding: 8px 10px; overflow-x: auto; }
-            .mz-history table { min-width: 420px; }
+            .mz-history table { min-width: 0; }
             .mz-history th, .mz-history td { padding: 5px 6px; font-size: 11px; }
+            #contentMuessenZahlen .table-card table { min-width: 700px; }
         }
         .empty { text-align: center; padding: 60px; color: var(--text-muted); font-size: 13px; }
         .loading { text-align: center; padding: 60px; color: var(--text-muted); }
@@ -796,12 +797,12 @@
             <table>
                 <thead><tr>
                     <th>Fahrer</th>
-                    <th>Woche</th>
+                    <th>KW</th>
                     <th class="right">Schuld</th>
                     <th class="right">Kassiert</th>
                     <th class="right">Offen</th>
                     <th>Status</th>
-                    <th>Letzte Zahlung / Wer</th>
+                    <th>Letzte / Wer</th>
                     <th class="center">Aktion</th>
                 </tr></thead>
                 <tbody id="mzTableBody"></tbody>

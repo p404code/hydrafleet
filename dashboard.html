@@ -220,38 +220,35 @@
             #contentMuessenZahlen #mzTableBody tr.mz-empty-row { display: block; padding: 40px 20px; text-align: center; }
             #contentMuessenZahlen #mzTableBody tr.mz-empty-row td { display: block; padding: 0; border: none; }
             #contentMuessenZahlen #mzTableBody tr.mz-empty-row td::before { display: none; }
-            #mzModalOverlay.show {
-                padding: 0 !important;
-                align-items: stretch !important;
-                justify-content: stretch !important;
-            }
-            #mzModalOverlay .alias-modal-inner {
-                position: fixed !important;
-                top: 12px !important;
-                left: 12px !important;
-                right: 12px !important;
-                bottom: auto !important;
-                width: auto !important;
-                max-width: none !important;
-                max-height: calc(100vh - 24px) !important;
-                margin: 0 !important;
-                padding: 18px !important;
+            #mzModalOverlay {
+                padding: 12px !important;
                 box-sizing: border-box !important;
-                overflow-x: hidden !important;
-                overflow-y: auto !important;
             }
-            #mzModalOverlay .alias-modal-inner h2 { font-size: 17px; }
-            #mzModalOverlay *,
-            #mzModalOverlay *::before,
-            #mzModalOverlay *::after { box-sizing: border-box; }
-            #mzModalOverlay input,
-            #mzModalOverlay select {
+            #mzModalOverlay *, #mzModalOverlay *::before, #mzModalOverlay *::after {
+                box-sizing: border-box !important;
+            }
+            #mzModalOverlay .mz-modal-inner {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 16px !important;
+                max-height: calc(100vh - 24px) !important;
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
+            #mzModalOverlay .mz-modal-inner h2 { font-size: 17px; }
+            #mzModalOverlay .mz-modal-inner input,
+            #mzModalOverlay .mz-modal-inner select {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                display: block;
+            }
+            #mzModalOverlay .mz-modal-inner label {
                 width: 100% !important;
                 min-width: 0 !important;
                 max-width: 100% !important;
             }
-            #mzModalOverlay label { min-width: 0; max-width: 100%; width: 100%; }
-            #mzModalOverlay > div > div { max-width: 100%; }
         }
         .empty { text-align: center; padding: 60px; color: var(--text-muted); font-size: 13px; }
         .loading { text-align: center; padding: 60px; color: var(--text-muted); }
@@ -265,6 +262,7 @@
         .btn-include:hover { background: var(--green); color: #0c0a09; }
         .alias-banner { background: var(--status-warn-bg); border: 1px solid var(--status-warn); color: var(--status-warn); border-radius: 10px; padding: 12px 18px; margin-bottom: 14px; display: none; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
         .alias-modal-inner { background: var(--bg-card); color: var(--text); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 25px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05); padding: 28px; transform: translateY(24px) scale(0.97); opacity: 0; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease; }
+        .alias-modal-inner.mz-modal-inner { max-width: 480px; }
         .print-overlay.show .alias-modal-inner { transform: translateY(0) scale(1); opacity: 1; }
         .alias-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
         .alias-row:last-child { border-bottom: none; }
@@ -967,7 +965,7 @@
     </div>
     <div id="printAllContainer" style="display:none;"></div>
     <div class="print-overlay" id="mzModalOverlay">
-        <div class="alias-modal-inner" style="max-width:480px">
+        <div class="alias-modal-inner mz-modal-inner">
             <h2 style="margin-bottom:8px;font-size:20px">Kassieren eintragen</h2>
             <p style="color:var(--text-secondary);margin-bottom:20px;font-size:14px">
                 <span id="mzModalFahrer">—</span> · <span id="mzModalWoche">—</span> · offen: <strong id="mzModalOffen">—</strong>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hydralink-v5';
+const CACHE_NAME = 'hydralink-v6';
 const PRECACHE_URLS = [
   '/',
   '/index.html',

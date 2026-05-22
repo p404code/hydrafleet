@@ -154,16 +154,8 @@
         [data-theme="dark"] .mz-status.teilweise { background: rgba(138,90,0,0.22); color: #ffd76a; }
         [data-theme="dark"] .mz-status.erledigt { background: rgba(26,107,74,0.22); color: #6ee7a8; }
         .mz-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
-        #contentMuessenZahlen .table-card { max-width: 1100px; }
-        #contentMuessenZahlen .table-card table { table-layout: fixed; }
-        #contentMuessenZahlen .table-card col.c-fahrer { width: 22%; }
-        #contentMuessenZahlen .table-card col.c-kw      { width: 6%; }
-        #contentMuessenZahlen .table-card col.c-money   { width: 10%; }
-        #contentMuessenZahlen .table-card col.c-status  { width: 11%; }
-        #contentMuessenZahlen .table-card col.c-when    { width: 17%; }
-        #contentMuessenZahlen .table-card col.c-act     { width: 14%; }
         .mz-history { background: var(--bg-table-head); padding: 12px 16px; font-size: 12px; }
-        .mz-history table { width: 100%; table-layout: auto; }
+        .mz-history table { width: 100%; }
         .mz-history th, .mz-history td { padding: 6px 10px; font-size: 12px; text-align: left; }
         .mz-history th.right, .mz-history td.right { text-align: right; }
         @media (max-width: 768px) {
@@ -176,7 +168,6 @@
             .mz-history { padding: 8px 10px; overflow-x: auto; }
             .mz-history table { min-width: 0; }
             .mz-history th, .mz-history td { padding: 5px 6px; font-size: 11px; }
-            #contentMuessenZahlen .table-card table { min-width: 700px; }
         }
         .empty { text-align: center; padding: 60px; color: var(--text-muted); font-size: 13px; }
         .loading { text-align: center; padding: 60px; color: var(--text-muted); }
@@ -803,16 +794,6 @@
                 <h2>Müssen zahlen<span id="mzCount"></span></h2>
             </div>
             <table>
-                <colgroup>
-                    <col class="c-fahrer">
-                    <col class="c-kw">
-                    <col class="c-money">
-                    <col class="c-money">
-                    <col class="c-money">
-                    <col class="c-status">
-                    <col class="c-when">
-                    <col class="c-act">
-                </colgroup>
                 <thead><tr>
                     <th>Fahrer</th>
                     <th>KW</th>

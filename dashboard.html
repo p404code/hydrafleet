@@ -146,6 +146,8 @@
         .status.warn::before { animation: pulse-dot 2s ease-in-out infinite; }
         .status.err::before { animation: pulse-dot 1.5s ease-in-out infinite; }
         @keyframes pulse-dot { 0%, 100% { box-shadow: 0 0 0 0 currentColor; } 50% { box-shadow: 0 0 6px 2px currentColor; } }
+        #mzTableBody tr.mz-week-divider > td { border-top: 2px solid var(--gold); padding-top: 18px; }
+        #mzTableBody tr.mz-week-divider:first-child > td { border-top: 1px solid var(--border); padding-top: 12px; }
         .mz-status { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
         .mz-status.offen { background: #fce8eb; color: #c4364a; }
         .mz-status.teilweise { background: #fff4d6; color: #8a5a00; }
@@ -786,6 +788,9 @@
             <input type="text" id="mzSearchInput" placeholder="Fahrer suchen..." style="max-width:200px">
             <select id="mzWeekFilter"><option value="">Alle Wochen</option></select>
             <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer">
+                <input type="checkbox" id="mzShowAllWeeks"> Alle Wochen
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer">
                 <input type="checkbox" id="mzShowOld"> Alte erledigte (>60 Tage) zeigen
             </label>
             <span id="mzSummary" style="color:var(--text-muted);font-size:13px;margin-left:auto">Lade...</span>
@@ -956,6 +961,8 @@
         let mzSearch = '';
         let mzWeek = '';
         let mzShowOldErledigt = false;
+        let mzShowAllWeeks = false;
+        const MZ_DEFAULT_WEEKS = 4;
         function getSupabase() { if (!supabaseClient) { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } return supabaseClient; }
         /* === MÜSSEN-ZAHLEN HELPERS === */
         function getOpenDebts() {
@@ -1125,12 +1132,17 @@
             }
             if (mzWeek) {
                 debts = debts.filter(d => d.woche === mzWeek);
+            } else if (!mzShowAllWeeks) {
+                const recentWeeks = WEEKS.slice(0, MZ_DEFAULT_WEEKS);
+                debts = debts.filter(d => recentWeeks.indexOf(d.woche) >= 0);
             }
             const statusOrder = { offen: 0, teilweise: 1, erledigt: 2 };
             debts.sort((a, b) => {
+                const wo = (b.woche || '').localeCompare(a.woche || '');
+                if (wo !== 0) return wo;
                 const so = statusOrder[a.status] - statusOrder[b.status];
                 if (so !== 0) return so;
-                return (b.woche || '').localeCompare(a.woche || '');
+                return (a.fahrer_name || '').localeCompare(b.fahrer_name || '');
             });
             document.getElementById('mzCount').textContent = ' (' + debts.length + ')';
             const offenCount = debts.filter(d => d.status === 'offen').length;
@@ -1144,6 +1156,7 @@
                 tbody.innerHTML = '<tr><td colspan="8" class="empty">Keine Schulden vorhanden</td></tr>';
                 return;
             }
+            let prevWeek = null;
             tbody.innerHTML = debts.map(d => {
                 const lastDate = d.lastPaymentAt
                     ? new Date(d.lastPaymentAt).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: '2-digit' })
@@ -1151,7 +1164,9 @@
                 const lastByCell = d.lastPaymentAt
                     ? '<div>' + lastDate + '</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">' + esc(d.lastPaymentBy || '—') + '</div>'
                     : '—';
-                return '<tr>'
+                const isNewWeek = d.woche !== prevWeek;
+                prevWeek = d.woche;
+                return '<tr class="' + (isNewWeek ? 'mz-week-divider' : '') + '">'
                     + '<td><div class="fahrer-name">' + esc(d.fahrer_name) + '</div><div class="fahrer-tel">' + esc(d.telefon || '-') + '</div></td>'
                     + '<td>' + esc(d.woche) + '</td>'
                     + '<td class="right"><span class="money neg">' + fmt(d.schuld) + '</span></td>'
@@ -1297,6 +1312,10 @@
                 });
                 document.getElementById('mzShowOld').addEventListener('change', function(e) {
                     mzShowOldErledigt = e.target.checked;
+                    renderMuessenZahlen();
+                });
+                document.getElementById('mzShowAllWeeks').addEventListener('change', function(e) {
+                    mzShowAllWeeks = e.target.checked;
                     renderMuessenZahlen();
                 });
                 document.getElementById('mzTableBody').addEventListener('click', function(e) {

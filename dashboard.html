@@ -220,9 +220,11 @@
             #contentMuessenZahlen #mzTableBody tr.mz-empty-row { display: block; padding: 40px 20px; text-align: center; }
             #contentMuessenZahlen #mzTableBody tr.mz-empty-row td { display: block; padding: 0; border: none; }
             #contentMuessenZahlen #mzTableBody tr.mz-empty-row td::before { display: none; }
-            #mzModalOverlay .alias-modal-inner { max-width: calc(100vw - 24px) !important; width: calc(100vw - 24px) !important; padding: 20px; max-height: calc(100vh - 24px); }
+            #mzModalOverlay { padding: 12px !important; box-sizing: border-box; }
+            #mzModalOverlay .alias-modal-inner { max-width: 100% !important; width: 100% !important; padding: 18px !important; max-height: calc(100vh - 24px); box-sizing: border-box; overflow-x: hidden; }
             #mzModalOverlay .alias-modal-inner h2 { font-size: 17px; }
-            #mzModalOverlay input, #mzModalOverlay select { width: 100%; box-sizing: border-box; }
+            #mzModalOverlay input, #mzModalOverlay select { width: 100% !important; min-width: 0 !important; box-sizing: border-box; max-width: 100%; }
+            #mzModalOverlay label { min-width: 0; max-width: 100%; }
         }
         .empty { text-align: center; padding: 60px; color: var(--text-muted); font-size: 13px; }
         .loading { text-align: center; padding: 60px; color: var(--text-muted); }

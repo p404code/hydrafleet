@@ -148,6 +148,14 @@
         @keyframes pulse-dot { 0%, 100% { box-shadow: 0 0 0 0 currentColor; } 50% { box-shadow: 0 0 6px 2px currentColor; } }
         #mzTableBody tr.mz-week-divider > td { border-top: 2px solid var(--gold); padding-top: 18px; }
         #mzTableBody tr.mz-week-divider:first-child > td { border-top: 1px solid var(--border); padding-top: 12px; }
+        .btn-mz { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+        .btn-mz-primary { background: var(--gold); border: 1px solid var(--gold); color: #1a1714; }
+        .btn-mz-primary:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(245,181,27,0.35); }
+        .btn-mz-secondary { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+        .btn-mz-secondary:hover { background: var(--bg-hover); border-color: var(--text-muted); color: var(--text); }
+        .btn-mz-danger { background: transparent; border: 1px solid transparent; color: #c4364a; padding: 4px 8px; font-size: 11px; }
+        .btn-mz-danger:hover { background: rgba(196,54,74,0.1); border-color: rgba(196,54,74,0.3); }
+        .mz-done { color: var(--text-muted); font-size: 12px; font-weight: 600; letter-spacing: 0.4px; }
         .mz-status { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
         .mz-status.offen { background: #fce8eb; color: #c4364a; }
         .mz-status.teilweise { background: #fff4d6; color: #8a5a00; }
@@ -1107,7 +1115,7 @@
                 const typLabel = (TYP_LABEL[p.typ] || p.typ) + (p.typ === 'verrechnet' && p.verrechnet_mit_woche ? ' (' + esc(p.verrechnet_mit_woche) + ')' : '');
                 const noteHtml = p.note ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px">' + esc(p.note) + '</div>' : '';
                 const delBtn = isAdmin
-                    ? '<button class="btn-print" data-mz-delete="' + esc(p.id) + '" title="Löschen" style="color:#c4364a">🗑</button>'
+                    ? '<button class="btn-mz btn-mz-danger" data-mz-delete="' + esc(p.id) + '">Löschen</button>'
                     : '';
                 return '<tr>'
                     + '<td class="right" style="font-family:monospace;font-weight:600">' + fmt(p.betrag) + '</td>'
@@ -1174,9 +1182,11 @@
                     + '<td class="right"><span class="money ' + (d.offen > 0 ? 'neg' : 'pos') + '">' + fmt(d.offen) + '</span></td>'
                     + '<td><span class="mz-status ' + d.status + '">' + d.status + '</span></td>'
                     + '<td>' + lastByCell + '</td>'
-                    + '<td class="center">'
-                        + (d.offen > 0 ? '<button class="btn-print" data-mz-kassier="' + esc(d.fahrer_name) + '|' + esc(d.woche) + '" title="Kassieren eintragen">💰</button>' : '<span style="color:var(--text-muted)">✓</span>')
-                        + (d.payments.length ? ' <button class="btn-print" data-mz-history="' + esc(d.fahrer_name) + '|' + esc(d.woche) + '" title="Historie zeigen">📜</button>' : '')
+                    + '<td class="center" style="white-space:nowrap">'
+                        + (d.offen > 0
+                            ? '<button class="btn-mz btn-mz-primary" data-mz-kassier="' + esc(d.fahrer_name) + '|' + esc(d.woche) + '">Kassieren</button>'
+                            : '<span class="mz-done">ERLEDIGT</span>')
+                        + (d.payments.length ? ' <button class="btn-mz btn-mz-secondary" data-mz-history="' + esc(d.fahrer_name) + '|' + esc(d.woche) + '">Verlauf (' + d.payments.length + ')</button>' : '')
                     + '</td>'
                     + '</tr>'
                     + (d.payments.length

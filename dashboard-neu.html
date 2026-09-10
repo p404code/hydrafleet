@@ -1137,7 +1137,7 @@
                 const dt = p.kassiert_at ? new Date(p.kassiert_at).toLocaleDateString('de-AT', { day: 'numeric', month: 'short' }) : '—';
                 const typLabel = (TYP_LABEL[p.typ] || p.typ) + (p.typ === 'verrechnet' && p.verrechnet_mit_woche ? ' ' + esc(p.verrechnet_mit_woche) : '');
                 const note = p.note ? ' · ' + esc(p.note) : '';
-                const del = isAdmin ? '<button data-mz-delete="' + esc(p.id) + '" title="Löschen">🗑</button>' : '';
+                const del = isAdmin ? '<button data-mz-delete="' + esc(String(p.id)) + '" title="Löschen">🗑</button>' : '';
                 return '<div class="hist-row"><span>' + dt + ' · ' + typLabel + ' · ' + esc(p.kassiert_von || '—') + note + '</span><span class="num">' + fmt(p.betrag) + ' ' + del + '</span></div>';
             }).join('');
         }

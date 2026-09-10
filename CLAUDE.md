@@ -20,6 +20,8 @@ HYDRAlink is the internal web dashboard for **HYDRAFLEET**, a taxi/ride-sharing 
 ```
 index.html          — Login page (PIN-based auth via app_users table)
 dashboard.html      — Main dashboard (single file, ~1300 lines)
+dashboard-neu.html  — Redesign v2 im Parallelbetrieb (Spec: docs/superpowers/specs/2026-09-10-hydralink-redesign-design.md)
+scripts/            — check-dashboard.sh (Syntax/ID-Check), test-weekrange.js (Test für Wochen-Datum)
 setup.sql           — Supabase schema for app_users + customers tables
 manifest.json       — PWA manifest
 sw.js               — Service worker

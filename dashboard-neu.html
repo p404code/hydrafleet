@@ -107,7 +107,7 @@
         .kpi { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 10px; }
         .kpi-item { background: var(--surface-2); border-radius: 8px; padding: 7px 10px; min-width: 0; }
         .kpi-item small { display: block; font-size: 10px; color: var(--text-mut); text-transform: uppercase; letter-spacing: .04em; }
-        .kpi-item b { font-size: 14px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+        .kpi-item b { display: block; font-size: 14px; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .kpi-item b.err { color: var(--err); }
         .kpi-item b.ok { color: var(--accent); }
         .kpi-item .konto { display: flex; justify-content: space-between; gap: 6px; font-size: 11px; font-family: var(--mono); color: var(--text); }
@@ -233,7 +233,7 @@
             .kpi-item.desktop-only { display: none; }
             .toolbar { padding: 8px 12px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
             .toolbar::-webkit-scrollbar { display: none; }
-            .search { flex: 1 1 120px; height: 34px; }
+            .search { flex: 0 0 150px; height: 34px; }
             .chip { height: 34px; }
             .toolbar .desktop-only, .side-panel { display: none; }
             .hint { padding: 6px 12px 0; }
@@ -246,6 +246,14 @@
             .alias-banner, .excluded-panel { margin: 10px 12px 0; }
             .filters, .stats { margin-left: 12px; margin-right: 12px; }
             .table-card { overflow-x: auto; }
+        }
+        @media (max-width: 380px) {
+            .kpi-item { padding: 6px 7px; }
+            .kpi-item small { font-size: 9px; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .kpi-item b { font-size: 12.5px; }
+            .hero-big b { font-size: 22px; }
+            .data-table th { font-size: 9px; letter-spacing: 0; }
+            .data-table td { font-size: 11.5px; }
         }
         #mzTableBody tr.mz-week-divider > td { border-top: 2px solid var(--gold); padding-top: 18px; }
         #mzTableBody tr.mz-week-divider:first-child > td { border-top: 1px solid var(--border); padding-top: 12px; }
@@ -651,53 +659,63 @@
             </div>
         </header>
         <div class="tab-content active" id="contentAbrechnungen">
-        <div class="filters">
-            <select id="weekFilter"><option value="">Laden...</option></select>
-            <input type="text" id="searchInput" placeholder="Fahrer suchen...">
-            <button class="filter-btn" id="warningFilter">Müssen zahlen</button>
-            <button class="filter-btn" id="excludedFilter">Ausgeschlossen (<span id="excludedCount">0</span>)</button>
-        </div>
-        <div class="excluded-panel" id="excludedPanel">
-            <h3>Ausgeschlossene Fahrer</h3>
-            <div class="excluded-list" id="excludedList"></div>
-        </div>
-        <div class="stats">
-            <div class="stat-card"><div class="stat-label">Fahrer</div><div class="stat-value" id="statFahrer">--</div></div>
-            <div class="stat-card highlight"><div class="stat-label">Bei uns bleibt</div><div class="stat-value" id="statBleibt">--</div><div class="stat-sub" id="statBleibtSub">Mieten + Prozent</div></div>
-            <div class="stat-card"><div class="stat-label">Auszahlungen (tatsächlich)</div><div class="stat-value green" id="statAuszahlung">--</div><div class="stat-sub">Was wir an Fahrer zahlen</div></div>
-            <div class="stat-card"><div class="stat-label">Zu kassieren</div><div class="stat-value orange" id="statKassieren">--</div><div class="stat-sub">Fahrer schulden uns</div></div>
-            <div class="stat-card"><div class="stat-label">Probleme</div><div class="stat-value orange" id="statProbleme">--</div></div>
-            <div class="stat-card"><div class="stat-label">Eingänge am Konto</div>
-                <div class="control-row"><div class="cr-left"><div class="cr-icon bolt"><svg viewBox="0 0 24 24" fill="none"><path d="M13.5 2L5 14h6l-1.5 8L18 10h-6l1.5-8z" fill="#fff" stroke-linejoin="round"/></svg></div><div class="cr-name">Bolt</div></div><div class="cr-amount" id="statBoltTransfer">--</div></div>
-                <div class="control-row"><div class="cr-left"><div class="cr-icon uber"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 7.5v4.8c0 2.5 1.7 4.2 4.2 4.2 1.5 0 2.5-.6 3.2-1.5v1.3h2.2V7.5h-2.2v5c0 1.5-1 2.5-2.5 2.5S6.3 14 6.3 12.3V7.5H4zm17.8 0h-2.2v5c0 1.5-1 2.5-2.5 2.5v2.2c2.5 0 4.2-1.7 4.2-4.2V7.5h.5z"/></svg></div><div class="cr-name">Uber</div></div><div class="cr-amount" id="statUberTransfer">--</div></div>
-                <div class="control-row"><div class="cr-left"><div class="cr-icon mypos"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="2" stroke="#fff" stroke-width="2"/><path d="M3 10h18" stroke="#fff" stroke-width="2"/><circle cx="7" cy="15" r="1" fill="#fff"/></svg></div><div class="cr-name">MyPOS</div></div><div class="cr-amount" id="statMyposTransfer">--</div></div>
-                <div class="control-total"><div class="cr-name">Gesamt</div><div class="cr-amount" id="statTransferTotal">--</div></div>
-            </div>
-        </div>
-        <div class="alias-banner" id="aliasBanner">
-            <span><strong id="aliasBannerCount">0</strong> Fahrer ohne Zuordnung in dieser Woche</span>
-            <button class="btn" onclick="openAliasModal()">Jetzt zuordnen →</button>
-        </div>
-        <div class="table-card">
-            <div class="table-header">
-                <h2>Alle Fahrer<span id="tableCount"></span></h2>
-                <div>
-                    <button class="btn" id="printAllBtn" style="margin-left:8px">Alle drucken</button>
-                    <button class="btn" id="exportBtn">Export</button>
-                    <button class="btn" id="refreshBtn" style="margin-left:8px">↺</button>
+            <div class="hero">
+                <div class="hero-top">
+                    <div class="week-pick">
+                        <select id="weekFilter"><option value="">Laden...</option></select>
+                        <span class="week-range"><span id="weekRange"></span> · <span id="statFahrer">--</span> Fahrer</span>
+                    </div>
+                    <div class="hero-big"><b id="statAuszahlung">--</b><small>Auszahlungen (tatsächlich)</small></div>
+                </div>
+                <div class="kpi">
+                    <div class="kpi-item"><small>Zu kassieren</small><b class="err" id="statKassieren">--</b></div>
+                    <div class="kpi-item"><small>Bei uns bleibt</small><b id="statBleibt">--</b><div class="hidden" id="statBleibtSub"></div></div>
+                    <div class="kpi-item"><small>Probleme</small><b id="statProbleme">--</b></div>
+                    <div class="kpi-item desktop-only"><small>Ausgeschlossen</small><b id="statExcluded">0</b></div>
+                    <div class="kpi-item desktop-only"><small>Eingänge am Konto</small>
+                        <div class="konto"><span>Bolt <span id="statBoltTransfer">--</span></span><span>Uber <span id="statUberTransfer">--</span></span><span>MyPOS <span id="statMyposTransfer">--</span></span><span id="statTransferTotal" class="hidden"></span></div>
+                    </div>
                 </div>
             </div>
-            <table>
-                <thead><tr><th class="sortable" id="sortName">Fahrer <span class="sort-icon">↕</span></th><th class="right sortable" id="sortPayout">Auszahlung <span class="sort-icon">↕</span></th><th>Status</th><th>Modell</th><th class="right">Bolt</th><th class="right">Uber</th><th class="right">MyPOS</th><th class="right">Gesamt</th><th class="right">Abzug</th><th class="right">Lohn</th><th class="center">Aktion</th></tr></thead>
-                <tbody id="tableBody">
-                    <tr class="skeleton-row"><td><div class="skeleton-bar w60"></div></td><td><div class="skeleton-bar w40"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w20"></div></td></tr>
-                    <tr class="skeleton-row"><td><div class="skeleton-bar w40"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w20"></div></td></tr>
-                    <tr class="skeleton-row"><td><div class="skeleton-bar w60"></div></td><td><div class="skeleton-bar w40"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w20"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w30"></div></td><td><div class="skeleton-bar w20"></div></td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div><!-- end table-card -->
-    </div><!-- end contentAbrechnungen -->
+            <div class="toolbar">
+                <input type="text" class="search" id="searchInput" placeholder="Fahrer suchen">
+                <button class="chip active" id="allFilter">Alle</button>
+                <button class="chip" id="warningFilter">Schulden</button>
+                <button class="chip" id="warnOnlyFilter">Warnung</button>
+                <button class="chip lohn" id="lohnFilter">Lohn eingetragen <span class="cnt" id="lohnCount">0</span></button>
+                <button class="chip excluded" id="excludedFilter">Ausgeschl. <span class="cnt" id="excludedCount">0</span></button>
+                <div class="sp"></div>
+                <button class="btn desktop-only" id="printAllBtn">Alle drucken</button>
+                <button class="btn desktop-only" id="exportBtn">Export</button>
+                <button class="btn" id="refreshBtn" title="Neu laden">↺</button>
+            </div>
+            <div class="hint hidden" id="lohnHint"></div>
+            <div class="alias-banner" id="aliasBanner">
+                <span><strong id="aliasBannerCount">0</strong> Fahrer ohne Zuordnung in dieser Woche</span>
+                <button class="btn" onclick="openAliasModal()">Jetzt zuordnen →</button>
+            </div>
+            <div class="excluded-panel" id="excludedPanel">
+                <h3>Ausgeschlossene Fahrer</h3>
+                <div class="excluded-list" id="excludedList"></div>
+            </div>
+            <div class="split">
+                <div class="split-main">
+                    <table class="data-table" id="abrTable">
+                        <colgroup><col style="width:31%"><col style="width:12%"><col style="width:16%"><col style="width:13%"><col style="width:28%"></colgroup>
+                        <thead><tr>
+                            <th data-sort="name" id="sortName">Fahrer</th>
+                            <th data-sort="mypos" id="sortMypos">MyPOS</th>
+                            <th data-sort="lohn" id="sortLohn">Lohn</th>
+                            <th data-sort="miete" id="sortMiete">Pausch.</th>
+                            <th data-sort="payout" id="sortPayout">Auszahlung</th>
+                        </tr></thead>
+                        <tbody id="tableBody"><tr><td colspan="5" class="empty">Laden…</td></tr></tbody>
+                    </table>
+                    <div class="hidden" id="tableCount"></div>
+                </div>
+                <aside class="side-panel" id="detailPanel"><div class="placeholder">Fahrer anklicken für Details</div></aside>
+            </div>
+        </div><!-- end contentAbrechnungen -->
 
     <div class="tab-content" id="contentRechnungen">
         <div class="re-wrap">
@@ -1071,7 +1089,22 @@
         let supabaseClient = null;
         let SETTLEMENTS = [];
         let WEEKS = [];
-        let week = '', search = '', warn = false, showExcluded = false, sortBy = 'name_asc';
+        let week = '', search = '', warn = false, warnOnly = false, lohnOnly = false, showExcluded = false, sortBy = 'name_asc', selectedDriver = null;
+        function isMobile() { return window.matchMedia('(max-width: 768px)').matches; }
+        function weekRange(woche) {
+            const m = /^(\d{4})-W(\d{2})$/.exec(woche || '');
+            if (!m) return '';
+            const year = parseInt(m[1], 10), wk = parseInt(m[2], 10);
+            const jan4 = new Date(Date.UTC(year, 0, 4));
+            const dow = jan4.getUTCDay() || 7;
+            const monday = new Date(jan4.getTime() - (dow - 1) * 86400000 + (wk - 1) * 7 * 86400000);
+            const sunday = new Date(monday.getTime() + 6 * 86400000);
+            const MON = ['Jän', 'Feb', 'März', 'Apr', 'Mai', 'Juni', 'Juli', 'Aug', 'Sept', 'Okt', 'Nov', 'Dez'];
+            const d = x => x.getUTCDate() + '.';
+            if (monday.getUTCMonth() === sunday.getUTCMonth()) return d(monday) + ' – ' + d(sunday) + ' ' + MON[sunday.getUTCMonth()] + ' ' + sunday.getUTCFullYear();
+            return d(monday) + ' ' + MON[monday.getUTCMonth()] + ' – ' + d(sunday) + ' ' + MON[sunday.getUTCMonth()] + ' ' + sunday.getUTCFullYear();
+        }
+        function fmtInt(n) { return Math.round(parseFloat(n) || 0).toLocaleString('de-AT'); }
         let excludedDrivers = JSON.parse(localStorage.getItem('excludedDrivers') || '[]');
         let NAME_ALIASES = {};
         let FAHRER_LIST = [];
@@ -1318,25 +1351,158 @@
         async function loadData() { try { const client = getSupabase(); const [settleData, aliasRes, fahrerRes, kassierRes] = await Promise.all([ fetchAllSettlements(client), client.from('name_aliases').select('csv_name,fahrer_name'), client.from('fahrer').select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon').eq('aktiv', true), client.from('kassier_zahlungen').select('*') ]); if (!settleData || settleData.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = settleData.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); NAME_ALIASES = {}; if (!aliasRes.error && aliasRes.data) { aliasRes.data.forEach(a => { NAME_ALIASES[a.csv_name.toLowerCase()] = a.fahrer_name; }); } FAHRER_LIST = (!fahrerRes.error && fahrerRes.data) ? fahrerRes.data : []; KASSIER = (!kassierRes.error && kassierRes.data) ? kassierRes.data : []; if (kassierRes.error) console.warn('kassier load error:', kassierRes.error); WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; document.getElementById('weekFilter').innerHTML = WEEKS.map(w => '<option value="'+w+'">'+w+'</option>').join(''); render(); } catch (err) { console.error('Load error:', err); const offlineHint = !navigator.onLine ? ' (Offline — keine Internetverbindung)' : ''; document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Fehler beim Laden: ' + esc(err.message) + offlineHint + '<br><button class="btn" style="margin-top:12px" onclick="loadData()">Erneut versuchen</button></td></tr>'; } }
         function updateThemeUI(isDark) { const icon = document.getElementById('themeIcon'); const text = document.getElementById('themeText'); if (isDark) { icon.innerHTML = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>'; text.textContent = 'Light'; } else { icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'; text.textContent = 'Dark'; } }
         function toggleTheme() { const html = document.documentElement; if (html.getAttribute('data-theme') === 'dark') { html.removeAttribute('data-theme'); localStorage.setItem('theme', 'light'); updateThemeUI(false); } else { html.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); updateThemeUI(true); } }
-        function toggleSort(col) { if (col === 'name') { sortBy = sortBy === 'name_asc' ? 'name_desc' : 'name_asc'; } else if (col === 'payout') { sortBy = sortBy === 'payout_desc' ? 'payout_asc' : 'payout_desc'; } updateSortUI(); render(); }
-        function updateSortUI() { const nameEl = document.getElementById('sortName'); const payoutEl = document.getElementById('sortPayout'); nameEl.classList.remove('active'); payoutEl.classList.remove('active'); nameEl.querySelector('.sort-icon').textContent = '↕'; payoutEl.querySelector('.sort-icon').textContent = '↕'; if (sortBy === 'name_asc') { nameEl.classList.add('active'); nameEl.querySelector('.sort-icon').textContent = '↑'; } else if (sortBy === 'name_desc') { nameEl.classList.add('active'); nameEl.querySelector('.sort-icon').textContent = '↓'; } else if (sortBy === 'payout_desc') { payoutEl.classList.add('active'); payoutEl.querySelector('.sort-icon').textContent = '↓'; } else if (sortBy === 'payout_asc') { payoutEl.classList.add('active'); payoutEl.querySelector('.sort-icon').textContent = '↑'; } }
+        function toggleSort(col) {
+            const defaults = { name: 'name_asc', payout: 'payout_desc', mypos: 'mypos_desc', lohn: 'lohn_desc', miete: 'miete_desc' };
+            const cur = sortBy.split('_');
+            if (cur[0] === col) { sortBy = col + '_' + (cur[1] === 'asc' ? 'desc' : 'asc'); } else { sortBy = defaults[col] || 'name_asc'; }
+            updateSortUI(); render();
+        }
+        function updateSortUI() {
+            const labels = { name: 'Fahrer', mypos: 'MyPOS', lohn: 'Lohn', miete: 'Pausch.', payout: 'Auszahlung' };
+            const cur = sortBy.split('_');
+            document.querySelectorAll('#abrTable th[data-sort]').forEach(function(th) {
+                const col = th.dataset.sort;
+                const on = col === cur[0];
+                th.classList.toggle('sorted', on);
+                th.textContent = labels[col] + (on ? (cur[1] === 'asc' ? ' ↑' : ' ↓') : '');
+            });
+        }
         function initTheme() { const saved = localStorage.getItem('theme'); const html = document.documentElement; if (saved === 'dark') { html.setAttribute('data-theme', 'dark'); updateThemeUI(true); } else { html.removeAttribute('data-theme'); updateThemeUI(false); } }
         document.addEventListener('DOMContentLoaded', function() { initTheme(); try { const sess = JSON.parse(localStorage.getItem('hydralink_session') || 'null'); if (sess && sess.name) document.getElementById('sessionName').textContent = sess.name; } catch (e) {} updateExcludedUI(); updateSortUI(); 
-            document.getElementById('themeToggle').addEventListener('click', toggleTheme); document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); }); var _searchTimer = null; document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); clearTimeout(_searchTimer); _searchTimer = setTimeout(render, 200); }); document.getElementById('sortName').addEventListener('click', function() { toggleSort('name'); }); document.getElementById('sortPayout').addEventListener('click', function() { toggleSort('payout'); }); document.getElementById('warningFilter').addEventListener('click', function() { warn = !warn; this.classList.toggle('active', warn); render(); }); document.getElementById('excludedFilter').addEventListener('click', function() { showExcluded = !showExcluded; this.classList.toggle('excluded', showExcluded); document.getElementById('excludedPanel').classList.toggle('show', showExcluded); }); document.getElementById('printAllBtn').addEventListener('click', printAllDrivers); document.getElementById('exportBtn').addEventListener('click', exportCSV); document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); }); document.getElementById('logoutBtn').addEventListener('click', function() { localStorage.removeItem('hydralink_session'); window.location.href = 'index.html'; });
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme); document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); }); var _searchTimer = null; document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); clearTimeout(_searchTimer); _searchTimer = setTimeout(render, 200); }); document.querySelectorAll('#abrTable th[data-sort]').forEach(function(th) { th.addEventListener('click', function() { toggleSort(th.dataset.sort); }); });
+            function syncAllChip() { document.getElementById('allFilter').classList.toggle('active', !warn && !warnOnly && !lohnOnly); }
+            document.getElementById('allFilter').addEventListener('click', function() { warn = false; warnOnly = false; lohnOnly = false; ['warningFilter','warnOnlyFilter','lohnFilter'].forEach(function(id) { document.getElementById(id).classList.remove('active'); }); syncAllChip(); render(); });
+            document.getElementById('warningFilter').addEventListener('click', function() { warn = !warn; this.classList.toggle('active', warn); syncAllChip(); render(); });
+            document.getElementById('warnOnlyFilter').addEventListener('click', function() { warnOnly = !warnOnly; this.classList.toggle('active', warnOnly); syncAllChip(); render(); });
+            document.getElementById('lohnFilter').addEventListener('click', function() { lohnOnly = !lohnOnly; this.classList.toggle('active', lohnOnly); if (lohnOnly) { sortBy = 'lohn_desc'; updateSortUI(); } syncAllChip(); render(); });
+            document.getElementById('excludedFilter').addEventListener('click', function() { showExcluded = !showExcluded; this.classList.toggle('active', showExcluded); document.getElementById('excludedPanel').classList.toggle('show', showExcluded); });
+            window.matchMedia('(max-width: 768px)').addEventListener('change', function() { render(); }); document.getElementById('printAllBtn').addEventListener('click', printAllDrivers); document.getElementById('exportBtn').addEventListener('click', exportCSV); document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); }); document.getElementById('logoutBtn').addEventListener('click', function() { localStorage.removeItem('hydralink_session'); window.location.href = 'index.html'; });
             /* Event delegation for table actions */
-            document.getElementById('tableBody').addEventListener('click', function(e) {
-                const driver = e.target.closest('[data-driver]');
-                if (driver) { printDriver(driver.dataset.driver); return; }
+            function detailActions(e) {
                 const print = e.target.closest('[data-print]');
-                if (print) { printDriver(print.dataset.print); return; }
+                if (print) { printDriver(print.dataset.print); return true; }
                 const exclude = e.target.closest('[data-exclude]');
-                if (exclude) { excludeDriver(exclude.dataset.exclude); return; }
+                if (exclude) { excludeDriver(exclude.dataset.exclude); selectedDriver = null; return true; }
+                return false;
+            }
+            document.getElementById('tableBody').addEventListener('click', function(e) {
+                if (detailActions(e)) return;
+                if (e.target.closest('.detail-row')) return;
+                const row = e.target.closest('tr[data-row]');
+                if (row) selectDriver(row.dataset.row);
             });
-            document.getElementById('tableBody').addEventListener('change', function(e) { const el = e.target; if (el && el.classList && el.classList.contains('lohn-input')) { saveLohn(parseInt(el.getAttribute('data-lohn-id'), 10), el.value); } });
-            document.getElementById('tableBody').addEventListener('keydown', function(e) { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('lohn-input')) { e.target.blur(); } });
+            document.getElementById('detailPanel').addEventListener('click', detailActions);
+            ['tableBody', 'detailPanel'].forEach(function(id) {
+                const el = document.getElementById(id);
+                el.addEventListener('change', function(e) { const t = e.target; if (t && t.classList && t.classList.contains('lohn-input')) { saveLohn(parseInt(t.getAttribute('data-lohn-id'), 10), t.value); } });
+                el.addEventListener('keydown', function(e) { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('lohn-input')) { e.target.blur(); } });
+            });
             loadData(); });
-        function getData() { let data = SETTLEMENTS.filter(function(s) { const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; const isExcluded = excludedDrivers.includes(s.fahrer_name); return s.woche === week && s.fahrer_name && s.fahrer_name !== '__TRANSFER__' && s.fahrer_name.toLowerCase().indexOf(search) >= 0 && (!warn || s.auszahlung < 0) && !isExcluded; }); data.sort(function(a, b) { if (sortBy === 'name_asc') return (a.fahrer_name || '').localeCompare(b.fahrer_name || ''); if (sortBy === 'name_desc') return (b.fahrer_name || '').localeCompare(a.fahrer_name || ''); if (sortBy === 'payout_desc') return (b.auszahlung || 0) - (a.auszahlung || 0); if (sortBy === 'payout_asc') return (a.auszahlung || 0) - (b.auszahlung || 0); return 0; }); return data; }
-        function render() { const data = getData(); const all = SETTLEMENTS.filter(function(s) { return s.woche === week && s.fahrer_name !== '__TRANSFER__' && !excludedDrivers.includes(s.fahrer_name); }); const warnCount = all.filter(function(s) { return (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; }).length; const totalAbzug = data.reduce(function(a,s) { return a + (s.abzug_gesamt || 0); }, 0); const totalMieten = data.reduce(function(a,s) { return a + (s.miete || 0); }, 0); const totalProzent = data.reduce(function(a,s) { return a + (s.prozent_abzug || 0); }, 0); const auszahlungPositiv = data.reduce(function(a,s) { var n = netAuszahlung(s); return a + (n > 0 ? n : 0); }, 0); const auszahlungNegativ = data.reduce(function(a,s) { var n = netAuszahlung(s); return a + (n < 0 ? Math.abs(n) : 0); }, 0); document.getElementById('statFahrer').textContent = data.length; document.getElementById('statBleibt').textContent = fmt(totalAbzug); document.getElementById('statBleibtSub').textContent = fmt(totalMieten) + ' Mieten + ' + fmt(totalProzent) + ' %'; document.getElementById('statAuszahlung').textContent = fmt(auszahlungPositiv); document.getElementById('statKassieren').textContent = fmt(auszahlungNegativ); document.getElementById('statProbleme').textContent = warnCount; var transferRow = SETTLEMENTS.find(function(s) { return s.woche === week && s.fahrer_name === '__TRANSFER__'; }); var boltTransfer = transferRow ? (transferRow.bolt_auszahlung || 0) : data.reduce(function(a,s) { return a + (s.bolt_auszahlung || 0); }, 0); var uberTransfer = transferRow ? (transferRow.uber_auszahlung || 0) : data.reduce(function(a,s) { return a + (s.uber_auszahlung || 0); }, 0); var myposTransfer = transferRow ? (transferRow.mypos_summe || 0) : data.reduce(function(a,s) { return a + (s.mypos_summe || 0); }, 0); document.getElementById('statBoltTransfer').textContent = fmt(boltTransfer); document.getElementById('statUberTransfer').textContent = fmt(uberTransfer); document.getElementById('statMyposTransfer').textContent = fmt(myposTransfer); document.getElementById('statTransferTotal').textContent = fmt(boltTransfer + uberTransfer + myposTransfer); document.getElementById('tableCount').textContent = ' (' + data.length + ')'; const noMatchCount = all.filter(function(s) { return s.status && s.status.indexOf('WARNUNG_KEIN_FAHRER') >= 0; }).length; const aliasBannerEl = document.getElementById('aliasBanner'); aliasBannerEl.style.display = noMatchCount > 0 ? 'flex' : 'none'; if (noMatchCount > 0) { document.getElementById('aliasBannerCount').textContent = noMatchCount; } const tbody = document.getElementById('tableBody'); if (!data.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty">Keine Eintraege</td></tr>'; return; } const editLohn = canEditLohn(); tbody.innerHTML = data.map(function(s) { const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; const mc = s.mietmodell === 'fix' ? 'fix' : s.mietmodell === 'f11' ? 'f11' : s.mietmodell === 'f12' ? 'f12' : 'unknown'; const st = s.status && s.status.indexOf('WARNUNG_KEIN_FAHRER') >= 0 ? '<span class="status warn" title="CSV: '+esc(s.fahrer_name)+'">Kein Match</span>' : (s.status && s.status.indexOf('WARNUNG') >= 0 ? '<span class="status warn">Warnung</span>' : (s.auszahlung < 0 ? '<span class="status err">Schuldet</span>' : '<span class="status ok">OK</span>')); return '<tr class="'+(isWarn?'warning':'')+'">' + '<td><div class="fahrer-name" data-driver="'+esc(s.fahrer_name)+'">'+esc(s.fahrer_name)+'</div><div class="fahrer-tel">'+(s.telefon||'-')+'</div>'+((parseFloat(s.korrektur)||0)!==0?'<div class="fahrer-korr '+((parseFloat(s.korrektur)||0)>0?'pos':'neg')+'" title="'+esc(s.korrektur_note||'')+'">Korr: '+((parseFloat(s.korrektur)||0)>0?'+':'')+fmt(s.korrektur)+'</div>':'')+'</td>' + '<td class="right"><span class="money '+(netAuszahlung(s)>=0?'pos':'neg')+'">'+fmt(netAuszahlung(s))+'</span>'+(lohnOf(s)>0?'<div class="fahrer-korr neg" title="Lohn bereits ueberwiesen">-'+fmt(lohnOf(s))+' Lohn</div>':'')+'</td>' + '<td>'+st+'</td>' + '<td><span class="badge '+mc+'">'+(s.mietmodell||'-')+'</span></td>' + '<td class="right">'+fmt(s.bolt_brutto)+'</td>' + '<td class="right">'+fmt(s.uber_fahrpreis)+'</td>' + '<td class="right">'+fmt(s.mypos_summe)+'</td>' + '<td class="right">'+fmt(s.bruttoumsatz_gesamt)+'</td>' + '<td class="right">'+fmt(s.abzug_gesamt)+'</td>' + (editLohn ? '<td class="right"><input type="number" step="0.01" class="lohn-input" data-lohn-id="'+s.id+'" value="'+(lohnOf(s)||'')+'" placeholder="0" style="width:72px;text-align:right"></td>' : '<td class="right">'+(lohnOf(s)?fmt(lohnOf(s)):'–')+'</td>') + '<td class="center"><button class="btn-print" data-print="'+esc(s.fahrer_name)+'" title="Abrechnung drucken">\ud83d\udda8\ufe0f</button><button class="btn-exclude" data-exclude="'+esc(s.fahrer_name)+'" title="Aus Berechnung ausschlie\u00dfen">\ud83d\udeab</button></td>' + '</tr>'; }).join(''); }
+        function detailHtml(s, editLohn) {
+            const korr = parseFloat(s.korrektur) || 0;
+            const net = netAuszahlung(s);
+            const kv = (k, v, cls) => '<div class="detail-kv' + (cls ? ' ' + cls : '') + '"><span>' + k + '</span><span>' + v + '</span></div>';
+            return '<div class="detail" data-detail="' + esc(s.fahrer_name) + '">'
+                + '<h4>' + esc(s.fahrer_name) + '</h4>'
+                + '<div class="sub">' + esc(s.telefon || '–') + ' · Modell ' + esc(s.mietmodell || '–') + (s.status && s.status.indexOf('WARNUNG') >= 0 ? ' · <span class="neg">' + esc(s.status) + '</span>' : '') + '</div>'
+                + '<div class="pay' + (net < 0 ? ' neg' : '') + '">' + fmt(net) + '</div>'
+                + '<div class="detail-sec">Einnahmen brutto</div>'
+                + kv('Bolt', fmt(s.bolt_brutto)) + kv('Uber', fmt(s.uber_fahrpreis)) + kv('MyPOS', fmt(s.mypos_summe)) + kv('Gesamt', fmt(s.bruttoumsatz_gesamt), 'strong')
+                + '<div class="detail-sec">Netto</div>'
+                + kv('Bolt Auszahlung', fmt(s.bolt_auszahlung)) + kv('Uber Auszahlung', fmt(s.uber_auszahlung)) + kv('Wir bekommen', fmt(s.wir_bekommen), 'strong')
+                + '<div class="detail-sec">Abzüge</div>'
+                + kv('Pauschale', fmt(s.miete)) + kv('Prozent', fmt(s.prozent_abzug)) + kv('Abzug gesamt', fmt(s.abzug_gesamt), 'strong')
+                + (korr !== 0 ? '<div class="detail-sec">Korrektur</div>' + kv(esc(s.korrektur_note || 'Korrektur'), (korr > 0 ? '+' : '') + fmt(korr)) : '')
+                + '<div class="detail-lohn"><span>Lohn bereits überwiesen</span>'
+                + (editLohn ? '<input type="number" step="0.01" class="lohn-input" data-lohn-id="' + s.id + '" value="' + (lohnOf(s) || '') + '" placeholder="0">' : '<b class="num">' + (lohnOf(s) ? fmt(lohnOf(s)) : '–') + '</b>')
+                + '</div>'
+                + kv('Auszahlung vor Lohn', fmt(s.auszahlung)) + kv('Netto nach Lohn', fmt(net), 'strong')
+                + '<div class="detail-acts"><button class="btn-primary" data-print="' + esc(s.fahrer_name) + '">Drucken / WhatsApp</button><button class="btn-ghost danger" data-exclude="' + esc(s.fahrer_name) + '">Ausschließen</button></div>'
+                + '</div>';
+        }
+        function selectDriver(name) { selectedDriver = (selectedDriver === name) ? null : name; render(); }
+        function getData() {
+            let data = SETTLEMENTS.filter(function(s) {
+                const isWarnStatus = !!(s.status && s.status.indexOf('WARNUNG') >= 0);
+                const isExcluded = excludedDrivers.includes(s.fahrer_name);
+                return s.woche === week && s.fahrer_name && s.fahrer_name !== '__TRANSFER__'
+                    && s.fahrer_name.toLowerCase().indexOf(search) >= 0
+                    && (!warn || s.auszahlung < 0)
+                    && (!warnOnly || isWarnStatus)
+                    && (!lohnOnly || lohnOf(s) > 0)
+                    && !isExcluded;
+            });
+            const num = f => (a, b) => (f(b) || 0) - (f(a) || 0);
+            const sorters = {
+                name_asc: (a, b) => (a.fahrer_name || '').localeCompare(b.fahrer_name || ''),
+                name_desc: (a, b) => (b.fahrer_name || '').localeCompare(a.fahrer_name || ''),
+                payout_desc: num(s => s.auszahlung), payout_asc: (a, b) => num(s => s.auszahlung)(b, a),
+                mypos_desc: num(s => s.mypos_summe), mypos_asc: (a, b) => num(s => s.mypos_summe)(b, a),
+                lohn_desc: num(lohnOf), lohn_asc: (a, b) => num(lohnOf)(b, a),
+                miete_desc: num(s => s.miete), miete_asc: (a, b) => num(s => s.miete)(b, a)
+            };
+            data.sort(sorters[sortBy] || sorters.name_asc);
+            return data;
+        }
+        function render() {
+            const data = getData();
+            const all = SETTLEMENTS.filter(function(s) { return s.woche === week && s.fahrer_name !== '__TRANSFER__' && !excludedDrivers.includes(s.fahrer_name); });
+            const warnCount = all.filter(function(s) { return (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; }).length;
+            const totalAbzug = data.reduce(function(a,s) { return a + (s.abzug_gesamt || 0); }, 0);
+            const totalMieten = data.reduce(function(a,s) { return a + (s.miete || 0); }, 0);
+            const totalProzent = data.reduce(function(a,s) { return a + (s.prozent_abzug || 0); }, 0);
+            const auszahlungPositiv = data.reduce(function(a,s) { var n = netAuszahlung(s); return a + (n > 0 ? n : 0); }, 0);
+            const auszahlungNegativ = data.reduce(function(a,s) { var n = netAuszahlung(s); return a + (n < 0 ? Math.abs(n) : 0); }, 0);
+            document.getElementById('statFahrer').textContent = data.length;
+            document.getElementById('weekRange').textContent = weekRange(week);
+            document.getElementById('statBleibt').textContent = fmt(totalAbzug);
+            document.getElementById('statBleibtSub').textContent = fmt(totalMieten) + ' Mieten + ' + fmt(totalProzent) + ' %';
+            document.getElementById('statAuszahlung').textContent = fmt(auszahlungPositiv);
+            document.getElementById('statKassieren').textContent = fmt(auszahlungNegativ);
+            document.getElementById('statProbleme').textContent = warnCount;
+            document.getElementById('statExcluded').textContent = excludedDrivers.length;
+            var transferRow = SETTLEMENTS.find(function(s) { return s.woche === week && s.fahrer_name === '__TRANSFER__'; });
+            var boltTransfer = transferRow ? (transferRow.bolt_auszahlung || 0) : data.reduce(function(a,s) { return a + (s.bolt_auszahlung || 0); }, 0);
+            var uberTransfer = transferRow ? (transferRow.uber_auszahlung || 0) : data.reduce(function(a,s) { return a + (s.uber_auszahlung || 0); }, 0);
+            var myposTransfer = transferRow ? (transferRow.mypos_summe || 0) : data.reduce(function(a,s) { return a + (s.mypos_summe || 0); }, 0);
+            document.getElementById('statBoltTransfer').textContent = fmtInt(boltTransfer);
+            document.getElementById('statUberTransfer').textContent = fmtInt(uberTransfer);
+            document.getElementById('statMyposTransfer').textContent = fmtInt(myposTransfer);
+            document.getElementById('statTransferTotal').textContent = fmt(boltTransfer + uberTransfer + myposTransfer);
+            document.getElementById('tableCount').textContent = ' (' + data.length + ')';
+            const lohnRows = all.filter(function(s) { return lohnOf(s) > 0; });
+            document.getElementById('lohnCount').textContent = lohnRows.length;
+            const hint = document.getElementById('lohnHint');
+            if (lohnOnly) { hint.innerHTML = 'Zeigt <b>' + data.length + ' Fahrer</b> mit eingetragenem Lohn, Summe Lohn <b class="num">' + fmt(data.reduce(function(a,s){ return a + lohnOf(s); }, 0)) + '</b>.'; hint.classList.remove('hidden'); } else { hint.classList.add('hidden'); }
+            const noMatchCount = all.filter(function(s) { return s.status && s.status.indexOf('WARNUNG_KEIN_FAHRER') >= 0; }).length;
+            const aliasBannerEl = document.getElementById('aliasBanner');
+            aliasBannerEl.style.display = noMatchCount > 0 ? 'flex' : 'none';
+            if (noMatchCount > 0) { document.getElementById('aliasBannerCount').textContent = noMatchCount; }
+            const tbody = document.getElementById('tableBody');
+            const panel = document.getElementById('detailPanel');
+            if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Keine Einträge</td></tr>'; panel.innerHTML = '<div class="placeholder">Keine Einträge</div>'; return; }
+            const editLohn = canEditLohn();
+            const mobile = isMobile();
+            if (selectedDriver && !data.some(function(s) { return s.fahrer_name === selectedDriver; })) selectedDriver = null;
+            tbody.innerHTML = data.map(function(s) {
+                const isWarn = (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0;
+                const net = netAuszahlung(s);
+                const korr = parseFloat(s.korrektur) || 0;
+                const dot = s.status && s.status.indexOf('WARNUNG') >= 0 ? 'warn' : (s.auszahlung < 0 ? 'neg' : '');
+                const sel = selectedDriver === s.fahrer_name;
+                const cell = function(v) { const n = parseFloat(v) || 0; return '<td class="' + (n === 0 ? 'zero' : '') + '">' + fmtInt(n) + '</td>'; };
+                return '<tr class="' + (isWarn ? 'warning' : '') + (sel ? ' selected' : '') + '" data-row="' + esc(s.fahrer_name) + '">'
+                    + '<td title="' + esc(s.fahrer_name) + '"><span class="dot ' + dot + '"></span>' + esc(s.fahrer_name) + (korr !== 0 ? '<span class="fahrer-korr ' + (korr > 0 ? 'pos' : 'neg') + '" title="' + esc(s.korrektur_note || '') + '">Korr ' + (korr > 0 ? '+' : '') + fmt(korr) + '</span>' : '') + '</td>'
+                    + cell(s.mypos_summe) + cell(lohnOf(s)) + cell(s.miete)
+                    + '<td class="pay' + (net < 0 ? ' neg' : '') + '">' + fmt(net) + '</td>'
+                    + '</tr>'
+                    + (sel && mobile ? '<tr class="detail-row"><td colspan="5">' + detailHtml(s, editLohn) + '</td></tr>' : '');
+            }).join('');
+            if (!mobile) {
+                const s = selectedDriver ? data.find(function(x) { return x.fahrer_name === selectedDriver; }) : null;
+                panel.innerHTML = s ? detailHtml(s, editLohn) : '<div class="placeholder">Fahrer anklicken für Details</div>';
+            }
+        }
         function fmt(v) { if (v == null) return '-'; const n = parseFloat(v); if (isNaN(n)) return '-'; return (n<0?'-':'') + Math.abs(n).toLocaleString('de-AT',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' \u20AC'; }
         function esc(str) { if (!str) return ''; return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
         const LOHN_EDITORS = ['boyko', 'bislan', 'mohamed'];

@@ -88,6 +88,7 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @media (max-width: 768px) {
             .container { padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 16px); }
+            html, body { overflow-x: hidden; max-width: 100vw; }
             .header { padding: 0 12px; }
             .tab-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; height: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: var(--surface); border-top: 1px solid var(--border); gap: 0; }
             .tab-btn { flex: 1; flex-direction: column; gap: 3px; padding: 6px 2px; border-radius: 0; font-size: 10.5px; }
@@ -254,111 +255,6 @@
             .hero-big b { font-size: 22px; }
             .data-table th { font-size: 9px; letter-spacing: 0; }
             .data-table td { font-size: 11.5px; }
-        }
-        #mzTableBody tr.mz-week-divider > td { border-top: 2px solid var(--gold); padding-top: 18px; }
-        #mzTableBody tr.mz-week-divider:first-child > td { border-top: 1px solid var(--border); padding-top: 12px; }
-        .btn-mz { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 13px; border-radius: 8px; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease; white-space: nowrap; letter-spacing: 0.1px; }
-        .btn-mz:active { transform: translateY(1px); }
-        .btn-mz svg { width: 13px; height: 13px; flex-shrink: 0; }
-        .btn-mz-primary { background: rgba(245,181,27,0.12); border: 1px solid rgba(245,181,27,0.55); color: var(--gold); }
-        .btn-mz-primary:hover { background: rgba(245,181,27,0.22); border-color: var(--gold); }
-        [data-theme="dark"] .btn-mz-primary { background: rgba(245,181,27,0.14); }
-        [data-theme="dark"] .btn-mz-primary:hover { background: rgba(245,181,27,0.24); }
-        .btn-mz-secondary { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
-        .btn-mz-secondary:hover { background: var(--bg-hover); border-color: var(--text-muted); color: var(--text); }
-        .btn-mz-danger { background: transparent; border: 1px solid transparent; color: #c4364a; padding: 5px 10px; font-size: 11px; }
-        .btn-mz-danger:hover { background: rgba(196,54,74,0.12); border-color: rgba(196,54,74,0.35); }
-        .mz-done { display: inline-flex; align-items: center; gap: 5px; color: #1a6b4a; font-size: 11px; font-weight: 600; letter-spacing: 0.4px; padding: 5px 10px; background: rgba(26,107,74,0.1); border: 1px solid rgba(26,107,74,0.25); border-radius: 999px; }
-        [data-theme="dark"] .mz-done { background: rgba(26,107,74,0.18); border-color: rgba(110,231,168,0.25); color: #6ee7a8; }
-        .mz-done svg { width: 12px; height: 12px; }
-        .mz-status { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .mz-status.offen { background: #fce8eb; color: #c4364a; }
-        .mz-status.teilweise { background: #fff4d6; color: #8a5a00; }
-        .mz-status.erledigt { background: #e8f5ee; color: #1a6b4a; }
-        [data-theme="dark"] .mz-status.offen { background: rgba(196,54,74,0.18); color: #ff8a9a; }
-        [data-theme="dark"] .mz-status.teilweise { background: rgba(138,90,0,0.22); color: #ffd76a; }
-        [data-theme="dark"] .mz-status.erledigt { background: rgba(26,107,74,0.22); color: #6ee7a8; }
-        .mz-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0 auto 16px; max-width: 1100px; }
-        #contentMuessenZahlen .table-card { max-width: 1100px; margin: 0 auto; }
-        .mz-history { background: var(--bg-table-head); padding: 12px 16px; font-size: 12px; }
-        .mz-history table { width: 100%; }
-        .mz-history th, .mz-history td { padding: 6px 10px; font-size: 12px; text-align: left; }
-        .mz-history th.right, .mz-history td.right { text-align: right; }
-        @media (max-width: 768px) {
-            .mz-toolbar { gap: 8px; margin-bottom: 12px; }
-            .mz-toolbar > div[style*="display:flex"] { width: 100%; gap: 4px; }
-            .mz-toolbar > div[style*="display:flex"] .filter-btn { flex: 1; width: auto; min-width: 0; padding: 8px 4px; font-size: 12px; }
-            #mzSearchInput { max-width: 100% !important; width: 100%; }
-            #mzWeekFilter { width: 100%; }
-            #mzSummary { margin-left: 0 !important; width: 100%; font-size: 12px; }
-            .mz-history { padding: 8px 10px; overflow-x: auto; }
-            .mz-history table { min-width: 0; }
-            .mz-history th, .mz-history td { padding: 5px 6px; font-size: 11px; }
-        }
-        @media (max-width: 640px) {
-            html, body { overflow-x: hidden !important; max-width: 100vw !important; }
-            #contentMuessenZahlen .table-card { background: transparent; border: none; box-shadow: none; margin: 0; overflow: visible; }
-            #contentMuessenZahlen .table-card .table-header { padding: 4px 4px 12px; border-bottom: none; }
-            #contentMuessenZahlen .table-card table,
-            #contentMuessenZahlen .table-card tbody { display: block; min-width: 0; width: 100%; }
-            #contentMuessenZahlen .table-card thead { display: none; }
-            #contentMuessenZahlen #mzTableBody tr { display: block; position: relative; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--card-shadow); }
-            #contentMuessenZahlen #mzTableBody tr.mz-week-divider { margin-top: 10px; }
-            #contentMuessenZahlen #mzTableBody tr.mz-week-divider > td { border-top: none; padding-top: 4px; }
-            #contentMuessenZahlen #mzTableBody tr.mz-week-divider:first-child { margin-top: 0; }
-            #contentMuessenZahlen #mzTableBody tr.mz-week-divider::before { content: none; }
-            #contentMuessenZahlen #mzTableBody td { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; border: none; font-size: 13px; }
-            #contentMuessenZahlen #mzTableBody td::before { content: attr(data-label); color: var(--text-muted); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
-            #contentMuessenZahlen #mzTableBody td.mz-fahrer { display: block; padding: 0 70px 8px 0; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
-            #contentMuessenZahlen #mzTableBody td.mz-fahrer::before { display: none; }
-            #contentMuessenZahlen #mzTableBody td.mz-fahrer .fahrer-name { font-size: 14.5px; font-weight: 700; }
-            #contentMuessenZahlen #mzTableBody td.mz-fahrer .fahrer-tel { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-            #contentMuessenZahlen #mzTableBody td.mz-stat { position: absolute; top: 12px; right: 14px; padding: 0; }
-            #contentMuessenZahlen #mzTableBody td.mz-stat::before { display: none; }
-            #contentMuessenZahlen #mzTableBody td.mz-kw { color: var(--gold); font-weight: 600; }
-            #contentMuessenZahlen #mzTableBody td.mz-kw::before { color: var(--gold); }
-            #contentMuessenZahlen #mzTableBody td.mz-offen { font-weight: 700; font-size: 14px; }
-            #contentMuessenZahlen #mzTableBody td.mz-when { font-size: 12px; }
-            #contentMuessenZahlen #mzTableBody td.mz-when div:first-child { font-size: 12px; }
-            #contentMuessenZahlen #mzTableBody td.mz-act { display: flex; gap: 8px; padding-top: 10px; margin-top: 8px; border-top: 1px solid var(--border); justify-content: stretch; }
-            #contentMuessenZahlen #mzTableBody td.mz-act::before { display: none; }
-            #contentMuessenZahlen #mzTableBody td.mz-act .btn-mz { flex: 1; padding: 8px 10px; font-size: 12px; }
-            #contentMuessenZahlen #mzTableBody td.mz-act .mz-done { flex: 1; justify-content: center; padding: 7px; font-size: 11px; }
-            #contentMuessenZahlen #mzTableBody tr.mz-history-row { display: block; padding: 10px 12px; margin: -6px 0 10px; background: var(--bg-table-head); border: 1px solid var(--border); border-radius: 0 0 12px 12px; box-shadow: none; }
-            #contentMuessenZahlen #mzTableBody tr.mz-history-row td { display: block; padding: 0; }
-            #contentMuessenZahlen #mzTableBody tr.mz-history-row td::before { display: none; }
-            #contentMuessenZahlen #mzTableBody tr.mz-empty-row { display: block; padding: 40px 20px; text-align: center; }
-            #contentMuessenZahlen #mzTableBody tr.mz-empty-row td { display: block; padding: 0; border: none; }
-            #contentMuessenZahlen #mzTableBody tr.mz-empty-row td::before { display: none; }
-            #mzModalOverlay {
-                padding: 12px !important;
-                box-sizing: border-box !important;
-            }
-            #mzModalOverlay *, #mzModalOverlay *::before, #mzModalOverlay *::after {
-                box-sizing: border-box !important;
-            }
-            #mzModalOverlay .mz-modal-inner {
-                width: 100% !important;
-                max-width: 100% !important;
-                margin: 0 !important;
-                padding: 16px !important;
-                max-height: calc(100vh - 24px) !important;
-                overflow-y: auto;
-                overflow-x: hidden;
-            }
-            #mzModalOverlay .mz-modal-inner h2 { font-size: 17px; }
-            #mzModalOverlay .mz-modal-inner input,
-            #mzModalOverlay .mz-modal-inner select {
-                width: 100% !important;
-                min-width: 0 !important;
-                max-width: 100% !important;
-                display: block;
-            }
-            #mzModalOverlay .mz-modal-inner label {
-                width: 100% !important;
-                min-width: 0 !important;
-                max-width: 100% !important;
-            }
         }
         .empty { text-align: center; padding: 60px; color: var(--text-muted); font-size: 13px; }
         .loading { text-align: center; padding: 60px; color: var(--text-muted); }
@@ -860,7 +756,6 @@
                     </tbody>
                 </table>
             </div>
-            </div>
         </div><!-- re-wrap -->
         </div><!-- end reContentArchiv -->
     </div><!-- end contentRechnungen -->
@@ -914,41 +809,52 @@
         </div>
     </div><!-- end contentAbrBot -->
     <div class="tab-content" id="contentMuessenZahlen">
-        <div class="mz-toolbar" id="mzToolbar">
-            <div style="display:flex;gap:4px">
-                <button class="filter-btn active" data-mz-status="alle">Alle</button>
-                <button class="filter-btn" data-mz-status="offen">Offen</button>
-                <button class="filter-btn" data-mz-status="teilweise">Teilweise</button>
-                <button class="filter-btn" data-mz-status="erledigt">Erledigt</button>
+        <div class="hero">
+            <div class="hero-top">
+                <div class="week-pick">
+                    <span style="font-size:18px;font-weight:700">Kassieren</span>
+                    <select class="chip" id="mzWeekFilter"><option value="">Letzte 4 Wochen</option></select>
+                </div>
+                <div class="hero-big err"><b id="mzTotalOffen">--</b><small id="mzSummary">Noch offen</small></div>
             </div>
-            <input type="text" id="mzSearchInput" placeholder="Fahrer suchen..." style="max-width:200px">
-            <select id="mzWeekFilter"><option value="">Alle Wochen</option></select>
-            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer">
-                <input type="checkbox" id="mzShowAllWeeks"> Alle Wochen
-            </label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer">
-                <input type="checkbox" id="mzShowOld"> Alte erledigte (>60 Tage) zeigen
-            </label>
-            <span id="mzSummary" style="color:var(--text-muted);font-size:13px;margin-left:auto">Lade...</span>
-        </div>
-        <div class="table-card">
-            <div class="table-header">
-                <h2>Müssen zahlen<span id="mzCount"></span></h2>
+            <div class="kpi">
+                <div class="kpi-item"><small>Letzte 7 Tage kassiert</small><b class="ok" id="mzKassiertWoche">--</b></div>
+                <div class="kpi-item"><small>Teilweise</small><b id="mzTeilCount">--</b></div>
+                <div class="kpi-item"><small>Erledigt</small><b id="mzErlCount">--</b></div>
             </div>
-            <table>
-                <thead><tr>
-                    <th>Fahrer</th>
-                    <th>KW</th>
-                    <th class="right">Schuld</th>
-                    <th class="right">Kassiert</th>
-                    <th class="right">Offen</th>
-                    <th>Status</th>
-                    <th>Letzte / Wer</th>
-                    <th class="center">Aktion</th>
-                </tr></thead>
-                <tbody id="mzTableBody"></tbody>
-            </table>
         </div>
+        <div class="toolbar" id="mzToolbar">
+            <input type="text" class="search" id="mzSearchInput" placeholder="Fahrer suchen">
+            <button class="chip active" data-mz-status="alle">Alle</button>
+            <button class="chip" data-mz-status="offen">Offen</button>
+            <button class="chip" data-mz-status="teilweise">Teilweise</button>
+            <button class="chip" data-mz-status="erledigt">Erledigt</button>
+            <div class="sp"></div>
+            <label class="chip desktop-only"><input type="checkbox" id="mzShowAllWeeks"> Alle Wochen</label>
+            <label class="chip desktop-only"><input type="checkbox" id="mzShowOld"> Alte erledigte (&gt;60 Tage)</label>
+            <span class="hidden" id="mzCount"></span>
+        </div>
+        <div class="split">
+            <div class="split-main">
+                <table class="data-table" id="mzTable">
+                    <colgroup><col style="width:34%"><col style="width:16%"><col style="width:16%"><col style="width:18%"><col style="width:16%"></colgroup>
+                    <thead><tr><th>Fahrer</th><th>Schuld</th><th>Kassiert</th><th>Offen</th><th>Status</th></tr></thead>
+                    <tbody id="mzTableBody"></tbody>
+                </table>
+            </div>
+            <aside class="side-panel" id="mzPanel"><div class="placeholder">Fahrer anklicken zum Kassieren</div></aside>
+        </div>
+    </div>
+    <div class="form-card hidden" id="mzForm">
+        <div id="mzModalOverlay" class="hidden"></div>
+        <div style="font-size:12px;color:var(--text-mut)"><span id="mzModalFahrer">—</span> · <span id="mzModalWoche">—</span> · offen <strong id="mzModalOffen">—</strong></div>
+        <label>Betrag (€)<input type="number" id="mzModalBetrag" step="0.01" min="0.01"></label>
+        <label>Art<select id="mzModalTyp"><option value="bar">Bar</option><option value="ueberweisung">Überweisung</option><option value="verrechnet">Verrechnet mit Woche…</option></select></label>
+        <label id="mzModalVerrechnetLabel" class="hidden">Verrechnet mit Woche<select id="mzModalVerrechnetWoche"></select></label>
+        <label>Notiz (optional)<input type="text" id="mzModalNote" maxlength="200"></label>
+        <div id="mzModalWarn" class="warn-box hidden"></div>
+        <div id="mzModalError" class="warn-box hidden"></div>
+        <div class="detail-acts"><button class="btn-primary ok" id="mzModalSaveBtn">Speichern</button><button class="btn-ghost" id="mzModalCancelBtn">Abbrechen</button></div>
     </div>
     <div class="re-toast" id="reToast"></div>
     </div><!-- end container -->
@@ -1022,42 +928,6 @@
         </div>
     </div>
     <div id="printAllContainer" style="display:none;"></div>
-    <div class="print-overlay" id="mzModalOverlay">
-        <div class="alias-modal-inner mz-modal-inner" style="box-sizing:border-box;width:calc(100% - 24px);max-width:480px;padding:clamp(14px,4vw,28px)">
-            <h2 style="margin-bottom:8px;font-size:20px">Kassieren eintragen</h2>
-            <p style="color:var(--text-secondary);margin-bottom:20px;font-size:14px">
-                <span id="mzModalFahrer">—</span> · <span id="mzModalWoche">—</span> · offen: <strong id="mzModalOffen">—</strong>
-            </p>
-            <div style="display:flex;flex-direction:column;gap:14px">
-                <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--text-secondary)">
-                    Betrag (€)
-                    <input type="number" id="mzModalBetrag" step="0.01" min="0.01" style="font-size:18px;padding:10px;font-family:'JetBrains Mono',monospace;width:100%;min-width:0;max-width:100%;box-sizing:border-box">
-                </label>
-                <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--text-secondary)">
-                    Typ
-                    <select id="mzModalTyp" style="font-size:14px;padding:10px;width:100%;min-width:0;max-width:100%;box-sizing:border-box">
-                        <option value="bar">Bar</option>
-                        <option value="ueberweisung">Überweisung</option>
-                        <option value="verrechnet">Verrechnet mit Woche…</option>
-                    </select>
-                </label>
-                <label id="mzModalVerrechnetLabel" style="display:none;flex-direction:column;gap:4px;font-size:13px;color:var(--text-secondary)">
-                    Verrechnet mit Woche
-                    <select id="mzModalVerrechnetWoche" style="font-size:14px;padding:10px;width:100%;min-width:0;max-width:100%;box-sizing:border-box"></select>
-                </label>
-                <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--text-secondary)">
-                    Notiz (optional)
-                    <input type="text" id="mzModalNote" maxlength="200" style="font-size:14px;padding:10px;width:100%;min-width:0;max-width:100%;box-sizing:border-box">
-                </label>
-                <div id="mzModalWarn" style="display:none;font-size:13px;color:#c4364a;padding:8px 12px;background:#fce8eb;border-radius:6px"></div>
-                <div id="mzModalError" style="display:none;font-size:13px;color:#c4364a"></div>
-            </div>
-            <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
-                <button class="btn" id="mzModalSaveBtn" style="background:var(--green);color:#020617;border:none;">Speichern</button>
-                <button class="btn" style="background:var(--bg-hover);color:var(--text);border:1px solid var(--border)" id="mzModalCancelBtn">Abbrechen</button>
-            </div>
-        </div>
-    </div>
     <div class="print-overlay" id="aliasOverlay">
         <div class="alias-modal-inner">
             <h2 style="margin-bottom:8px;font-size:20px">Fahrer zuordnen</h2>
@@ -1149,29 +1019,37 @@
             const ageMs = Date.now() - new Date(debt.lastPaymentAt).getTime();
             return ageMs > 60 * 24 * 60 * 60 * 1000;
         }
+        let mzSelected = null; // "fahrer|woche"
+        function mzTarget() {
+            if (isMobile()) return document.querySelector('#mzTableBody .detail-row .mz-form-slot');
+            return document.querySelector('#mzPanel .mz-form-slot');
+        }
         function openKassierModal(fahrer, woche) {
             const debt = getOpenDebts().find(d => d.fahrer_name === fahrer && d.woche === woche);
             if (!debt) return;
+            mzSelected = fahrer + '|' + woche;
+            renderMuessenZahlen();
             document.getElementById('mzModalFahrer').textContent = fahrer;
             document.getElementById('mzModalWoche').textContent = woche;
             document.getElementById('mzModalOffen').textContent = fmt(debt.offen);
             document.getElementById('mzModalBetrag').value = debt.offen.toFixed(2);
             document.getElementById('mzModalTyp').value = 'bar';
             document.getElementById('mzModalNote').value = '';
-            document.getElementById('mzModalWarn').style.display = 'none';
-            document.getElementById('mzModalError').style.display = 'none';
-            document.getElementById('mzModalVerrechnetLabel').style.display = 'none';
+            document.getElementById('mzModalWarn').classList.add('hidden');
+            document.getElementById('mzModalError').classList.add('hidden');
+            document.getElementById('mzModalVerrechnetLabel').classList.add('hidden');
             const vSel = document.getElementById('mzModalVerrechnetWoche');
             vSel.innerHTML = WEEKS.filter(w => w !== woche).map(w => '<option value="' + w + '">' + w + '</option>').join('');
             const overlay = document.getElementById('mzModalOverlay');
-            overlay.dataset.fahrer = fahrer;
-            overlay.dataset.woche = woche;
-            overlay.dataset.offen = debt.offen;
-            overlay.classList.add('show');
-            setTimeout(() => document.getElementById('mzModalBetrag').focus(), 50);
+            overlay.dataset.fahrer = fahrer; overlay.dataset.woche = woche; overlay.dataset.offen = debt.offen;
+            const form = document.getElementById('mzForm');
+            const slot = mzTarget();
+            if (slot) { slot.appendChild(form); form.classList.remove('hidden'); setTimeout(() => document.getElementById('mzModalBetrag').focus(), 50); }
         }
         function closeKassierModal() {
-            document.getElementById('mzModalOverlay').classList.remove('show');
+            const form = document.getElementById('mzForm');
+            form.classList.add('hidden');
+            document.querySelector('.container').appendChild(form);
         }
         async function submitKassier() {
             const overlay = document.getElementById('mzModalOverlay');
@@ -1184,21 +1062,21 @@
                 ? document.getElementById('mzModalVerrechnetWoche').value
                 : null;
             const errorEl = document.getElementById('mzModalError');
-            errorEl.style.display = 'none';
+            errorEl.classList.add('hidden');
             if (!betrag || betrag <= 0) {
                 errorEl.textContent = 'Betrag muss größer als 0 sein.';
-                errorEl.style.display = 'block';
+                errorEl.classList.remove('hidden');
                 return;
             }
             if (typ === 'verrechnet' && !verrechnetMitWoche) {
                 errorEl.textContent = 'Bei Verrechnung bitte eine Woche auswählen.';
-                errorEl.style.display = 'block';
+                errorEl.classList.remove('hidden');
                 return;
             }
             const session = JSON.parse(localStorage.getItem('hydralink_session') || 'null');
             if (!session || !session.name) {
                 errorEl.textContent = 'Session abgelaufen. Bitte neu einloggen.';
-                errorEl.style.display = 'block';
+                errorEl.classList.remove('hidden');
                 return;
             }
             const saveBtn = document.getElementById('mzModalSaveBtn');
@@ -1222,7 +1100,7 @@
             } catch (err) {
                 console.error('Kassier insert error:', err);
                 errorEl.textContent = 'Fehler beim Speichern: ' + (err.message || err);
-                errorEl.style.display = 'block';
+                errorEl.classList.remove('hidden');
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.textContent = 'Speichern';
@@ -1254,93 +1132,78 @@
         function renderHistoryHtml(debt) {
             const session = JSON.parse(localStorage.getItem('hydralink_session') || 'null');
             const isAdmin = session && session.role === 'admin';
-            const rows = [...debt.payments].sort((a, b) =>
-                (b.kassiert_at || '').localeCompare(a.kassiert_at || '')
-            ).map(p => {
-                const dt = p.kassiert_at
-                    ? new Date(p.kassiert_at).toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
-                    : '—';
-                const typLabel = (TYP_LABEL[p.typ] || p.typ) + (p.typ === 'verrechnet' && p.verrechnet_mit_woche ? ' (' + esc(p.verrechnet_mit_woche) + ')' : '');
-                const noteHtml = p.note ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px">' + esc(p.note) + '</div>' : '';
-                const delBtn = isAdmin
-                    ? '<button class="btn-mz btn-mz-danger" data-mz-delete="' + esc(p.id) + '">Löschen</button>'
-                    : '';
-                return '<tr>'
-                    + '<td class="right" style="font-family:monospace;font-weight:600">' + fmt(p.betrag) + '</td>'
-                    + '<td>' + typLabel + '</td>'
-                    + '<td>' + esc(p.kassiert_von || '—') + '</td>'
-                    + '<td>' + dt + noteHtml + '</td>'
-                    + '<td class="center">' + delBtn + '</td>'
-                    + '</tr>';
+            if (!debt.payments.length) return '<div class="hist-row"><span>Noch keine Zahlung</span></div>';
+            return [...debt.payments].sort((a, b) => (b.kassiert_at || '').localeCompare(a.kassiert_at || '')).map(p => {
+                const dt = p.kassiert_at ? new Date(p.kassiert_at).toLocaleDateString('de-AT', { day: 'numeric', month: 'short' }) : '—';
+                const typLabel = (TYP_LABEL[p.typ] || p.typ) + (p.typ === 'verrechnet' && p.verrechnet_mit_woche ? ' ' + esc(p.verrechnet_mit_woche) : '');
+                const note = p.note ? ' · ' + esc(p.note) : '';
+                const del = isAdmin ? '<button data-mz-delete="' + esc(p.id) + '" title="Löschen">🗑</button>' : '';
+                return '<div class="hist-row"><span>' + dt + ' · ' + typLabel + ' · ' + esc(p.kassiert_von || '—') + note + '</span><span class="num">' + fmt(p.betrag) + ' ' + del + '</span></div>';
             }).join('');
-            return '<table><thead><tr><th class="right">Betrag</th><th>Typ</th><th>Wer</th><th>Wann / Notiz</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+        }
+        function mzDetailHtml(d) {
+            const kv = (k, v, cls) => '<div class="detail-kv' + (cls ? ' ' + cls : '') + '"><span>' + k + '</span><span>' + v + '</span></div>';
+            return '<div class="detail">'
+                + '<h4>' + esc(d.fahrer_name) + '</h4><div class="sub">' + esc(d.woche) + ' · ' + weekRange(d.woche) + ' · ' + esc(d.telefon || '–') + '</div>'
+                + kv('Schuld', fmt(d.schuld)) + kv('Kassiert', fmt(d.kassiert)) + kv('Offen', '<span class="' + (d.offen > 0 ? 'neg' : '') + '">' + fmt(d.offen) + '</span>', 'strong')
+                + '<div class="detail-sec">Zahlungen</div>' + renderHistoryHtml(d)
+                + (d.offen > 0 ? '<div class="detail-acts"><button class="btn-primary ok" data-mz-kassier="' + esc(d.fahrer_name) + '|' + esc(d.woche) + '">Kassieren</button></div>' : '')
+                + '<div class="mz-form-slot"></div>'
+                + '</div>';
         }
         function renderMuessenZahlen() {
             let debts = getOpenDebts();
-            if (!mzShowOldErledigt) {
-                debts = debts.filter(d => !isOldErledigt(d));
-            }
-            if (mzStatusFilter !== 'alle') {
-                debts = debts.filter(d => d.status === mzStatusFilter);
-            }
-            if (mzSearch) {
-                debts = debts.filter(d => (d.fahrer_name || '').toLowerCase().indexOf(mzSearch) >= 0);
-            }
-            if (mzWeek) {
-                debts = debts.filter(d => d.woche === mzWeek);
-            } else if (!mzShowAllWeeks) {
-                const recentWeeks = WEEKS.slice(0, MZ_DEFAULT_WEEKS);
-                debts = debts.filter(d => recentWeeks.indexOf(d.woche) >= 0);
-            }
+            if (!mzShowOldErledigt) debts = debts.filter(d => !isOldErledigt(d));
+            if (mzStatusFilter !== 'alle') debts = debts.filter(d => d.status === mzStatusFilter);
+            if (mzSearch) debts = debts.filter(d => (d.fahrer_name || '').toLowerCase().indexOf(mzSearch) >= 0);
+            if (mzWeek) { debts = debts.filter(d => d.woche === mzWeek); }
+            else if (!mzShowAllWeeks) { const recentWeeks = WEEKS.slice(0, MZ_DEFAULT_WEEKS); debts = debts.filter(d => recentWeeks.indexOf(d.woche) >= 0); }
             const statusOrder = { offen: 0, teilweise: 1, erledigt: 2 };
-            debts.sort((a, b) => {
-                const wo = (b.woche || '').localeCompare(a.woche || '');
-                if (wo !== 0) return wo;
-                const so = statusOrder[a.status] - statusOrder[b.status];
-                if (so !== 0) return so;
-                return (a.fahrer_name || '').localeCompare(b.fahrer_name || '');
-            });
+            debts.sort((a, b) => { const wo = (b.woche || '').localeCompare(a.woche || ''); if (wo !== 0) return wo; const so = statusOrder[a.status] - statusOrder[b.status]; if (so !== 0) return so; return (a.fahrer_name || '').localeCompare(b.fahrer_name || ''); });
             document.getElementById('mzCount').textContent = ' (' + debts.length + ')';
-            const offenCount = debts.filter(d => d.status === 'offen').length;
-            const teilCount = debts.filter(d => d.status === 'teilweise').length;
-            const erlCount = debts.filter(d => d.status === 'erledigt').length;
+            const offenList = debts.filter(d => d.offen > 0);
             const totalOffen = debts.reduce((s, d) => s + d.offen, 0);
-            document.getElementById('mzSummary').textContent =
-                offenCount + ' offen, ' + teilCount + ' teilweise, ' + erlCount + ' erledigt — gesamt offen: ' + fmt(totalOffen);
+            document.getElementById('mzTotalOffen').textContent = fmt(totalOffen);
+            document.getElementById('mzSummary').textContent = 'Noch offen bei ' + offenList.length + ' Fahrer' + (offenList.length === 1 ? '' : 'n');
+            document.getElementById('mzTeilCount').textContent = debts.filter(d => d.status === 'teilweise').length;
+            document.getElementById('mzErlCount').textContent = debts.filter(d => d.status === 'erledigt').length;
+            const weekAgo = Date.now() - 7 * 86400000;
+            const kassiertWoche = KASSIER.filter(k => k.kassiert_at && new Date(k.kassiert_at).getTime() >= weekAgo).reduce((s, k) => s + (parseFloat(k.betrag) || 0), 0);
+            document.getElementById('mzKassiertWoche').textContent = fmt(kassiertWoche);
             const tbody = document.getElementById('mzTableBody');
-            if (!debts.length) {
-                tbody.innerHTML = '<tr class="mz-empty-row"><td colspan="8" class="empty">Keine Schulden vorhanden</td></tr>';
-                return;
-            }
+            const panel = document.getElementById('mzPanel');
+            if (!debts.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Keine Schulden vorhanden</td></tr>'; panel.innerHTML = '<div class="placeholder">Keine Schulden</div>'; return; }
+            const mobile = isMobile();
+            if (mzSelected && !debts.some(d => d.fahrer_name + '|' + d.woche === mzSelected)) mzSelected = null;
             let prevWeek = null;
             tbody.innerHTML = debts.map(d => {
-                const lastDate = d.lastPaymentAt
-                    ? new Date(d.lastPaymentAt).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: '2-digit' })
-                    : '—';
-                const lastByCell = d.lastPaymentAt
-                    ? '<div>' + lastDate + '</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">' + esc(d.lastPaymentBy || '—') + '</div>'
-                    : '—';
-                const isNewWeek = d.woche !== prevWeek;
-                prevWeek = d.woche;
-                return '<tr class="' + (isNewWeek ? 'mz-week-divider' : '') + '" data-kw="' + esc(d.woche) + '">'
-                    + '<td class="mz-fahrer" data-label="Fahrer"><div class="fahrer-name">' + esc(d.fahrer_name) + '</div><div class="fahrer-tel">' + esc(d.telefon || '-') + '</div></td>'
-                    + '<td class="mz-kw" data-label="KW">' + esc(d.woche) + '</td>'
-                    + '<td class="right mz-schuld" data-label="Schuld"><span class="money neg">' + fmt(d.schuld) + '</span></td>'
-                    + '<td class="right mz-kassiert" data-label="Kassiert">' + fmt(d.kassiert) + '</td>'
-                    + '<td class="right mz-offen" data-label="Offen"><span class="money ' + (d.offen > 0 ? 'neg' : 'pos') + '">' + fmt(d.offen) + '</span></td>'
-                    + '<td class="mz-stat" data-label="Status"><span class="mz-status ' + d.status + '">' + d.status + '</span></td>'
-                    + '<td class="mz-when" data-label="Letzte">' + lastByCell + '</td>'
-                    + '<td class="center mz-act" data-label="Aktion">'
-                        + (d.offen > 0
-                            ? '<button class="btn-mz btn-mz-primary" data-mz-kassier="' + esc(d.fahrer_name) + '|' + esc(d.woche) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Kassieren</button>'
-                            : '<span class="mz-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Erledigt</span>')
-                        + (d.payments.length ? ' <button class="btn-mz btn-mz-secondary" data-mz-history="' + esc(d.fahrer_name) + '|' + esc(d.woche) + '">Verlauf (' + d.payments.length + ')</button>' : '')
-                    + '</td>'
-                    + '</tr>'
-                    + (d.payments.length
-                        ? '<tr class="mz-history-row" data-mz-history-row="' + esc(d.fahrer_name) + '|' + esc(d.woche) + '" style="display:none"><td colspan="8" class="mz-history">' + renderHistoryHtml(d) + '</td></tr>'
-                        : '');
+                const key = d.fahrer_name + '|' + d.woche;
+                const sel = key === mzSelected;
+                let html = '';
+                if (d.woche !== prevWeek) {
+                    prevWeek = d.woche;
+                    const wSum = debts.filter(x => x.woche === d.woche).reduce((s, x) => s + x.offen, 0);
+                    html += '<tr class="group-row"><td colspan="5">' + esc(d.woche) + ' · ' + weekRange(d.woche) + '<span class="num">offen ' + fmt(wSum) + '</span></td></tr>';
+                }
+                const offStyle = d.status === 'erledigt' ? ' style="color:var(--accent)"' : (d.status === 'teilweise' ? ' style="color:var(--warn)"' : '');
+                html += '<tr class="' + (sel ? 'selected' : '') + '" data-mz-row="' + esc(key) + '">'
+                    + '<td title="' + esc(d.fahrer_name) + '">' + esc(d.fahrer_name) + '</td>'
+                    + '<td>' + fmt(d.schuld) + '</td><td>' + fmt(d.kassiert) + '</td>'
+                    + '<td class="pay' + (d.status === 'offen' ? ' neg' : '') + '"' + offStyle + '>' + fmt(d.offen) + '</td>'
+                    + '<td><span class="pill ' + d.status + '">' + d.status + '</span></td>'
+                    + '</tr>';
+                if (sel && mobile) html += '<tr class="detail-row"><td colspan="5">' + mzDetailHtml(d) + '</td></tr>';
+                return html;
             }).join('');
+            if (!mobile) {
+                const d = mzSelected ? debts.find(x => x.fahrer_name + '|' + x.woche === mzSelected) : null;
+                panel.innerHTML = d ? mzDetailHtml(d) : '<div class="placeholder">Fahrer anklicken zum Kassieren</div>';
+            }
+            const form = document.getElementById('mzForm');
+            if (!form.classList.contains('hidden')) {
+                const ov = document.getElementById('mzModalOverlay');
+                if (ov.dataset.fahrer + '|' + ov.dataset.woche === mzSelected) { const slot = mzTarget(); if (slot) slot.appendChild(form); } else { closeKassierModal(); }
+            }
         }
         function saveExcluded() { localStorage.setItem('excludedDrivers', JSON.stringify(excludedDrivers)); updateExcludedUI(); }
         function excludeDriver(name) { if (!excludedDrivers.includes(name)) { excludedDrivers.push(name); saveExcluded(); render(); } }
@@ -1601,7 +1464,7 @@
                     mzSearchTimer = setTimeout(renderMuessenZahlen, 200);
                 });
                 const weekSel = document.getElementById('mzWeekFilter');
-                weekSel.innerHTML = '<option value="">Alle Wochen</option>' +
+                weekSel.innerHTML = '<option value="">Letzte 4 Wochen</option>' +
                     WEEKS.map(w => '<option value="' + w + '">' + w + '</option>').join('');
                 weekSel.addEventListener('change', function(e) {
                     mzWeek = e.target.value;
@@ -1615,18 +1478,11 @@
                     mzShowAllWeeks = e.target.checked;
                     renderMuessenZahlen();
                 });
-                document.getElementById('mzTableBody').addEventListener('click', function(e) {
+                function mzClick(e) {
                     const kBtn = e.target.closest('[data-mz-kassier]');
                     if (kBtn) {
                         const [fahrer, woche] = kBtn.dataset.mzKassier.split('|');
                         openKassierModal(fahrer, woche);
-                        return;
-                    }
-                    const hBtn = e.target.closest('[data-mz-history]');
-                    if (hBtn) {
-                        const key = hBtn.dataset.mzHistory;
-                        const row = document.querySelector('[data-mz-history-row="' + key.replace(/"/g, '\\"') + '"]');
-                        if (row) row.style.display = row.style.display === 'none' ? '' : 'none';
                         return;
                     }
                     const dBtn = e.target.closest('[data-mz-delete]');
@@ -1634,9 +1490,15 @@
                         deleteKassier(dBtn.dataset.mzDelete);
                         return;
                     }
-                });
+                    if (e.target.closest('.detail-row') || e.target.closest('#mzForm')) return;
+                    const row = e.target.closest('tr[data-mz-row]');
+                    if (row) { mzSelected = (mzSelected === row.dataset.mzRow) ? null : row.dataset.mzRow; closeKassierModal(); renderMuessenZahlen(); }
+                }
+                document.getElementById('mzTableBody').addEventListener('click', mzClick);
+                document.getElementById('mzPanel').addEventListener('click', mzClick);
+                window.matchMedia('(max-width: 768px)').addEventListener('change', function() { if (mzInitialized) { closeKassierModal(); renderMuessenZahlen(); } });
                 document.getElementById('mzModalTyp').addEventListener('change', function(e) {
-                    document.getElementById('mzModalVerrechnetLabel').style.display = e.target.value === 'verrechnet' ? 'flex' : 'none';
+                    document.getElementById('mzModalVerrechnetLabel').classList.toggle('hidden', e.target.value !== 'verrechnet');
                 });
                 document.getElementById('mzModalBetrag').addEventListener('input', function(e) {
                     const offen = parseFloat(document.getElementById('mzModalOverlay').dataset.offen) || 0;
@@ -1644,9 +1506,9 @@
                     const warn = document.getElementById('mzModalWarn');
                     if (v > offen + 0.01) {
                         warn.textContent = 'Betrag ist höher als offener Rest (' + fmt(offen) + '). Bitte Notiz hinterlassen.';
-                        warn.style.display = 'block';
+                        warn.classList.remove('hidden');
                     } else {
-                        warn.style.display = 'none';
+                        warn.classList.add('hidden');
                     }
                 });
                 document.getElementById('mzModalCancelBtn').addEventListener('click', closeKassierModal);

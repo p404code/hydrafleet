@@ -265,7 +265,7 @@
         .btn-print { padding: 5px 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; font-size: 11px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; margin-right: 4px; }
         .btn-print:hover { background: var(--badge-fix-bg); border-color: var(--green); color: var(--green); transform: scale(1.08); }
         .btn-include { padding: 5px 10px; background: var(--status-ok-bg); border: 1px solid var(--green); border-radius: 6px; font-size: 11px; cursor: pointer; color: var(--status-ok); transition: all 0.2s; }
-        .btn-include:hover { background: var(--green); color: #0c0a09; }
+        .btn-include:hover { background: var(--green); color: var(--accent-ink); }
         .alias-modal-inner { background: var(--bg-card); color: var(--text); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 25px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05); padding: 28px; transform: translateY(24px) scale(0.97); opacity: 0; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease; }
         .alias-modal-inner.mz-modal-inner { max-width: 480px; }
         .print-overlay.show .alias-modal-inner { transform: translateY(0) scale(1); opacity: 1; }
@@ -286,7 +286,7 @@
         .print-driver h2 { font-size: 17px; font-weight: 700; color: #1a1714; margin-bottom: 2px; }
         .print-driver p { color: #7a7068; font-size: 13px; }
         .print-section { margin-bottom: 12px; background: white; border-radius: 14px; padding: 16px; box-shadow: 0 1px 4px rgba(26,23,20,0.08); }
-        .print-section h3 { font-size: 12px; font-weight: 700; color: #d4a012; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e0dcd6; }
+        .print-section h3 { font-size: 12px; font-weight: 700; color: #0B6B4F; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e0dcd6; }
         .print-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         .print-table td { padding: 12px 0; font-size: 15px; color: #1a1714; vertical-align: middle; }
         .print-table td:first-child { font-weight: 500; width: 55%; }
@@ -294,19 +294,19 @@
         .print-table tr:not(:last-child) td { border-bottom: 1px solid #e0dcd6; }
         .print-table .total td { font-weight: 800; font-size: 16px; color: #1a1714; border-top: 2px solid #c4bdb4; border-bottom: none; padding-top: 14px; }
         .print-payout { text-align: center; padding: 20px; border-radius: 16px; background: white; box-shadow: 0 1px 4px rgba(26,23,20,0.08); }
-        .print-payout.positive { background: linear-gradient(135deg, #e8f5ee 0%, #d1ede0 100%); }
-        .print-payout.negative { background: linear-gradient(135deg, #fce8eb 0%, #f8d4d9 100%); }
+        .print-payout.positive { background: linear-gradient(135deg, var(--status-ok-bg) 0%, #d1ede0 100%); }
+        .print-payout.negative { background: linear-gradient(135deg, var(--status-err-bg) 0%, #f8d4d9 100%); }
         .print-payout-label { font-size: 13px; color: #7a7068; margin-bottom: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
         .print-payout-value { font-size: 36px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
-        .print-payout.positive .print-payout-value { color: #1a6b4a; }
-        .print-payout.negative .print-payout-value { color: #c4364a; }
+        .print-payout.positive .print-payout-value { color: var(--accent); }
+        .print-payout.negative .print-payout-value { color: var(--err); }
         .print-actions { display: flex; flex-direction: column; gap: 10px; padding: 16px 20px 24px; background: #f5f3f0; }
         .print-actions button { width: 100%; padding: 16px 20px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s cubic-bezier(0.4,0,0.2,1); border: none; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: inherit; }
         .print-actions button svg { width: 20px; height: 20px; }
         .print-actions button:hover { transform: translateY(-1px); }
         .print-actions button:active { transform: scale(0.98); }
         .print-actions .btn-share { order: 1; background: #25D366; color: white; font-size: 17px; padding: 18px; box-shadow: 0 2px 8px rgba(37,211,102,0.25); }
-        .print-actions .btn-print-now { order: 2; background: #d4a012; color: white; box-shadow: 0 2px 8px rgba(212,160,18,0.2); }
+        .print-actions .btn-print-now { order: 2; background: #0B6B4F; color: white; box-shadow: 0 2px 8px rgba(11,107,79,0.2); }
         .print-actions .btn-cancel { order: 3; background: transparent; color: #7a7068; padding: 12px; }
         .print-envelope-top { display: block; }
         .print-envelope-top .print-driver { margin-bottom: 16px; padding: 16px; background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
@@ -405,7 +405,7 @@
         .abr-upload-label span { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-muted); font-size: 11px; }
         .abr-file-wrap { position: relative; }
         .abr-file-input { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; z-index: 2; }
-        .abr-submit { padding: 14px; background: linear-gradient(135deg, var(--green), var(--gold)); color: #0c0a09; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.25s; width: 100%; font-family: inherit; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .abr-submit { padding: 14px; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.25s; width: 100%; font-family: inherit; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .abr-submit:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
         .abr-submit:active { transform: translateY(0); }
         .abr-submit:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
@@ -494,7 +494,7 @@
         .re-paid { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--status-ok-bg); border: 1px solid var(--green); border-radius: 4px; margin-bottom: 12px; cursor: pointer; }
         .re-paid input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--green); }
         .re-paid label { font-weight: 500; font-size: 13px; color: var(--green); cursor: pointer; }
-        .re-submit { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--green), var(--gold)); color: #0c0a09; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.25s; font-family: inherit; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .re-submit { width: 100%; padding: 14px; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.25s; font-family: inherit; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .re-submit:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
         .re-submit:active { transform: translateY(0); }
         .re-submit:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }

@@ -786,24 +786,24 @@
                 <div class="abr-card-sm">
                     <label class="abr-upload-label">Bolt CSV <span>(Umsatz nach Fahrer)</span></label>
                     <div class="abr-file-wrap">
-                        <input type="file" id="abrBolt" accept=".csv" required class="abr-file-input">
-                        <div class="abr-file-btn" id="abrBoltBtn">Datei auswählen...</div>
+                        <input type="file" id="abrBolt" accept=".csv" required multiple class="abr-file-input">
+                        <div class="abr-file-btn" id="abrBoltBtn">Dateien auswählen (eine pro Firma)…</div>
                     </div>
                     <div class="abr-file-info" id="abrBoltInfo"></div>
                 </div>
                 <div class="abr-card-sm">
                     <label class="abr-upload-label">Uber CSV <span>(Mo 04:00 – Mo 04:00)</span></label>
                     <div class="abr-file-wrap">
-                        <input type="file" id="abrUber" accept=".csv" required class="abr-file-input">
-                        <div class="abr-file-btn" id="abrUberBtn">Datei auswählen...</div>
+                        <input type="file" id="abrUber" accept=".csv" required multiple class="abr-file-input">
+                        <div class="abr-file-btn" id="abrUberBtn">Dateien auswählen (eine pro Firma)…</div>
                     </div>
                     <div class="abr-file-info" id="abrUberInfo"></div>
                 </div>
                 <div class="abr-card-sm">
                     <label class="abr-upload-label">MyPOS CSV <span>(Transactions Export)</span></label>
                     <div class="abr-file-wrap">
-                        <input type="file" id="abrMypos" accept=".csv" required class="abr-file-input">
-                        <div class="abr-file-btn" id="abrMyposBtn">Datei auswählen...</div>
+                        <input type="file" id="abrMypos" accept=".csv" required multiple class="abr-file-input">
+                        <div class="abr-file-btn" id="abrMyposBtn">Dateien auswählen (eine pro Firma)…</div>
                     </div>
                     <div class="abr-file-info" id="abrMyposInfo"></div>
                 </div>
@@ -2043,14 +2043,14 @@
                 const btn = document.getElementById('abr'+name+'Btn');
                 const info = document.getElementById('abr'+name+'Info');
                 input.addEventListener('change', function() {
-                    if (this.files.length > 0) {
-                        const f = this.files[0];
-                        btn.textContent = f.name;
+                    const files = Array.from(this.files || []);
+                    if (files.length > 0) {
+                        btn.textContent = files.length === 1 ? files[0].name : files.length + ' Dateien gewählt';
                         btn.classList.add('has-file');
-                        info.textContent = f.name + ' (' + Math.round(f.size/1024) + ' KB)';
+                        info.innerHTML = files.map(function(f) { return '<div>' + esc(f.name) + ' <span style="color:var(--text-dim)">(' + Math.round(f.size/1024) + ' KB)</span></div>'; }).join('');
                         info.style.display = 'block';
                     } else {
-                        btn.textContent = 'Datei auswählen...';
+                        btn.textContent = 'Dateien auswählen (eine pro Firma)…';
                         btn.classList.remove('has-file');
                         info.style.display = 'none';
                     }
@@ -2071,9 +2071,12 @@
                 const weekVal = selVal === '__manual__' ? document.getElementById('abrWeekManual').value.trim() : selVal;
                 if (!weekVal) { s.style.display='block'; s.style.background='var(--status-err-bg)'; s.style.color='var(--status-err)'; s.textContent='Bitte Woche angeben'; btn.disabled=false; btn.textContent='Abrechnung erstellen'; return; }
                 d.append('woche', weekVal);
-                d.append('bolt', document.getElementById('abrBolt').files[0]);
-                d.append('uber', document.getElementById('abrUber').files[0]);
-                d.append('mypos', document.getElementById('abrMypos').files[0]);
+                // Mehrere Dateien pro Typ (eine je Firma): bolt_1, bolt_2, uber_1, ... Der Bot addiert pro Fahrer.
+                let fileCount = 0;
+                [['bolt', 'abrBolt'], ['uber', 'abrUber'], ['mypos', 'abrMypos']].forEach(function(pair) {
+                    Array.from(document.getElementById(pair[1]).files || []).forEach(function(f, i) { d.append(pair[0] + '_' + (i + 1), f, f.name); fileCount++; });
+                });
+                s.textContent = 'Verarbeite Abrechnung (' + fileCount + ' Dateien)...';
                 try {
                     const r = await fetch('https://n8n.hydrafleet.at/webhook/abrechnung-upload', { method: 'POST', body: d });
                     if (r.ok) {

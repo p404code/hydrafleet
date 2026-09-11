@@ -390,30 +390,35 @@
             .print-actions .btn-cancel { padding: 8px; }
         }
         /* === TAB NAVIGATION === */
-        .abr-file-btn { display:flex;align-items:center;gap:10px;padding:14px 20px;background:var(--bg);border:2px dashed var(--border);border-radius:10px;cursor:pointer;transition:all 0.25s;font-size:14px;color:var(--text-secondary);font-family:inherit; }
-        .abr-file-btn:hover { border-color:var(--gold);background:var(--bg-hover);transform:translateY(-1px); }
-        .abr-file-btn.has-file { border-color:var(--green);border-style:solid;color:var(--green);background:var(--status-ok-bg); }
-        .abr-file-info { display:none;margin-top:8px;padding:8px 14px;background:var(--status-ok-bg);border-radius:8px;font-size:13px;color:var(--status-ok);font-weight:500; }
-        /* === ABRBOT TAB === */
-        .abr-wrap { max-width: 900px; margin: 0 auto; }
-        .abr-card { background: var(--bg-card); border-radius: 12px; padding: 24px; margin-bottom: 16px; border: 1px solid var(--border); box-shadow: var(--card-shadow); }
-        .abr-card-sm { background: var(--bg-card); border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid var(--border); box-shadow: var(--card-shadow); }
-        .abr-card h2 { font-size: 15px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
-        .abr-week-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .abr-week-label { color: var(--text-secondary); font-size: 14px; white-space: nowrap; }
-        .abr-week-select { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 14px; color: var(--text); font-family: inherit; min-width: 200px; }
-        .abr-week-manual { display: none; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 14px; color: var(--text); font-family: inherit; width: 160px; }
-        .abr-checklist-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
-        .abr-checklist { list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 8px; }
-        .abr-upload-label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); margin-bottom: 10px; }
-        .abr-upload-label span { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-muted); font-size: 11px; }
+        .abr-wrap { max-width: 720px; margin: 0 auto; padding: 16px 20px 40px; }
+        .abr-week-select, .abr-week-manual { font-size: 13px; font-weight: 600; }
+        .abr-week-manual { display: none; width: 130px; }
+        .abr-check { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+        .abr-check-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-mut); margin-bottom: 8px; }
+        .abr-check-item { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: var(--text); padding: 5px 0; border-top: 1px dotted var(--border); cursor: pointer; }
+        .abr-check-item:first-of-type { border-top: none; }
+        .abr-check-item input { margin-top: 2px; accent-color: var(--accent); }
+        .abr-check-item b { font-weight: 600; }
+        .abr-form { display: flex; flex-direction: column; gap: 10px; }
+        .abr-zone { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+        .abr-zone-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+        .abr-zone-name { font-size: 13px; font-weight: 700; }
+        .abr-zone-hint { font-size: 11px; color: var(--text-mut); }
         .abr-file-wrap { position: relative; }
-        .abr-file-input { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; z-index: 2; }
-        .abr-submit { padding: 14px; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.25s; width: 100%; font-family: inherit; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .abr-submit:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
-        .abr-submit:active { transform: translateY(0); }
-        .abr-submit:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-        .abr-status { margin-top: 12px; padding: 12px 16px; border-radius: 4px; text-align: center; font-weight: 500; font-size: 13px; display: none; }
+        .abr-file-input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; cursor: pointer; z-index: 2; }
+        .abr-file-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px; background: var(--surface-2); border: 1px dashed var(--border-strong); border-radius: 8px; font-size: 12.5px; color: var(--text-mut); cursor: pointer; }
+        .abr-file-btn::before { content: '↑'; font-weight: 700; }
+        .abr-file-btn:hover { border-color: var(--text-mut); color: var(--text); }
+        .abr-file-btn.has-file { border-style: solid; border-color: var(--accent); background: var(--accent-faint); color: var(--accent); font-weight: 600; }
+        .abr-file-btn.has-file::before { content: '✓'; }
+        .abr-file-info { display: none; margin-top: 6px; font-size: 12px; color: var(--text); }
+        .abr-file-info div { padding: 4px 2px; border-top: 1px dotted var(--border); }
+        .abr-file-info div:first-child { border-top: none; }
+        .abr-submit { margin-top: 4px; padding: 12px; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 8px; font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .abr-submit:hover { opacity: .92; }
+        .abr-submit:disabled { opacity: .45; cursor: not-allowed; }
+        .abr-status { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-weight: 500; font-size: 12.5px; display: none; }
+        @media (max-width: 768px) { .abr-wrap { padding: 12px 12px 24px; } }
         /* === RECHNUNG FORM === */
         .re-wrap { max-width: 900px; margin: 0 auto; }
         .re-sub-tabs { display: flex; gap: 0; background: transparent; border-bottom: 1px solid var(--border); padding: 0; margin-bottom: 24px; }
@@ -765,42 +770,42 @@
     </div><!-- end contentRechnungen -->
 
     <div class="tab-content" id="contentAbrBot">
-        <div class="abr-wrap">
-            <div class="abr-card">
-                <h2>AbrechnungsBot</h2>
-                <div class="abr-week-row">
-                    <label class="abr-week-label">Woche:</label>
-                    <select id="abrWeekSelect" class="abr-week-select"></select>
-                    <input type="text" id="abrWeekManual" placeholder="z.B. 2026-W07" class="abr-week-manual">
+        <div class="hero">
+            <div class="hero-top">
+                <div class="week-pick">
+                    <span style="font-size:18px;font-weight:700">Upload</span>
+                    <select id="abrWeekSelect" class="chip abr-week-select"></select>
+                    <input type="text" id="abrWeekManual" placeholder="z.B. 2026-W37" class="chip abr-week-manual">
                 </div>
+                <div class="hero-big"><b style="font-size:14px;color:var(--text-mut);font-family:var(--sans);letter-spacing:0">Abrechnung erstellen</b><small>Bolt, Uber und MyPOS der Vorwoche, eine Datei je Firma</small></div>
             </div>
-            <div class="abr-card-sm">
-                <h3 class="abr-checklist-title">Vor dem Upload prüfen</h3>
-                <ul class="abr-checklist">
-                    <li>☐ <strong>Notion Fahrer:</strong> Pauschale und Pauschalmodell (fix/f11/f12) aktuell?</li>
-                    <li>☐ <strong>MyPOS Terminals:</strong> Alle Terminals dem richtigen Fahrer zugeordnet?</li>
-                    <li>☐ <strong>Uber CSV:</strong> Zeitraum Montag 04:00 bis Montag 04:00 Uhr?</li>
-                </ul>
+        </div>
+        <div class="abr-wrap">
+            <div class="abr-check">
+                <div class="abr-check-title">Vor dem Upload prüfen</div>
+                <label class="abr-check-item"><input type="checkbox"> <span><b>Notion Fahrer:</b> Pauschale und Pauschalmodell (fix / f11 / f12) aktuell?</span></label>
+                <label class="abr-check-item"><input type="checkbox"> <span><b>MyPOS Terminals:</b> alle Terminals dem richtigen Fahrer zugeordnet?</span></label>
+                <label class="abr-check-item"><input type="checkbox"> <span><b>Uber CSV:</b> Zeitraum Montag 04:00 bis Montag 04:00?</span></label>
             </div>
-            <form id="abrForm" style="display:flex;flex-direction:column;gap:12px;">
-                <div class="abr-card-sm">
-                    <label class="abr-upload-label">Bolt CSV <span>(Umsatz nach Fahrer)</span></label>
+            <form id="abrForm" class="abr-form">
+                <div class="abr-zone">
+                    <div class="abr-zone-head"><span class="abr-zone-name">Bolt</span><span class="abr-zone-hint">Umsatz nach Fahrer</span></div>
                     <div class="abr-file-wrap">
                         <input type="file" id="abrBolt" accept=".csv" required multiple class="abr-file-input">
                         <div class="abr-file-btn" id="abrBoltBtn">Dateien auswählen (eine pro Firma)…</div>
                     </div>
                     <div class="abr-file-info" id="abrBoltInfo"></div>
                 </div>
-                <div class="abr-card-sm">
-                    <label class="abr-upload-label">Uber CSV <span>(Mo 04:00 – Mo 04:00)</span></label>
+                <div class="abr-zone">
+                    <div class="abr-zone-head"><span class="abr-zone-name">Uber</span><span class="abr-zone-hint">Mo 04:00 – Mo 04:00</span></div>
                     <div class="abr-file-wrap">
                         <input type="file" id="abrUber" accept=".csv" required multiple class="abr-file-input">
                         <div class="abr-file-btn" id="abrUberBtn">Dateien auswählen (eine pro Firma)…</div>
                     </div>
                     <div class="abr-file-info" id="abrUberInfo"></div>
                 </div>
-                <div class="abr-card-sm">
-                    <label class="abr-upload-label">MyPOS CSV <span>(Transactions Export)</span></label>
+                <div class="abr-zone">
+                    <div class="abr-zone-head"><span class="abr-zone-name">MyPOS</span><span class="abr-zone-hint">Transactions Export</span></div>
                     <div class="abr-file-wrap">
                         <input type="file" id="abrMypos" accept=".csv" required multiple class="abr-file-input">
                         <div class="abr-file-btn" id="abrMyposBtn">Dateien auswählen (eine pro Firma)…</div>

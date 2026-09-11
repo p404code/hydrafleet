@@ -106,7 +106,25 @@
                 <div class="error-message" id="errorMessage"></div>
                 <button type="submit" class="btn-login" id="loginBtn">Anmelden</button>
             </form>
-            <a class="link-neu" href="dashboard-neu.html">Neue Ansicht testen →</a>
+            <a class="link-neu" href="#" id="linkNeu">Neue Ansicht testen →</a>
+            <script>
+                (function() {
+                    var KEY = 'hydralink_neu';
+                    var a = document.getElementById('linkNeu');
+                    function label() { a.textContent = localStorage.getItem(KEY) === '1' ? '✓ Neue Ansicht aktiv – zur alten wechseln' : 'Neue Ansicht testen →'; }
+                    a.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        var on = localStorage.getItem(KEY) === '1';
+                        if (on) { localStorage.removeItem(KEY); } else { localStorage.setItem(KEY, '1'); }
+                        label();
+                        try {
+                            var s = JSON.parse(localStorage.getItem('hydralink_session') || 'null');
+                            if (s && s.timestamp && Date.now() - s.timestamp < 24 * 60 * 60 * 1000) { window.location.href = on ? 'dashboard.html' : 'dashboard-neu.html'; }
+                        } catch (err) {}
+                    });
+                    label();
+                })();
+            </script>
         </div>
     </div>
 
@@ -176,7 +194,7 @@
                 try {
                     const s = JSON.parse(session);
                     if (Date.now() - s.timestamp < 24 * 60 * 60 * 1000) {
-                        window.location.href = 'dashboard.html';
+                        window.location.href = localStorage.getItem('hydralink_neu') === '1' ? 'dashboard-neu.html' : 'dashboard.html';
                     }
                 } catch(e) {}
             }
@@ -223,7 +241,7 @@
                             pin: data.pin,
                             timestamp: Date.now()
                         }));
-                        window.location.href = 'dashboard.html';
+                        window.location.href = localStorage.getItem('hydralink_neu') === '1' ? 'dashboard-neu.html' : 'dashboard.html';
                     } else {
                         errorEl.textContent = 'Ungültiger Benutzer oder PIN';
                         pinInputs.forEach(i => { i.value = ''; i.classList.remove('filled'); });

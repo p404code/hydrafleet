@@ -1934,21 +1934,17 @@
             if (abrInitialized) return;
             abrInitialized = true;
             const now = new Date();
-            const onejan = new Date(now.getFullYear(), 0, 1);
-            const wk = Math.ceil((((now - onejan) / 86400000) + onejan.getDay() + 1) / 7);
-            const wocheValue = `${now.getFullYear()}-W${String(wk).padStart(2, '0')}`;
+            // ISO-Kalenderwoche (Mo-So). Vorauswahl = Vorwoche, weil abgerechnet wird, was letzte Woche gefahren wurde.
+            function isoWeek(d) { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day); const y = t.getUTCFullYear(); const w = Math.ceil((((t - Date.UTC(y, 0, 1)) / 86400000) + 1) / 7); return { y: y, w: w }; }
             const sel = document.getElementById('abrWeekSelect');
             // Letzte 10 Wochen + aktuelle + nächste generieren
             for (let offset = -10; offset <= 1; offset++) {
-                const d2 = new Date(now.getTime() + offset * 7 * 86400000);
-                const y2 = d2.getFullYear();
-                const jan1 = new Date(y2, 0, 1);
-                const w2 = Math.ceil((((d2 - jan1) / 86400000) + jan1.getDay() + 1) / 7);
-                const val = `${y2}-W${String(w2).padStart(2, '0')}`;
+                const iw = isoWeek(new Date(now.getTime() + offset * 7 * 86400000));
+                const val = `${iw.y}-W${String(iw.w).padStart(2, '0')}`;
                 const opt = document.createElement('option');
                 opt.value = val;
-                opt.textContent = `KW ${w2} / ${y2}`;
-                if (offset === 0) opt.selected = true;
+                opt.textContent = `KW ${iw.w} / ${iw.y}` + (offset === -1 ? ' (Vorwoche)' : offset === 0 ? ' (laufende Woche)' : '');
+                if (offset === -1) opt.selected = true;
                 sel.appendChild(opt);
             }
             // Manuell-Option

@@ -2,7 +2,7 @@
 # Prüft eine Dashboard-Datei: (1) node --check auf jedem Inline-Script,
 # (2) jede ID aus getElementById('…') muss im Markup als id="…" existieren.
 set -euo pipefail
-FILE="${1:-dashboard-neu.html}"
+FILE="${1:-dashboard.html}"
 TMP="$(mktemp -d)"
 python3 - "$FILE" "$TMP" <<'PY'
 import re, sys, pathlib

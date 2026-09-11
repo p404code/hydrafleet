@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de" data-theme="dark">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +9,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <meta name="theme-color" content="#020617">
+    <meta name="theme-color" content="#FBFBFC">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Hydralink">
@@ -17,75 +17,66 @@
     <meta name="application-name" content="Hydralink">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&amp;family=Fraunces:opsz,wght@9..144,700;9..144,900&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&amp;family=Fraunces:opsz,wght@9..144,700;9..144,900&amp;display=swap" rel="stylesheet"></noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@600;700&amp;display=swap" rel="stylesheet"></noscript>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --bg: #f5f3f0; --bg-card: #ffffff; --bg-hover: #ece9e4;
-            --border: #e0dcd6; --text: #1a1714; --text-secondary: #5c5550; --text-muted: #9e958c;
-            --gold: #d4a012; --gold-glow: rgba(212,160,18,0.15);
-            --green: #2d8a6e; --red: #c4364a;
+            --bg:#FBFBFC; --surface:#FFFFFF; --surface-2:#F1F3F5;
+            --border:#E6E8EB; --border-strong:#CFD4DA;
+            --text:#101418; --text-mut:#6B7280; --text-dim:#B0B6BF;
+            --accent:#0B6B4F; --accent-ink:#FFFFFF; --accent-faint:rgba(11,107,79,.08);
+            --err:#B42318;
+            --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,monospace;
+            --sans:-apple-system,"Inter","Segoe UI",system-ui,sans-serif;
         }
         [data-theme="dark"] {
-            --bg: #0c0a09; --bg-card: #1a1816; --bg-hover: #262320;
-            --border: #2e2a26; --text: #f0ede8; --text-secondary: #a09890; --text-muted: #5c5550;
-            --gold: #f5c131; --gold-glow: rgba(245,193,49,0.08);
-            --green: #4dd6a5; --red: #f55a6a;
+            --bg:#0F1115; --surface:#15181D; --surface-2:#1A1E24;
+            --border:#23272F; --border-strong:#323843;
+            --text:#EDEEF0; --text-mut:#989FA7; --text-dim:#5F666E;
+            --accent:#3ECF8E; --accent-ink:#062D1C; --accent-faint:rgba(62,207,142,.1);
+            --err:#F0555D;
         }
-        body { font-family: 'DM Sans', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; transition: background 0.3s; -webkit-font-smoothing: antialiased; }
-        [data-theme="dark"] body { background: var(--bg) url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.015'/%3E%3C/svg%3E"); }
-        .login-container { width: 100%; max-width: 400px; animation: fadeIn 0.4s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .login-card { background: var(--bg-card); border-radius: 16px; padding: 40px 36px; border: 1px solid var(--border); box-shadow: 0 4px 24px rgba(26,23,20,0.06), 0 1px 3px rgba(26,23,20,0.04); }
-        [data-theme="dark"] .login-card { box-shadow: 0 4px 24px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.15); }
-        .logo { text-align: center; margin-bottom: 32px; }
-        .logo-icon { width: 72px; height: 72px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 0 12px var(--gold-glow)); }
-        .logo-icon svg { width: 72px; height: 72px; }
-        .logo h1 { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 900; margin-bottom: 6px; color: var(--text); letter-spacing: 2px; }
-        .logo p { color: var(--text-secondary); font-size: 13px; }
-        .form-group { margin-bottom: 18px; }
-        .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
-        .form-group input { width: 100%; padding: 12px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; font-size: 14px; color: var(--text); outline: none; transition: all 0.2s; font-family: inherit; }
-        .form-group input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
-        .form-group input::placeholder { color: var(--text-muted); }
-        .pin-container { display: flex; gap: 12px; justify-content: center; }
-        .pin-input { width: 56px; height: 60px; text-align: center; font-size: 24px; font-weight: 700; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); outline: none; transition: all 0.2s; -moz-appearance: textfield; font-family: inherit; }
+        body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; -webkit-font-smoothing: antialiased; font-size: 13px; }
+        .login-container { width: 100%; max-width: 380px; animation: fadeIn .3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .login-card { background: var(--surface); border-radius: 12px; padding: 32px 28px 24px; border: 1px solid var(--border); }
+        .logo { text-align: center; margin-bottom: 26px; }
+        .logo-icon { display: none; }
+        .logo h1 { font-size: 22px; font-weight: 800; letter-spacing: -.4px; color: var(--text); }
+        .logo h1 span { font-weight: 400; color: var(--text-mut); }
+        .logo p { color: var(--text-mut); font-size: 12.5px; margin-top: 4px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 10.5px; font-weight: 600; margin-bottom: 6px; color: var(--text-mut); text-transform: uppercase; letter-spacing: .05em; }
+        .form-group input { width: 100%; height: 40px; padding: 0 12px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; font-size: 14px; color: var(--text); outline: none; font-family: inherit; }
+        .form-group input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-faint); }
+        .form-group input::placeholder { color: var(--text-dim); }
+        .pin-container { display: flex; gap: 10px; justify-content: center; }
+        .pin-input { width: 56px; height: 56px; text-align: center; font-size: 22px; font-weight: 700; font-family: var(--mono); background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; color: var(--text); outline: none; -moz-appearance: textfield; }
         .pin-input::-webkit-outer-spin-button, .pin-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        .pin-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); transform: translateY(-2px); }
-        .pin-input.filled { border-color: var(--gold); background: var(--gold-glow); }
-        .link-neu { display: block; text-align: center; margin-top: 14px; font-size: 12px; color: var(--text-muted); text-decoration: none; }
+        .pin-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-faint); }
+        .pin-input.filled { border-color: var(--accent); background: var(--accent-faint); }
+        .btn-login { width: 100%; height: 42px; background: var(--text); color: var(--bg); border: none; border-radius: 8px; font-size: 13.5px; font-weight: 600; cursor: pointer; margin-top: 4px; font-family: inherit; }
+        .btn-login:hover { opacity: .92; }
+        .btn-login:disabled { opacity: .5; cursor: not-allowed; }
+        .error-message { color: var(--err); font-size: 12.5px; text-align: center; margin-bottom: 10px; min-height: 16px; font-weight: 500; }
+        .link-neu { display: block; text-align: center; margin-top: 16px; font-size: 12px; color: var(--text-mut); text-decoration: none; }
         .link-neu:hover { color: var(--text); text-decoration: underline; }
-        .btn-login { width: 100%; padding: 14px 24px; background: linear-gradient(135deg, var(--green), var(--gold)); border: none; border-radius: 10px; font-size: 14px; font-weight: 700; color: #0c0a09; cursor: pointer; transition: all 0.25s; margin-top: 8px; font-family: inherit; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .btn-login:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
-        .btn-login:active { transform: scale(0.99); }
-        .btn-login:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .error-message { color: var(--red); font-size: 13px; text-align: center; margin-bottom: 14px; min-height: 18px; font-weight: 500; }
-        .theme-toggle { position: fixed; top: 16px; right: 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; line-height: 1; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-        .theme-toggle:hover { background: var(--bg-hover); color: var(--text); transform: translateY(-1px); }
+        .theme-toggle { position: fixed; top: 12px; right: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 5px 10px; font-size: 12px; font-weight: 500; color: var(--text-mut); cursor: pointer; font-family: inherit; }
+        .theme-toggle:hover { background: var(--surface-2); color: var(--text); }
         @media (max-width: 480px) {
-            .login-card { padding: 32px 24px; border-radius: 14px; }
-            .pin-input { width: 48px; height: 54px; font-size: 20px; border-radius: 10px; }
+            .login-card { padding: 28px 20px 20px; }
+            .pin-input { width: 50px; height: 52px; font-size: 20px; }
         }
     </style>
 </head>
 <body>
-    <button class="theme-toggle" id="themeToggle" title="Theme wechseln">Hell</button>
+    <button class="theme-toggle" id="themeToggle" title="Theme wechseln">Dunkel</button>
 
     <div class="login-container">
         <div class="login-card">
             <div class="logo">
-                <div class="logo-icon">
-                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                        <line x1="50" y1="20" x2="25" y2="70" stroke="#F5B51B" stroke-width="6" stroke-linecap="round"/>
-                        <line x1="25" y1="70" x2="75" y2="70" stroke="#F5B51B" stroke-width="6" stroke-linecap="round"/>
-                        <line x1="75" y1="70" x2="50" y2="20" stroke="#F5B51B" stroke-width="6" stroke-linecap="round"/>
-                        <circle cx="50" cy="20" r="10" fill="#F5B51B"/>
-                        <circle cx="25" cy="70" r="10" fill="#F5B51B"/>
-                        <circle cx="75" cy="70" r="10" fill="#F5B51B"/>
-                    </svg>
-                </div>
-                <h1>HYDRALINK</h1>
+                <h1>HYDRA<span>link</span></h1>
                 <p>Abrechnungs-Dashboard</p>
             </div>
 
@@ -179,12 +170,12 @@
             const saved = localStorage.getItem('theme');
             const html = document.documentElement;
             const btn = document.getElementById('themeToggle');
-            if (saved === 'light') {
-                html.removeAttribute('data-theme');
-                btn.textContent = 'Dunkel';
-            } else {
+            if (saved === 'dark') {
                 html.setAttribute('data-theme', 'dark');
                 btn.textContent = 'Hell';
+            } else {
+                html.removeAttribute('data-theme');
+                btn.textContent = 'Dunkel';
             }
         }
 

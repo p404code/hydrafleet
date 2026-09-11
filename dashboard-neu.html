@@ -962,7 +962,7 @@
         let week = '', search = '', warn = false, warnOnly = false, lohnOnly = false, showExcluded = false, sortBy = 'name_asc', selectedDriver = null;
         function isMobile() { return window.matchMedia('(max-width: 768px)').matches; }
         function weekRange(woche) {
-            const m = /^(\d{4})-W(\d{2})/.exec(woche || ''); // Suffix wie '2026-W36k' erlaubt
+            const m = /^(\d{4})-W(\d{2})$/.exec(woche || ''); // Sonderlabels wie '2026-W37k' bekommen bewusst kein Datum
             if (!m) return '';
             const year = parseInt(m[1], 10), wk = parseInt(m[2], 10);
             const jan4 = new Date(Date.UTC(year, 0, 4));

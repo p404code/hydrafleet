@@ -414,6 +414,7 @@
         .abr-file-info { display: none; margin-top: 6px; font-size: 12px; color: var(--text); }
         .abr-file-info div { padding: 4px 2px; border-top: 1px dotted var(--border); }
         .abr-file-info div:first-child { border-top: none; }
+        .abr-file-remove { border: 1px solid var(--border-strong); background: var(--surface); color: var(--err); border-radius: 5px; width: 22px; height: 22px; cursor: pointer; font-size: 11px; margin-right: 4px; vertical-align: middle; }
         .abr-submit { margin-top: 4px; padding: 12px; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 8px; font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: inherit; }
         .abr-submit:hover { opacity: .92; }
         .abr-submit:disabled { opacity: .45; cursor: not-allowed; }
@@ -791,7 +792,7 @@
                 <div class="abr-zone">
                     <div class="abr-zone-head"><span class="abr-zone-name">Bolt</span><span class="abr-zone-hint">Umsatz nach Fahrer</span></div>
                     <div class="abr-file-wrap">
-                        <input type="file" id="abrBolt" accept=".csv" required multiple class="abr-file-input">
+                        <input type="file" id="abrBolt" accept=".csv" multiple class="abr-file-input">
                         <div class="abr-file-btn" id="abrBoltBtn">Dateien auswählen (eine pro Firma)…</div>
                     </div>
                     <div class="abr-file-info" id="abrBoltInfo"></div>
@@ -799,7 +800,7 @@
                 <div class="abr-zone">
                     <div class="abr-zone-head"><span class="abr-zone-name">Uber</span><span class="abr-zone-hint">Mo 04:00 – Mo 04:00</span></div>
                     <div class="abr-file-wrap">
-                        <input type="file" id="abrUber" accept=".csv" required multiple class="abr-file-input">
+                        <input type="file" id="abrUber" accept=".csv" multiple class="abr-file-input">
                         <div class="abr-file-btn" id="abrUberBtn">Dateien auswählen (eine pro Firma)…</div>
                     </div>
                     <div class="abr-file-info" id="abrUberInfo"></div>
@@ -807,7 +808,7 @@
                 <div class="abr-zone">
                     <div class="abr-zone-head"><span class="abr-zone-name">MyPOS</span><span class="abr-zone-hint">Transactions Export</span></div>
                     <div class="abr-file-wrap">
-                        <input type="file" id="abrMypos" accept=".csv" required multiple class="abr-file-input">
+                        <input type="file" id="abrMypos" accept=".csv" multiple class="abr-file-input">
                         <div class="abr-file-btn" id="abrMyposBtn">Dateien auswählen (eine pro Firma)…</div>
                     </div>
                     <div class="abr-file-info" id="abrMyposInfo"></div>
@@ -2046,22 +2047,39 @@
                 if (this.value === '__manual__') { manInput.style.display = 'block'; manInput.focus(); }
                 else { manInput.style.display = 'none'; }
             });
+            const abrFiles = {};
             ['Bolt','Uber','Mypos'].forEach(name => {
                 const input = document.getElementById('abr'+name);
                 const btn = document.getElementById('abr'+name+'Btn');
                 const info = document.getElementById('abr'+name+'Info');
-                input.addEventListener('change', function() {
-                    const files = Array.from(this.files || []);
+                // Dateien werden ueber mehrere Auswahlvorgaenge GESAMMELT (am iPhone kann man oft nur eine Datei pro Vorgang waehlen).
+                abrFiles[name] = abrFiles[name] || [];
+                function renderFiles() {
+                    const files = abrFiles[name];
                     if (files.length > 0) {
-                        btn.textContent = files.length === 1 ? files[0].name : files.length + ' Dateien gewählt';
+                        btn.textContent = files.length === 1 ? '1 Datei gewählt, weitere hinzufügen…' : files.length + ' Dateien gewählt, weitere hinzufügen…';
                         btn.classList.add('has-file');
-                        info.innerHTML = files.map(function(f) { return '<div>' + esc(f.name) + ' <span style="color:var(--text-dim)">(' + Math.round(f.size/1024) + ' KB)</span></div>'; }).join('');
+                        info.innerHTML = files.map(function(f, i) { return '<div><button type="button" class="abr-file-remove" data-remove="' + i + '" title="Entfernen">✕</button> ' + esc(f.name) + ' <span style="color:var(--text-dim)">(' + Math.round(f.size/1024) + ' KB)</span></div>'; }).join('');
                         info.style.display = 'block';
                     } else {
                         btn.textContent = 'Dateien auswählen (eine pro Firma)…';
                         btn.classList.remove('has-file');
                         info.style.display = 'none';
                     }
+                }
+                input.addEventListener('change', function() {
+                    Array.from(this.files || []).forEach(function(f) {
+                        const dup = abrFiles[name].some(function(x) { return x.name === f.name && x.size === f.size; });
+                        if (!dup) abrFiles[name].push(f);
+                    });
+                    this.value = ''; // damit dieselbe Auswahl erneut moeglich ist
+                    renderFiles();
+                });
+                info.addEventListener('click', function(e) {
+                    const b = e.target.closest('[data-remove]');
+                    if (!b) return;
+                    abrFiles[name].splice(parseInt(b.dataset.remove, 10), 1);
+                    renderFiles();
                 });
             });
             document.getElementById('abrForm').addEventListener('submit', async function(e) {
@@ -2080,9 +2098,11 @@
                 if (!weekVal) { s.style.display='block'; s.style.background='var(--status-err-bg)'; s.style.color='var(--status-err)'; s.textContent='Bitte Woche angeben'; btn.disabled=false; btn.textContent='Abrechnung erstellen'; return; }
                 d.append('woche', weekVal);
                 // Mehrere Dateien pro Typ (eine je Firma): bolt_1, bolt_2, uber_1, ... Der Bot addiert pro Fahrer.
+                const missing = [['Bolt', 'bolt'], ['Uber', 'uber'], ['Mypos', 'mypos']].filter(function(pair) { return !(abrFiles[pair[0]] && abrFiles[pair[0]].length); }).map(function(pair) { return pair[1] === 'mypos' ? 'MyPOS' : pair[0]; });
+                if (missing.length) { s.style.display='block'; s.style.background='var(--status-err-bg)'; s.style.color='var(--status-err)'; s.textContent='Es fehlt noch: ' + missing.join(', '); btn.disabled=false; btn.textContent='Abrechnung erstellen'; return; }
                 let fileCount = 0;
-                [['bolt', 'abrBolt'], ['uber', 'abrUber'], ['mypos', 'abrMypos']].forEach(function(pair) {
-                    Array.from(document.getElementById(pair[1]).files || []).forEach(function(f, i) { d.append(pair[0] + '_' + (i + 1), f, f.name); fileCount++; });
+                [['Bolt', 'bolt'], ['Uber', 'uber'], ['Mypos', 'mypos']].forEach(function(pair) {
+                    abrFiles[pair[0]].forEach(function(f, i) { d.append(pair[1] + '_' + (i + 1), f, f.name); fileCount++; });
                 });
                 s.textContent = 'Verarbeite Abrechnung (' + fileCount + ' Dateien)...';
                 try {

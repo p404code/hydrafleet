@@ -105,7 +105,7 @@
         .hero-big b { display: block; font-size: 30px; font-family: var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -.6px; color: var(--accent); line-height: 1.1; }
         .hero-big.err b { color: var(--err); }
         .hero-big small { color: var(--text-mut); font-size: 11.5px; }
-        .kpi { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 10px; }
+        .kpi { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 10px; }
         .kpi-item { background: var(--surface-2); border-radius: 8px; padding: 7px 10px; min-width: 0; }
         .kpi-item small { display: block; font-size: 10px; color: var(--text-mut); text-transform: uppercase; letter-spacing: .04em; }
         .kpi-item b { display: block; font-size: 14px; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -230,7 +230,7 @@
             .hero-top { flex-direction: column; align-items: flex-start; gap: 4px; }
             .hero-big { text-align: left; }
             .hero-big b { font-size: 24px; }
-            .kpi { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+            .kpi { grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 8px; }
             .kpi-item.desktop-only { display: none; }
             .toolbar { padding: 8px 12px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
             .toolbar::-webkit-scrollbar { display: none; }
@@ -574,6 +574,7 @@
                     <div class="hero-big"><b id="statAuszahlung">--</b><small>Auszahlungen (tatsächlich)</small></div>
                 </div>
                 <div class="kpi">
+                    <div class="kpi-item"><small>Unterm Strich</small><b class="ok" id="statUntermStrich" title="Auszahlungen minus Zu kassieren">--</b></div>
                     <div class="kpi-item"><small>Zu kassieren</small><b class="err" id="statKassieren">--</b></div>
                     <div class="kpi-item"><small>Bei uns bleibt</small><b id="statBleibt">--</b><div class="hidden" id="statBleibtSub"></div></div>
                     <div class="kpi-item"><small>Probleme</small><b id="statProbleme">--</b></div>
@@ -1335,6 +1336,7 @@
             document.getElementById('statBleibtSub').textContent = fmt(totalMieten) + ' Mieten + ' + fmt(totalProzent) + ' %';
             document.getElementById('statAuszahlung').textContent = fmt(auszahlungPositiv);
             document.getElementById('statKassieren').textContent = fmt(auszahlungNegativ);
+            document.getElementById('statUntermStrich').textContent = fmt(auszahlungPositiv - auszahlungNegativ);
             document.getElementById('statProbleme').textContent = warnCount;
             document.getElementById('statExcluded').textContent = excludedDrivers.length;
             var transferRow = SETTLEMENTS.find(function(s) { return s.woche === week && s.fahrer_name === '__TRANSFER__'; });

@@ -158,16 +158,14 @@
             }
         }
 
-        function checkSession() {
-            const session = localStorage.getItem('hydralink_session');
-            if (session) {
-                try {
-                    const s = JSON.parse(session);
-                    if (Date.now() - s.timestamp < 30 * 24 * 60 * 60 * 1000) {
-                        window.location.href = 'dashboard.html';
-                    }
-                } catch(e) {}
-            }
+        const AUTH_DOMAIN = '@hydralink.local';
+        const pinToPassword = (pin) => 'HL#' + pin + '#hydralink';
+        async function checkSession() {
+            try {
+                const { data } = await sb.auth.getSession();
+                if (data && data.session) { window.location.href = 'dashboard.html'; }
+                else { localStorage.removeItem('hydralink_session'); }
+            } catch(e) {}
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -194,25 +192,22 @@
                 loginBtn.textContent = 'Prüfe...';
 
                 try {
-                    const { data, error } = await sb
-                        .from('app_users')
-                        .select('name, role, pin')
-                        .ilike('name', username)
-                        .eq('pin', pin)
-                        .maybeSingle();
+                    const email = username.toLowerCase().replace(/\s+/g, '') + AUTH_DOMAIN;
+                    const { data, error } = await sb.auth.signInWithPassword({ email, password: pinToPassword(pin) });
 
-                    if (error) throw error;
+                    if (error && error.status !== 400) throw error;
 
-                    if (data) {
+                    const meta = data && data.user ? (data.user.app_metadata || {}) : {};
+                    if (data && data.session && meta.app_role) {
                         localStorage.setItem('hydralink_session', JSON.stringify({
-                            username: data.name,
-                            name: data.name,
-                            role: data.role,
-                            pin: data.pin,
+                            username: meta.app_name || username,
+                            name: meta.app_name || username,
+                            role: meta.app_role,
                             timestamp: Date.now()
                         }));
                         window.location.href = 'dashboard.html';
                     } else {
+                        if (data && data.session) await sb.auth.signOut();
                         errorEl.textContent = 'Ungültiger Benutzer oder PIN';
                         pinInputs.forEach(i => { i.value = ''; i.classList.remove('filled'); });
                         pinInputs[0].focus();

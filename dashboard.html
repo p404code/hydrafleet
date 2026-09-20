@@ -967,6 +967,16 @@
                 localStorage.setItem('hydralink_session', JSON.stringify(session));
             } catch(e) { localStorage.removeItem('hydralink_session'); window.location.replace('index.html'); return; }
         })();
+        /* Auth guard — ohne gültige Supabase-Session zurück zum Login */
+        function forceLogout() { localStorage.removeItem('hydralink_session'); window.location.replace('index.html'); }
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const client = getSupabase();
+                const { data } = await client.auth.getSession();
+                if (!data || !data.session) { forceLogout(); return; }
+                client.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_OUT') forceLogout(); });
+            } catch (e) { forceLogout(); }
+        });
 
         const SUPABASE_URL = 'https://pkxcwfkfaaorwnbdmylg.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBreGN3ZmtmYWFvcnduYmRteWxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3NTE1ODUsImV4cCI6MjA3OTMyNzU4NX0.xBDHKKXA9DFFwcTO18aDH_VHJr9BZyI__lv-L4Apryo';
@@ -1122,18 +1132,14 @@
         }
         async function deleteKassier(id) {
             const session = JSON.parse(localStorage.getItem('hydralink_session') || 'null');
-            if (!session || session.role !== 'admin' || !session.name || !session.pin) {
+            if (!session || session.role !== 'admin') {
                 alert('Nur Admin darf Zahlungen löschen. Bitte neu einloggen.');
                 return;
             }
             if (!confirm('Diese Zahlung wirklich löschen? Aktion kann nicht rückgängig gemacht werden.')) return;
             try {
                 const client = getSupabase();
-                const { error } = await client.rpc('delete_kassier_admin', {
-                    p_id: id,
-                    p_name: session.name,
-                    p_pin: session.pin
-                });
+                const { error } = await client.rpc('delete_kassier_admin', { p_id: id });
                 if (error) throw error;
                 KASSIER = KASSIER.filter(k => k.id !== id);
                 renderMuessenZahlen();
@@ -1253,8 +1259,19 @@
             document.getElementById('warnOnlyFilter').addEventListener('click', function() { warnOnly = !warnOnly; this.classList.toggle('active', warnOnly); syncAllChip(); render(); });
             document.getElementById('lohnFilter').addEventListener('click', function() { lohnOnly = !lohnOnly; this.classList.toggle('active', lohnOnly); if (lohnOnly) { sortBy = 'lohn_desc'; updateSortUI(); } syncAllChip(); render(); });
             document.getElementById('excludedFilter').addEventListener('click', function() { showExcluded = !showExcluded; this.classList.toggle('active', showExcluded); document.getElementById('excludedPanel').classList.toggle('show', showExcluded); });
-            window.matchMedia('(max-width: 768px)').addEventListener('change', function() { render(); }); document.getElementById('printAllBtn').addEventListener('click', printAllDrivers); document.getElementById('exportBtn').addEventListener('click', exportCSV); document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); }); document.getElementById('logoutBtn').addEventListener('click', function() { localStorage.removeItem('hydralink_session'); window.location.href = 'index.html'; });
-            /* Event delegation for table actions */
+            window.matchMedia('(max-width: 768px)').addEventListener('change', function() { render(); }); document.getElementById('printAllBtn').addEventListener('click', printAllDrivers); document.getElementById('exportBtn').addEventListener('click', exportCSV); document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); }); document.getElementById('logoutBtn').addEventListener('click', async function() { try { await getSupabase().auth.signOut(); } catch (e) {} localStorage.removeItem('hydralink_session'); window.location.href = 'index.html'; });
+            /* Signierte PDF-URL (privater Bucket) */
+        document.addEventListener('click', async function(e) {
+            const a = e.target.closest('a[data-pdf-path]');
+            if (!a) return;
+            e.preventDefault();
+            try {
+                const { data, error } = await getSupabase().storage.from('rechnungen').createSignedUrl(a.dataset.pdfPath, 300);
+                if (error) throw error;
+                window.open(data.signedUrl, '_blank');
+            } catch (err) { alert('PDF konnte nicht geladen werden: ' + (err.message || err)); }
+        });
+        /* Event delegation for table actions */
             function detailActions(e) {
                 const print = e.target.closest('[data-print]');
                 if (print) { printDriver(print.dataset.print); return true; }
@@ -1623,7 +1640,8 @@
                 const betrag = r.betrag_brutto != null ? parseFloat(r.betrag_brutto).toLocaleString('de-AT', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €' : '-';
                 const statusClass = r.status === 'storniert' ? 'storniert' : 'erstellt';
                 const statusText = r.status === 'storniert' ? 'Storniert' : 'Erstellt';
-                const pdf = r.pdf_url ? '<a href="'+r.pdf_url+'" target="_blank" class="re-pdf-btn">PDF</a>' : '<span class="re-no-pdf">–</span>';
+                const pdfPath = r.pdf_url ? r.pdf_url.split('/rechnungen/').slice(1).join('/rechnungen/') : '';
+                const pdf = pdfPath ? '<a href="#" data-pdf-path="'+esc(decodeURIComponent(pdfPath))+'" class="re-pdf-btn">PDF</a>' : '<span class="re-no-pdf">–</span>';
                 return '<tr>' +
                     '<td class="re-nr">' + esc(r.re_nummer || '-') + '</td>' +
                     '<td>' + datum + '</td>' +

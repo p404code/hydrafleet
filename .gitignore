@@ -2,3 +2,6 @@
 .superpowers/
 _dev-session.html
 .n8n-backup/
+
+# Browserprofil mit Uber-Anmeldung, gehoert nicht ins Repo
+.hydrafleet-uber-profile/

@@ -527,6 +527,134 @@
             .re-company-card { padding: 12px 8px; }
             .re-company-icon { width: 40px; height: 40px; font-size: 16px; }
         }
+        /* Quellen-Abzeichen. Flex-Behaelter statt margin, sonst schiebt der Aussenabstand
+           des letzten Abzeichens es aus der Zelle - td hat overflow:hidden. */
+        .srcs { display: inline-flex; gap: 3px; }
+        .src { width: 18px; height: 18px; line-height: 16px; text-align: center; box-sizing: border-box;
+               border-radius: 4px; font-size: 10px; font-weight: 700; font-family: var(--sans);
+               border: 1px solid transparent; }
+        /* Aus: nur Umriss, damit "kennt das Fahrzeug nicht" sofort lesbar ist. */
+        .src.off { background: transparent; color: var(--text-dim); border: 1px dashed var(--border-strong); }
+        /* Notion schwarz auf weiss, Uber weiss auf schwarz - bewusst gegensaetzlich.
+           Feste Farben statt Theme-Variablen, sonst tauschen sie im Dark Mode die Rollen. */
+        .src.notion.on { background: #fff;     color: #111;    border-color: #111; }
+        .src.uber.on   { background: #000;     color: #fff;    border-color: #000; }
+        .src.bolt.on   { background: #34D186;  color: #05291a; border-color: #2bb473; }
+        :root[data-theme="dark"] .src.uber.on { border-color: #5a5f68; }
+        .data-table td.fahrer-abw, .detail .fahrer-abw { color: var(--err) !important; }
+        /* Drei Fahrerspalten brauchen Platz, Quellen und Zahlen wenig. */
+        #fpTable th:nth-child(1), #fpTable td:nth-child(1) { width: 15%; }
+        #fpTable th:nth-child(2), #fpTable td:nth-child(2) { width: 10%; }
+        #fpTable th:nth-child(3), #fpTable td:nth-child(3),
+        #fpTable th:nth-child(4), #fpTable td:nth-child(4),
+        #fpTable th:nth-child(5), #fpTable td:nth-child(5) { width: 18%; }
+        #fpTable th:nth-child(6), #fpTable td:nth-child(6) { width: 11%; }
+        #fpTable th:nth-child(7), #fpTable td:nth-child(7) { width: 8%; }
+        /* Navigation auf dem Handy: Burger statt unterer Leiste.
+           Sieben Reiter passen weder nebeneinander noch in eine Leiste, die
+           schrumpfen soll - Flex-Elemente geben wegen min-width:auto nicht nach.
+           Am Schreibtisch bleibt alles wie gehabt: Reiter oben, kein Burger. */
+        .burger { display: none; }
+        .menue { display: none; }
+        @media (max-width: 768px) {
+            .tab-nav { display: none; }
+            .container { padding-bottom: calc(env(safe-area-inset-bottom) + 20px); }
+            .burger { display: flex; align-items: center; justify-content: center; position: relative;
+                      margin-left: auto; background: transparent; border: none; padding: 6px;
+                      color: var(--text); cursor: pointer; }
+            .burger svg { width: 24px; height: 24px; }
+            .burger .tab-warn { position: absolute; top: 3px; right: 3px; margin: 0; }
+            .header-actions { margin-left: 8px; }
+            .menue.offen { display: block; position: fixed; left: 0; right: 0;
+                           top: var(--nav-h); bottom: 0; z-index: 70; background: var(--bg);
+                           overflow-y: auto; animation: fadeIn .12s ease; }
+            .menue-liste { padding: 8px 0 calc(env(safe-area-inset-bottom) + 20px); }
+            .menue-liste button { display: flex; align-items: center; gap: 14px; width: 100%;
+                background: transparent; border: none; border-bottom: 1px solid var(--border);
+                padding: 16px 20px; font-size: 16px; font-family: inherit; color: var(--text);
+                text-align: left; }
+            .menue-liste button svg { width: 20px; height: 20px; flex: none; color: var(--text-mut); }
+            .menue-liste button.aktiv { font-weight: 700; }
+            .menue-liste button.aktiv svg { color: var(--accent); }
+            .menue-liste button:active { background: var(--surface-2); }
+            .menue-liste .tab-warn { margin-left: auto; }
+        }
+        /* Auf dem Handy zeigen die beiden neuen Tabellen nur drei Spalten und
+           klappen beim Antippen auf - dasselbe Muster wie die Abrechnung.
+           Sieben Spalten auf 390 px waren unlesbar ("Khozhakh…", "450,…"). */
+        @media (max-width: 768px) {
+            #fpTable thead, #fzTable thead { display: none; }
+            #fpTable td, #fzTable td { font-size: 12.5px; }
+            #fpTable .zeile-sub, #fzTable .zeile-sub {
+                display: block; font-family: var(--mono); font-size: 11px; color: var(--text-mut);
+                margin-top: 2px; }
+            /* Die Schreibtisch-Breiten (15/10/18 %) gelten sonst weiter und
+               quetschen die Namensspalte auf 39 px zusammen. */
+            #fpTable td:nth-child(1), #fzTable td:nth-child(1) { width: 38%; }
+            #fpTable td:nth-child(2), #fzTable td:nth-child(2) { width: 37%; }
+            #fpTable td:nth-child(3), #fzTable td:nth-child(3) { width: 25%; }
+            #fpTable td, #fzTable td { padding-left: 4px; padding-right: 4px; }
+            #fpTable td:first-child, #fzTable td:first-child { padding-left: 12px; }
+            #fpTable td:last-child, #fzTable td:last-child { padding-right: 12px; }
+        }
+        /* Verbindungen-Statusseite */
+        .vb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                   gap: 12px; padding: 14px 20px 24px; }
+        .vb-card { background: var(--surface); border: 1px solid var(--border-strong);
+                   border-radius: 10px; padding: 13px 15px; }
+        .vb-card.warn { border-color: var(--warn); }
+        .vb-card.err  { border-color: var(--err); }
+        .vb-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .vb-top h4 { margin: 0; font-size: 14px; }
+        .vb-top .sub { color: var(--text-mut); font-size: 11px; font-family: var(--mono); }
+        .vb-befund { font-size: 10.5px; padding: 2px 8px; border-radius: 999px; font-weight: 600;
+                     white-space: nowrap; background: var(--status-ok-bg); color: var(--accent); }
+        .vb-befund.warn { background: var(--status-warn-bg); color: var(--warn); }
+        .vb-befund.err  { background: var(--status-err-bg);  color: var(--err); }
+        .vb-kv { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0;
+                 border-bottom: 1px dotted var(--border); font-size: 12px; }
+        .vb-kv span:first-child { color: var(--text-mut); }
+        .vb-kv span:last-child { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+        .vb-fehler { margin-top: 9px; padding: 7px 9px; border-radius: 7px; font-size: 11.5px;
+                     background: var(--status-err-bg); color: var(--err); word-break: break-word; }
+        .vb-hinweis { margin-top: 9px; padding: 7px 9px; border-radius: 7px; font-size: 11.5px;
+                      background: var(--status-warn-bg); color: var(--warn); }
+        /* Warnpunkt am Reiter: die Statusseite soll sich melden, nicht abgefragt werden. */
+        .tab-warn { width: 6px; height: 6px; border-radius: 50%; background: var(--warn);
+                    display: none; margin-left: -2px; }
+        .tab-warn.an { display: inline-block; }
+        .tab-warn.err { background: var(--err); }
+        /* Oesterreichische Kennzeichentafel, klein und zurueckhaltend:
+           blauer EU-Balken, Bezirkskuerzel, rot-weiss-rotes Feld statt Wappen. */
+        .kz { display: inline-flex; align-items: center; height: 17px; border-radius: 2.5px;
+              overflow: hidden; border: 1px solid #c8102e; background: #fbfbfc;
+              font-family: var(--sans); vertical-align: -3px; }
+        .kz .eu { align-self: stretch; width: 8px; background: #039; color: #fff;
+                  font-size: 6.5px; font-weight: 700; display: flex; align-items: flex-end;
+                  justify-content: center; padding-bottom: 1px; letter-spacing: 0; }
+        .kz b { padding: 0 5px 0 4px; color: #16181d; font-size: 11px; font-weight: 700;
+                letter-spacing: .03em; line-height: 17px; white-space: nowrap; }
+        .kz i { display: inline-block; width: 3px; height: 9px; margin: 0 4px; vertical-align: -1px;
+                background: linear-gradient(#ed2939 0 33%, #fff 33% 67%, #ed2939 67% 100%);
+                border: .5px solid rgba(0,0,0,.22); border-radius: .5px; }
+        :root[data-theme="dark"] .kz { background: #d9dade; border-color: #a5253a; }
+        .data-table td .kz { margin: 0; }
+        /* .fz-main b setzt color: var(--text) und hat dieselbe Spezifitaet wie .kz b,
+           steht aber spaeter im Stylesheet. Im dunklen Theme wurde die Tafelschrift
+           dadurch weiss auf hellem Grund - unsichtbar. Deshalb hier bewusst eine
+           Stufe spezifischer. Nicht vereinfachen. */
+        span.kz b { color: #16181d; }
+        /* Der Warnpunkt behaelt seinen Platz, auch wenn kein Problem vorliegt.
+           Sonst rutschen die Kennzeichentafeln zeilenweise hin und her. */
+        .prob-dot.leer { visibility: hidden; }
+        /* Fahrer-Tab */
+        .fz-main { display: flex; flex-direction: column; gap: 1px; }
+        .fz-main b { font-weight: 600; color: var(--text); }
+        .fz-main small { font-family: var(--mono); font-size: 11px; color: var(--text-mut); }
+        .fz-id { font-family: var(--mono); color: var(--text-mut); }
+        .prob-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); margin-right: 6px; vertical-align: middle; }
+        .prob-list { margin: 6px 0 0; padding-left: 16px; font-size: 11.5px; color: var(--warn); }
+        .prob-list li { margin: 1px 0; }
     </style>
 </head>
 <body>
@@ -544,6 +672,18 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
                     Kassieren
                 </button>
+                <button class="tab-btn" onclick="switchTab('fahrer')" id="tabFahrer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg>
+                    Fahrer
+                </button>
+                <button class="tab-btn" onclick="switchTab('fuhrpark')" id="tabFuhrpark">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 17h-2v-6l2-5h9l4 5h3a1 1 0 011 1v5h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>
+                    Fuhrpark
+                </button>
+                <button class="tab-btn" onclick="switchTab('verbindungen')" id="tabVerbindungen">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/><path d="M3 12h4M17 12h4"/><circle cx="12" cy="12" r="9"/></svg>
+                    Verbindungen<span class="tab-warn" id="vbWarn"></span>
+                </button>
                 <button class="tab-btn" onclick="switchTab('abrbot')" id="tabAbrBot">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                     Upload
@@ -553,6 +693,10 @@
                     Rechnungen
                 </button>
             </div>
+            <button class="burger" onclick="menueAuf()" aria-label="Menü">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+                <span class="tab-warn" id="vbWarnBurger"></span>
+            </button>
             <div class="header-actions">
                 <button class="theme-toggle" id="themeToggle" title="Theme wechseln">
                     <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
@@ -771,6 +915,105 @@
         </div><!-- end reContentArchiv -->
     </div><!-- end contentRechnungen -->
 
+    <div class="tab-content" id="contentFahrer">
+        <div class="hero">
+            <div class="hero-top">
+                <div class="week-pick"><span style="font-size:18px;font-weight:700">Fahrer</span></div>
+                <div class="hero-big"><b id="fzCountBig">--</b><small id="fzCountSub">angezeigt</small></div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-item"><small>Mit Problem</small><b id="fzKpiProblem">--</b></div>
+                <div class="kpi-item"><small>Offene Salden</small><b class="err" id="fzKpiSaldo">--</b></div>
+                <div class="kpi-item"><small>Bolt-Konten</small><b id="fzKpiBolt">--</b></div>
+                <div class="kpi-item"><small>Fahrten 30 Tage</small><b id="fzKpiFahrten">--</b></div>
+            </div>
+        </div>
+        <div class="toolbar">
+            <input type="text" class="search" id="fzSearch" placeholder="Name, Kennzeichen, ID">
+            <button class="chip active" data-fz="alle">Alle <span class="cnt" id="fzCntAlle"></span></button>
+            <button class="chip" data-fz="problem">Mit Problem <span class="cnt" id="fzCntProblem"></span></button>
+            <button class="chip" data-fz="archiv">Archiviert <span class="cnt" id="fzCntArchiv"></span></button>
+            <div class="sp"></div>
+            <span class="badge" id="fzShown"></span>
+        </div>
+        <div class="split">
+            <div class="split-main">
+                <table class="data-table" id="fzTable">
+                    <thead><tr>
+                        <th data-fzsort="name">Name</th>
+                        <th data-fzsort="notion_fahrer_id">Fahrer-ID</th>
+                        <th data-fzsort="kennzeichen">Kennzeichen</th>
+                        <th data-fzsort="marke">Marke</th>
+                        <th data-fzsort="modell">Modell</th>
+                        <th data-fzsort="offen">Saldo</th>
+                        <th data-fzsort="letzte_auszahlung">Zahlung</th>
+                    </tr></thead>
+                    <tbody id="fzBody"><tr><td colspan="7" class="empty">Lade ...</td></tr></tbody>
+                </table>
+            </div>
+            <div class="side-panel" id="fzPanel"><div class="placeholder">Fahrer auswählen</div></div>
+        </div>
+    </div>
+    <div class="tab-content" id="contentFuhrpark">
+        <div class="hero">
+            <div class="hero-top">
+                <div class="week-pick"><span style="font-size:18px;font-weight:700">Fuhrpark</span></div>
+                <div class="hero-big"><b id="fpCountBig">--</b><small id="fpCountSub">angezeigt</small></div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-item"><small>Angemeldet</small><b id="fpKpiFlotte">--</b></div>
+                <div class="kpi-item"><small>Pauschalen / Monat</small><b class="ok" id="fpKpiPauschale">--</b></div>
+                <div class="kpi-item"><small>Steht still (30 Tage)</small><b class="err" id="fpKpiStillstand">--</b></div>
+                <div class="kpi-item"><small>Zu klären</small><b id="fpKpiKlaeren">--</b></div>
+            </div>
+        </div>
+        <div class="toolbar">
+            <input type="text" class="search" id="fpSearch" placeholder="Kennzeichen, Modell, Fahrer">
+            <button class="chip active" data-fp="alle">Alle <span class="cnt" id="fpCntAlle"></span></button>
+            <button class="chip" data-fp="abweichung">Abweichung <span class="cnt" id="fpCntAbw"></span></button>
+            <button class="chip" data-fp="problem">Mit Problem <span class="cnt" id="fpCntProblem"></span></button>
+            <button class="chip" data-fp="abgemeldet">Abgemeldet <span class="cnt" id="fpCntAb"></span></button>
+            <div class="sp"></div>
+            <span class="badge" id="fpShown"></span>
+        </div>
+        <div class="split">
+            <div class="split-main">
+                <table class="data-table" id="fpTable">
+                    <thead><tr>
+                        <th data-fpsort="kennzeichen">Kennzeichen</th>
+                        <th data-fpsort="quellen">Quellen</th>
+                        <th data-fpsort="fahrer_notion">Fahrer laut Notion</th>
+                        <th data-fpsort="fahrer_bolt">laut Bolt</th>
+                        <th data-fpsort="fahrer_uber">laut Uber</th>
+                        <th data-fpsort="pauschale">Pauschale</th>
+                        <th data-fpsort="fahrten_30t">Fahrten 30T</th>
+                    </tr></thead>
+                    <tbody id="fpBody"><tr><td colspan="7" class="empty">Lade ...</td></tr></tbody>
+                </table>
+            </div>
+            <div class="side-panel" id="fpPanel"><div class="placeholder">Fahrzeug auswählen</div></div>
+        </div>
+    </div>
+    <div class="menue" id="menue">
+        <div class="menue-liste">
+            <button onclick="switchTab('abrechnungen')" data-menue="abrechnungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Abrechnung</button>
+            <button onclick="switchTab('muessenzahlen')" data-menue="muessenzahlen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Kassieren</button>
+            <button onclick="switchTab('fahrer')" data-menue="fahrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg>Fahrer</button>
+            <button onclick="switchTab('fuhrpark')" data-menue="fuhrpark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 17h-2v-6l2-5h9l4 5h3a1 1 0 011 1v5h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>Fuhrpark</button>
+            <button onclick="switchTab('verbindungen')" data-menue="verbindungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/><path d="M3 12h4M17 12h4"/><circle cx="12" cy="12" r="9"/></svg>Verbindungen<span class="tab-warn" id="vbWarnMenue"></span></button>
+            <button onclick="switchTab('abrbot')" data-menue="abrbot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload</button>
+            <button onclick="switchTab('rechnungen')" data-menue="rechnungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Rechnungen</button>
+        </div>
+    </div>
+    <div class="tab-content" id="contentVerbindungen">
+        <div class="hero">
+            <div class="hero-top">
+                <div class="week-pick"><span style="font-size:18px;font-weight:700">Verbindungen</span></div>
+                <div class="hero-big"><b id="vbCountBig">--</b><small id="vbCountSub">in Ordnung</small></div>
+            </div>
+        </div>
+        <div class="vb-grid" id="vbGrid"><div class="sub" style="padding:20px">Lade ...</div></div>
+    </div>
     <div class="tab-content" id="contentAbrBot">
         <div class="hero">
             <div class="hero-top">
@@ -1259,7 +1502,12 @@
             document.getElementById('warnOnlyFilter').addEventListener('click', function() { warnOnly = !warnOnly; this.classList.toggle('active', warnOnly); syncAllChip(); render(); });
             document.getElementById('lohnFilter').addEventListener('click', function() { lohnOnly = !lohnOnly; this.classList.toggle('active', lohnOnly); if (lohnOnly) { sortBy = 'lohn_desc'; updateSortUI(); } syncAllChip(); render(); });
             document.getElementById('excludedFilter').addEventListener('click', function() { showExcluded = !showExcluded; this.classList.toggle('active', showExcluded); document.getElementById('excludedPanel').classList.toggle('show', showExcluded); });
-            window.matchMedia('(max-width: 768px)').addEventListener('change', function() { render(); }); document.getElementById('printAllBtn').addEventListener('click', printAllDrivers); document.getElementById('exportBtn').addEventListener('click', exportCSV); document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); }); document.getElementById('logoutBtn').addEventListener('click', async function() { try { await getSupabase().auth.signOut(); } catch (e) {} localStorage.removeItem('hydralink_session'); window.location.href = 'index.html'; });
+            window.matchMedia('(max-width: 768px)').addEventListener('change', function() {
+                render();
+                if (fzLoaded) renderFahrer();
+                if (fpLoaded) renderFuhrpark();
+                menueZu();
+            }); document.getElementById('printAllBtn').addEventListener('click', printAllDrivers); document.getElementById('exportBtn').addEventListener('click', exportCSV); document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); }); document.getElementById('logoutBtn').addEventListener('click', async function() { try { await getSupabase().auth.signOut(); } catch (e) {} localStorage.removeItem('hydralink_session'); window.location.href = 'index.html'; });
             /* Signierte PDF-URL (privater Bucket) */
         document.addEventListener('click', async function(e) {
             const a = e.target.closest('a[data-pdf-path]');
@@ -1291,7 +1539,7 @@
                 el.addEventListener('change', function(e) { const t = e.target; if (t && t.classList && t.classList.contains('lohn-input')) { saveLohn(parseInt(t.getAttribute('data-lohn-id'), 10), t.value); } });
                 el.addEventListener('keydown', function(e) { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('lohn-input')) { e.target.blur(); } });
             });
-            loadData(); });
+            loadData(); pruefeVerbindungen(); });
         function detailHtml(s, editLohn) {
             const korr = parseFloat(s.korrektur) || 0;
             const net = netAuszahlung(s);
@@ -1561,7 +1809,554 @@
             }
             renderMuessenZahlen();
         }
+        /* Kennzeichen als oesterreichische Tafel. Zusaetze wie "(neu)" werden
+           fuer die Anzeige abgeschnitten, der gespeicherte Wert bleibt unberuehrt. */
+        function kzHtml(k) {
+            if (!k) return '-';
+            const rein = String(k).split('(')[0].trim().toUpperCase();
+            if (!rein) return '-';
+            const m = rein.match(/^([A-ZÄÖÜ]{1,2})[\s-]*(.+)$/);
+            const inhalt = m
+                ? esc(m[1]) + '<i></i>' + esc(m[2].replace(/\s+/g, ' '))
+                : esc(rein);
+            return '<span class="kz"><span class="eu">A</span><b>' + inhalt + '</b></span>';
+        }
+
+        /* === FAHRER-TAB === */
+        /* Alles Rechnen passiert in der View public.fahrer_uebersicht.
+           Hier wird nur gefiltert, sortiert und angezeigt. */
+        let FZ = [], fzFilter = 'alle', fzSearch = '', fzSort = 'name', fzDir = 1, fzSel = null, fzLoaded = false;
+
+        function fzProbleme(f) { return (f.probleme || []).filter(Boolean); }
+
+        async function initFahrer() {
+            if (fzLoaded) return;
+            fzLoaded = true;
+            document.getElementById('fzSearch').addEventListener('input', function (e) {
+                fzSearch = e.target.value.toLowerCase().trim(); renderFahrer();
+            });
+            document.querySelectorAll('[data-fz]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    document.querySelectorAll('[data-fz]').forEach(function (x) { x.classList.remove('active'); });
+                    b.classList.add('active'); fzFilter = b.dataset.fz; renderFahrer();
+                });
+            });
+            document.querySelectorAll('[data-fzsort]').forEach(function (th) {
+                th.addEventListener('click', function () {
+                    const k = th.dataset.fzsort;
+                    if (fzSort === k) { fzDir = -fzDir; } else { fzSort = k; fzDir = 1; }
+                    renderFahrer();
+                });
+            });
+            try {
+                const res = await getSupabase().from('fahrer_uebersicht').select('*');
+                if (res.error) throw res.error;
+                FZ = res.data || [];
+            } catch (e) {
+                document.getElementById('fzBody').innerHTML =
+                    '<tr><td colspan="7" class="empty">Fehler beim Laden: ' + esc(e.message || String(e)) + '</td></tr>';
+                return;
+            }
+            renderFahrer();
+        }
+
+        function fzListe() {
+            let rows = FZ.slice();
+            if (fzFilter === 'problem') { rows = rows.filter(function (f) { return f.aktiv && fzProbleme(f).length; }); }
+            else if (fzFilter === 'archiv') { rows = rows.filter(function (f) { return !f.aktiv; }); }
+            else { rows = rows.filter(function (f) { return f.aktiv; }); }
+            if (fzSearch) {
+                rows = rows.filter(function (f) {
+                    return (f.name || '').toLowerCase().indexOf(fzSearch) >= 0
+                        || (f.kennzeichen || '').toLowerCase().indexOf(fzSearch) >= 0
+                        || String(f.notion_fahrer_id || '').indexOf(fzSearch) >= 0
+                        || (f.telefon || '').indexOf(fzSearch) >= 0;
+                });
+            }
+            const zahl = ['notion_fahrer_id', 'offen', 'letzte_auszahlung', 'fahrten_30t', 'bolt_konten', 'baujahr'];
+            const istZahl = zahl.indexOf(fzSort) >= 0;
+            rows.sort(function (a, b) {
+                if (istZahl) { return ((parseFloat(a[fzSort]) || 0) - (parseFloat(b[fzSort]) || 0)) * fzDir; }
+                return String(a[fzSort] || '').localeCompare(String(b[fzSort] || ''), 'de') * fzDir;
+            });
+            return rows;
+        }
+
+        function renderFahrer() {
+            const aktiv = FZ.filter(function (f) { return f.aktiv; });
+            const mitProblem = aktiv.filter(function (f) { return fzProbleme(f).length; }).length;
+            document.getElementById('fzCntAlle').textContent = aktiv.length;
+            document.getElementById('fzCntProblem').textContent = mitProblem;
+            document.getElementById('fzCntArchiv').textContent = FZ.length - aktiv.length;
+            document.getElementById('fzKpiProblem').textContent = mitProblem;
+            document.getElementById('fzKpiSaldo').textContent =
+                fmt(aktiv.reduce(function (s, f) { return s + (parseFloat(f.offen) || 0); }, 0));
+            document.getElementById('fzKpiBolt').textContent =
+                aktiv.reduce(function (s, f) { return s + (f.bolt_konten || 0); }, 0);
+            document.getElementById('fzKpiFahrten').textContent =
+                fmtInt(aktiv.reduce(function (s, f) { return s + (f.fahrten_30t || 0); }, 0));
+
+            const rows = fzListe();
+            document.getElementById('fzCountBig').textContent = rows.length;
+            document.getElementById('fzShown').textContent = rows.length + ' / ' + aktiv.length + ' Fahrer';
+            document.querySelectorAll('[data-fzsort]').forEach(function (th) {
+                th.classList.toggle('sorted', th.dataset.fzsort === fzSort);
+            });
+
+            const body = document.getElementById('fzBody');
+            if (!rows.length) { body.innerHTML = '<tr><td colspan="7" class="empty">Kein Fahrer gefunden.</td></tr>'; return; }
+
+            const mobil = isMobile();
+            body.innerHTML = rows.map(function (f) {
+                const p = fzProbleme(f);
+                const offen = parseFloat(f.offen) || 0;
+                const zahlung = f.letzte_auszahlung == null ? null : parseFloat(f.letzte_auszahlung);
+                const sel = fzSel === f.fahrer_id;
+                const punkt = '<span class="prob-dot' + (p.length ? '' : ' leer') + '"></span>';
+                const klick = ' onclick="selectFahrer(' + f.fahrer_id + ')"';
+
+                if (mobil) {
+                    // Drei Spalten: Name, Kennzeichen, Zahlung. Rest im Aufklapper.
+                    return '<tr' + (sel ? ' class="selected"' : '') + klick + '>' +
+                        '<td><span class="fz-main"><b>' + punkt + esc(f.name) + '</b>' +
+                            '<small>' + esc(f.telefon || '-') + '</small></span></td>' +
+                        '<td>' + kzHtml(f.kennzeichen) +
+                            '<span class="zeile-sub">Nr. ' +
+                            (f.notion_fahrer_id == null ? '-' : f.notion_fahrer_id) + '</span></td>' +
+                        '<td class="pay' + (zahlung != null && zahlung < 0 ? ' neg' : '') + '">' +
+                            (zahlung == null ? '-' : fmt(zahlung)) +
+                            (offen > 0 ? '<span class="zeile-sub neg">' + fmt(offen) + ' offen</span>' : '') +
+                        '</td>' +
+                    '</tr>' +
+                    (sel ? '<tr class="detail-row"><td colspan="3">' + fzDetailHtml(f) + '</td></tr>' : '');
+                }
+
+                return '<tr' + (sel ? ' class="selected"' : '') + klick + '>' +
+                    '<td><span class="fz-main"><b>' + punkt + esc(f.name) + '</b>' +
+                        '<small>' + esc(f.telefon || '-') + '</small></span></td>' +
+                    '<td class="fz-id">' + (f.notion_fahrer_id == null ? '-' : f.notion_fahrer_id) + '</td>' +
+                    '<td>' + kzHtml(f.kennzeichen) + '</td>' +
+                    '<td>' + esc(f.marke || '-') + '</td>' +
+                    '<td>' + esc(f.modell || '-') + '</td>' +
+                    '<td class="' + (offen > 0 ? 'neg' : 'zero') + '">' + (offen > 0 ? fmt(offen) : '-') + '</td>' +
+                    '<td class="pay' + (zahlung != null && zahlung < 0 ? ' neg' : '') + '">' +
+                        (zahlung == null ? '-' : fmt(zahlung)) + '</td>' +
+                '</tr>';
+            }).join('');
+
+            const panel = document.getElementById('fzPanel');
+            if (mobil) { panel.innerHTML = ''; }
+            else {
+                const f = fzSel ? FZ.filter(function (x) { return x.fahrer_id === fzSel; })[0] : null;
+                panel.innerHTML = f ? fzDetailHtml(f)
+                    : '<div class="placeholder">Fahrer auswählen</div>';
+            }
+        }
+
+        function selectFahrer(id) {
+            fzSel = (fzSel === id && isMobile()) ? null : id;     // nochmal tippen = zuklappen
+            renderFahrer();
+        }
+
+        function fzDetailHtml(f) {
+            const p = fzProbleme(f);
+            const offen = parseFloat(f.offen) || 0;
+            function kv(k, v, cls) {
+                return '<div class="detail-kv' + (cls ? ' ' + cls : '') + '"><span>' + k + '</span><span>' + v + '</span></div>';
+            }
+            return '<div class="detail">' +
+                '<h4>' + esc(f.name) + '</h4>' +
+                '<div class="sub">Fahrer-ID ' + (f.notion_fahrer_id == null ? '-' : f.notion_fahrer_id) +
+                    ' &middot; ' + esc(f.telefon || 'keine Nummer') + '</div>' +
+                '<div class="pay' + (offen > 0 ? ' neg' : '') + '">' +
+                    (offen > 0 ? fmt(offen) : (f.letzte_auszahlung == null ? '-' : fmt(f.letzte_auszahlung))) + '</div>' +
+                '<div class="sub">' + (offen > 0 ? 'offener Saldo' : 'Auszahlung ' + esc(f.letzte_woche || '-')) + '</div>' +
+                (p.length ? '<div class="detail-sec">Probleme</div><ul class="prob-list">' +
+                    p.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
+                '<div class="detail-sec">Fahrzeug</div>' +
+                kv('Kennzeichen', kzHtml(f.kennzeichen)) +
+                kv('Modell', esc([f.marke, f.modell].filter(Boolean).join(' ') || '-')) +
+                kv('Baujahr', f.baujahr == null ? '-' : f.baujahr) +
+                kv('Farbe', esc(f.farbe || '-')) +
+                '<div class="detail-sec">Bolt</div>' +
+                kv('Konten', (f.bolt_konten || 0) + ' (' + (f.bolt_konten_aktiv || 0) + ' aktiv)') +
+                kv('Bewertung', f.bolt_bewertung == null ? '-' : parseFloat(f.bolt_bewertung).toFixed(2)) +
+                kv('Fahrten 30 Tage', fmtInt(f.fahrten_30t || 0)) +
+                '<div class="detail-sec">Abrechnung</div>' +
+                kv('Mietmodell', esc(f.mietmodell || '-')) +
+                kv('Letzte Woche', esc(f.letzte_woche || '-')) +
+                kv('Auszahlung', f.letzte_auszahlung == null ? '-' : fmt(f.letzte_auszahlung), 'strong') +
+                kv('Offener Saldo', offen > 0 ? fmt(offen) : '-', 'strong') +
+            '</div>';
+        }
+
+        /* === FUHRPARK-TAB === */
+        /* Datenquelle: public.fuhrpark_uebersicht - vereinigt Notion, Bolt und Uber.
+           Der Tab zeigt die drei Quellen nebeneinander, damit sichtbar wird, wo
+           Notion noch stimmt. Das ist die Vorstufe zur Abloesung, nichts wird
+           automatisch uebernommen. */
+        let FP = [], fpFilter = 'alle', fpSearch = '', fpSort = 'kennzeichen', fpDir = 1, fpSel = null, fpLoaded = false;
+
+        function fpProbleme(v) { return (v.probleme || []).filter(Boolean); }
+        function fpDatum(d) {
+            if (!d) return '-';
+            const t = new Date(d + 'T00:00:00');
+            return isNaN(t) ? '-' : t.toLocaleDateString('de-AT');
+        }
+        function fpUeberfaellig(d) {
+            if (!d) return false;
+            return new Date(d + 'T00:00:00') < new Date(new Date().toDateString());
+        }
+        function fpQuellen(v) {
+            const q = v.quellen || [];
+            return '<span class="srcs">' + ['Notion', 'Bolt', 'Uber'].map(function (name) {
+                const an = q.indexOf(name) >= 0;
+                return '<span class="src ' + name.toLowerCase() + (an ? ' on' : ' off') + '" title="' +
+                    name + (an ? ' kennt dieses Fahrzeug' : ' kennt dieses Fahrzeug nicht') + '">' +
+                    name[0] + '</span>';
+            }).join('') + '</span>';
+        }
+
+        async function initFuhrpark() {
+            if (fpLoaded) return;
+            fpLoaded = true;
+            document.getElementById('fpSearch').addEventListener('input', function (e) {
+                fpSearch = e.target.value.toLowerCase().trim(); renderFuhrpark();
+            });
+            document.querySelectorAll('[data-fp]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    document.querySelectorAll('[data-fp]').forEach(function (x) { x.classList.remove('active'); });
+                    b.classList.add('active'); fpFilter = b.dataset.fp; renderFuhrpark();
+                });
+            });
+            document.querySelectorAll('[data-fpsort]').forEach(function (th) {
+                th.addEventListener('click', function () {
+                    const k = th.dataset.fpsort;
+                    if (fpSort === k) { fpDir = -fpDir; } else { fpSort = k; fpDir = 1; }
+                    renderFuhrpark();
+                });
+            });
+            try {
+                const res = await getSupabase().from('fuhrpark_uebersicht').select('*');
+                if (res.error) throw res.error;
+                FP = res.data || [];
+            } catch (e) {
+                document.getElementById('fpBody').innerHTML =
+                    '<tr><td colspan="7" class="empty">Fehler beim Laden: ' + esc(e.message || String(e)) + '</td></tr>';
+                return;
+            }
+            renderFuhrpark();
+        }
+
+        function fpAbweichend(v) {
+            return v.fahrer_befund === 'weicht ab' || v.fahrer_befund === 'nur Plattform';
+        }
+
+        function fpListe() {
+            let rows = FP.slice();
+            if (fpFilter === 'abweichung')      { rows = rows.filter(fpAbweichend); }
+            else if (fpFilter === 'problem')    { rows = rows.filter(function (v) { return fpProbleme(v).length; }); }
+            else if (fpFilter === 'abgemeldet') { rows = rows.filter(function (v) { return !v.angemeldet; }); }
+            if (fpSearch) {
+                rows = rows.filter(function (v) {
+                    return (v.kennzeichen || '').toLowerCase().indexOf(fpSearch) >= 0
+                        || (v.modell || '').toLowerCase().indexOf(fpSearch) >= 0
+                        || (v.fahrer_notion || '').toLowerCase().indexOf(fpSearch) >= 0
+                        || (v.fahrer_bolt || '').toLowerCase().indexOf(fpSearch) >= 0
+                        || (v.fahrer_uber || '').toLowerCase().indexOf(fpSearch) >= 0
+                        || (v.vin || '').toLowerCase().indexOf(fpSearch) >= 0;
+                });
+            }
+            const zahl = ['pauschale', 'fahrten_30t', 'bolt_fahrten_30t', 'uber_fahrten_30t',
+                          'bolt_umsatz_30t', 'baujahr'];
+            const istZahl = zahl.indexOf(fpSort) >= 0;
+            rows.sort(function (a, b) {
+                if (istZahl) { return ((parseFloat(a[fpSort]) || 0) - (parseFloat(b[fpSort]) || 0)) * fpDir; }
+                const x = Array.isArray(a[fpSort]) ? a[fpSort].join(' ') : a[fpSort];
+                const y = Array.isArray(b[fpSort]) ? b[fpSort].join(' ') : b[fpSort];
+                return String(x || '').localeCompare(String(y || ''), 'de') * fpDir;
+            });
+            return rows;
+        }
+
+        function renderFuhrpark() {
+            const abw = FP.filter(fpAbweichend).length;
+            document.getElementById('fpCntAlle').textContent    = FP.length;
+            document.getElementById('fpCntAbw').textContent     = abw;
+            document.getElementById('fpCntProblem').textContent = FP.filter(function (v) { return fpProbleme(v).length; }).length;
+            document.getElementById('fpCntAb').textContent      = FP.filter(function (v) { return !v.angemeldet; }).length;
+            // Kacheln: je eine Frage, die man als Flottenbetreiber wirklich hat.
+            const angemeldet = FP.filter(function (v) { return v.angemeldet; });
+            // Steht still und kostet trotzdem Miete - das ist totes Geld.
+            const still = angemeldet.filter(function (v) {
+                return (v.fahrten_30t || 0) === 0 && (parseFloat(v.pauschale) || 0) > 0;
+            });
+            const stillGeld = still.reduce(function (s, v) { return s + (parseFloat(v.pauschale) || 0); }, 0);
+            document.getElementById('fpKpiFlotte').textContent =
+                angemeldet.length + ' / ' + FP.length;
+            document.getElementById('fpKpiPauschale').textContent =
+                fmt(angemeldet.reduce(function (s, v) { return s + (parseFloat(v.pauschale) || 0); }, 0));
+            document.getElementById('fpKpiStillstand').textContent =
+                still.length + (still.length ? '  ·  ' + fmt(stillGeld) : '');
+            document.getElementById('fpKpiKlaeren').textContent = abw;
+
+            const rows = fpListe();
+            document.getElementById('fpCountBig').textContent = rows.length;
+            document.getElementById('fpShown').textContent = rows.length + ' / ' + FP.length + ' Fahrzeuge';
+            document.querySelectorAll('[data-fpsort]').forEach(function (th) {
+                th.classList.toggle('sorted', th.dataset.fpsort === fpSort);
+            });
+
+            const body = document.getElementById('fpBody');
+            if (!rows.length) { body.innerHTML = '<tr><td colspan="7" class="empty">Kein Fahrzeug gefunden.</td></tr>'; return; }
+
+            const mobil = isMobile();
+            body.innerHTML = rows.map(function (v) {
+                const p = fpProbleme(v);
+                const pausch = v.pauschale == null ? null : parseFloat(v.pauschale);
+                const f30 = v.fahrten_30t || 0;
+                const sel = fpSel === v.kennzeichen_key;
+                const klick = ' onclick="selectFuhrpark(' +
+                    JSON.stringify(v.kennzeichen_key).replace(/"/g, '&quot;') + ')"';
+                const punkt = '<span class="prob-dot' + (p.length ? '' : ' leer') + '"></span>';
+
+                if (mobil) {
+                    // Drei Spalten: Kennzeichen, wer faehrt, Fahrten. Alles Weitere
+                    // steckt im Aufklapper darunter.
+                    const wer = v.fahrer_notion || v.fahrer_bolt || v.fahrer_uber;
+                    const streit = v.fahrer_befund === 'weicht ab' || v.fahrer_befund === 'nur Plattform';
+                    return '<tr' + (sel ? ' class="selected"' : '') + klick + '>' +
+                        '<td><span class="fz-main"><span>' + punkt + kzHtml(v.kennzeichen) + '</span>' +
+                            '<small>' + esc(v.modell || '-') + '</small></span></td>' +
+                        '<td class="' + (streit ? 'fahrer-abw' : '') + '">' + esc(wer || '-') +
+                            '<span class="zeile-sub">' + fpQuellen(v) + '</span></td>' +
+                        '<td class="pay' + (f30 === 0 ? ' zero' : '') + '">' +
+                            (f30 === 0 ? '-' : fmtInt(f30)) +
+                            '<span class="zeile-sub">' + (pausch == null ? '-' : fmt(pausch)) + '</span></td>' +
+                    '</tr>' +
+                    (sel ? '<tr class="detail-row"><td colspan="3">' + fpDetailHtml(v) + '</td></tr>' : '');
+                }
+
+                const anders = function (name) {
+                    return name && v.fahrer_notion && name !== v.fahrer_notion ? ' class="fahrer-abw"' : '';
+                };
+                return '<tr' + (sel ? ' class="selected"' : '') + klick + '>' +
+                    '<td><span class="fz-main"><span>' + punkt + kzHtml(v.kennzeichen) + '</span>' +
+                        '<small>' + esc(v.modell || '-') + '</small></span></td>' +
+                    '<td>' + fpQuellen(v) + '</td>' +
+                    '<td>' + esc(v.fahrer_notion || '-') + '</td>' +
+                    '<td' + anders(v.fahrer_bolt) + '>' + esc(v.fahrer_bolt || '-') +
+                        (v.bolt_fahrten_hauptfahrer ? ' <span class="badge">' + v.bolt_fahrten_hauptfahrer + '</span>' : '') + '</td>' +
+                    '<td' + anders(v.fahrer_uber) + '>' + esc(v.fahrer_uber || '-') +
+                        (v.uber_fahrten_hauptfahrer ? ' <span class="badge">' + v.uber_fahrten_hauptfahrer + '</span>' : '') + '</td>' +
+                    '<td class="' + (pausch == null ? 'zero' : '') + '">' +
+                        (pausch == null ? '-' : fmt(pausch) +
+                            (v.pauschal_modell ? ' <span class="badge">' + esc(v.pauschal_modell) + '</span>' : '')) + '</td>' +
+                    '<td class="pay' + (f30 === 0 ? ' zero' : '') + '">' + (f30 === 0 ? '-' : fmtInt(f30)) + '</td>' +
+                '</tr>';
+            }).join('');
+
+            // Seitenspalte nur am Schreibtisch; mobil steckt dasselbe im Aufklapper.
+            const panel = document.getElementById('fpPanel');
+            if (mobil) { panel.innerHTML = ''; }
+            else {
+                const v = fpSel ? FP.filter(function (x) { return x.kennzeichen_key === fpSel; })[0] : null;
+                panel.innerHTML = v ? fpDetailHtml(v)
+                    : '<div class="placeholder">Fahrzeug auswählen</div>';
+            }
+        }
+
+        /* Auswaehlen heisst nur: merken und neu zeichnen. Wohin die Details
+           wandern - Seitenspalte oder Aufklapper - entscheidet renderFuhrpark(). */
+        function selectFuhrpark(key) {
+            fpSel = (fpSel === key && isMobile()) ? null : key;   // nochmal tippen = zuklappen
+            renderFuhrpark();
+        }
+
+        function fpDetailHtml(v) {
+            const p = fpProbleme(v);
+            function kv(k, val, cls) {
+                return '<div class="detail-kv' + (cls ? ' ' + cls : '') + '"><span>' + k + '</span><span>' + val + '</span></div>';
+            }
+            const jaNein = function (b) { return b ? 'ja' : 'nein'; };
+            const fahrer = function (label, name, n) {
+                const rot = name && v.fahrer_notion && name !== v.fahrer_notion;
+                return kv(label, '<span' + (rot ? ' class="fahrer-abw"' : '') + '>' + esc(name || '-') +
+                    (n ? ' (' + n + ')' : '') + '</span>');
+            };
+            return '<div class="detail">' +
+                '<h4 style="line-height:1.6">' + kzHtml(v.kennzeichen) + '</h4>' +
+                '<div class="sub">' + esc(v.modell || '-') +
+                    (v.baujahr ? ' &middot; ' + v.baujahr : '') +
+                    (v.firma ? ' &middot; ' + esc(v.firma) : '') + '</div>' +
+                '<div style="margin:8px 0">' + fpQuellen(v) + '</div>' +
+                '<div class="pay">' + (v.pauschale == null ? '-' : fmt(v.pauschale)) + '</div>' +
+                '<div class="sub">Pauschale' + (v.pauschal_modell ? ' (' + esc(v.pauschal_modell) + ')' : '') + '</div>' +
+                (p.length ? '<div class="detail-sec">Probleme</div><ul class="prob-list">' +
+                    p.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
+                '<div class="detail-sec">Wer fährt das Auto</div>' +
+                fahrer('laut Notion', v.fahrer_notion, null) +
+                fahrer('laut Bolt', v.fahrer_bolt, v.bolt_fahrten_hauptfahrer) +
+                fahrer('laut Uber', v.fahrer_uber, v.uber_fahrten_hauptfahrer) +
+                kv('Befund', esc(v.fahrer_befund || '-')) +
+                '<div class="detail-sec">Letzte 30 Tage</div>' +
+                kv('Fahrten Bolt', fmtInt(v.bolt_fahrten_30t || 0)) +
+                kv('Fahrten Uber', fmtInt(v.uber_fahrten_30t || 0)) +
+                kv('Umsatz Bolt', fmt(v.bolt_umsatz_30t)) +
+                kv('Uber-Umsatz (Woche)', v.uber_umsatz_woche == null ? '-' : fmt(v.uber_umsatz_woche)) +
+                kv('Uber-Stunden (Woche)', v.uber_stunden_woche == null ? '-' : v.uber_stunden_woche) +
+                '<div class="detail-sec">Fahrzeug</div>' +
+                kv('Eigentümer', esc((v.eigentuemer || []).join(', ') || '-')) +
+                kv('Farbe', esc(v.farbe || '-')) +
+                kv('Sitze', v.sitze == null ? '-' : v.sitze) +
+                kv('Fahrgestellnr.', esc(v.vin || '-')) +
+                kv('Kilometerstand', esc(v.kilometerstand || '-')) +
+                kv('Taxameter', esc((v.taxameter || []).join(', ') || '-')) +
+                kv('Bolt-Werbung', jaNein(v.bolt_werbung)) +
+                kv('Dashcam', jaNein(v.dashcam)) +
+                '<div class="detail-sec">Papiere</div>' +
+                kv('Pickerl bis', '<span class="' + (fpUeberfaellig(v.ablauf_pickerl) ? 'neg' : '') + '">' +
+                    fpDatum(v.ablauf_pickerl) + '</span>') +
+                kv('Polizze', esc(v.polizze || '-')) +
+                kv('Versicherung', esc(v.versicherung_monatlich || '-')) +
+            '</div>';
+        }
+
+        /* Burger-Menü. Nur auf dem Handy sichtbar; am Schreibtisch bleiben die Reiter. */
+        function menueAuf() {
+            const m = document.getElementById('menue');
+            if (!m) return;
+            const aktiv = localStorage.getItem('hydralink_tab') || 'abrechnungen';
+            m.querySelectorAll('[data-menue]').forEach(function (b) {
+                b.classList.toggle('aktiv', b.dataset.menue === aktiv);
+            });
+            m.classList.add('offen');
+        }
+        function menueZu() {
+            const m = document.getElementById('menue');
+            if (m) m.classList.remove('offen');
+        }
+
+        /* === VERBINDUNGEN: Statusseite === */
+        /* Datenquelle: public.verbindungen_status. Enthaelt bewusst KEINE
+           Zugangsdaten - nur Metadaten wie Ablaufdatum und Laufprotokoll.
+           Die View entschluesselt nichts. */
+        let VB = [], vbGeladen = false;
+
+        const VB_TITEL = { bolt: 'Bolt', uber: 'Uber', notion: 'Notion', mypos: 'myPOS' };
+
+        function vbStufe(befund) {
+            if (befund === 'Fehler' || befund === 'Zugang abgelaufen') return 'err';
+            if (befund === 'ok') return '';
+            return 'warn';
+        }
+        function vbZeit(t) {
+            if (!t) return 'nie';
+            const d = new Date(t);
+            if (isNaN(d)) return '-';
+            const min = Math.round((Date.now() - d.getTime()) / 60000);
+            if (min < 2) return 'gerade eben';
+            if (min < 90) return 'vor ' + min + ' Min';
+            const std = Math.round(min / 60);
+            if (std < 36) return 'vor ' + std + ' Std';
+            return 'vor ' + Math.round(std / 24) + ' Tagen';
+        }
+        const vbGenau = (t) => t ? new Date(t).toLocaleString('de-AT',
+            { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+
+        async function ladeVerbindungen() {
+            try {
+                const res = await getSupabase().from('verbindungen_status').select('*');
+                if (res.error) throw res.error;
+                VB = res.data || [];
+            } catch (e) { VB = null; return e.message || String(e); }
+            return null;
+        }
+
+        /* Laeuft beim Seitenstart, nicht erst beim Oeffnen des Tabs - der Punkt
+           am Reiter soll auffallen, ohne dass jemand nachsieht. */
+        async function pruefeVerbindungen() {
+            const fehler = await ladeVerbindungen();
+            const punkt = document.getElementById('vbWarn');
+            if (!punkt) return;
+            // Derselbe Zustand auf allen drei Punkten: Reiter, "Mehr"-Knopf und Blatt.
+            // Sonst waere die Warnung auf dem Handy unsichtbar, weil der Reiter
+            // dort hinter "Mehr" liegt.
+            const setze = function (klasse) {
+                ['vbWarn', 'vbWarnBurger', 'vbWarnMenue'].forEach(function (id) {
+                    const el = document.getElementById(id);
+                    if (el) el.className = klasse;
+                });
+            };
+            if (fehler || !VB) { setze('tab-warn an err'); return; }
+            const schlimm = VB.filter(function (v) { return vbStufe(v.befund) === 'err'; }).length;
+            const mild   = VB.filter(function (v) { return vbStufe(v.befund) === 'warn'; }).length;
+            setze('tab-warn' + (schlimm ? ' an err' : mild ? ' an' : ''));
+            if (vbGeladen) renderVerbindungen();
+        }
+
+        async function initVerbindungen() {
+            if (!vbGeladen) { vbGeladen = true; }
+            const fehler = await ladeVerbindungen();
+            if (fehler) {
+                document.getElementById('vbGrid').innerHTML =
+                    '<div class="vb-fehler">Konnte den Status nicht laden: ' + esc(fehler) + '</div>';
+                return;
+            }
+            renderVerbindungen();
+        }
+
+        function renderVerbindungen() {
+            const grid = document.getElementById('vbGrid');
+            if (!VB || !VB.length) {
+                grid.innerHTML = '<div class="sub" style="padding:20px">Keine Verbindungen eingerichtet.</div>';
+                document.getElementById('vbCountBig').textContent = '0';
+                return;
+            }
+            const ok = VB.filter(function (v) { return v.befund === 'ok'; }).length;
+            document.getElementById('vbCountBig').textContent = ok + ' / ' + VB.length;
+
+            function kv(k, v) { return '<div class="vb-kv"><span>' + k + '</span><span>' + v + '</span></div>'; }
+
+            grid.innerHTML = VB.map(function (v) {
+                const stufe = vbStufe(v.befund);
+                const titel = (VB_TITEL[v.anbieter] || v.anbieter) +
+                    (v.firma && v.firma !== '-' ? ' · ' + esc(v.firma) : '');
+                const lauf = v.letzter_lauf_status === 'ok'
+                    ? fmtInt(v.letzter_lauf_anzahl || 0) + ' Sätze in ' + (v.letzter_lauf_dauer || '?') + ' s'
+                    : (v.letzter_lauf_status ? 'fehlgeschlagen' : '-');
+
+                let zugang;
+                if (v.tage_bis_ablauf == null) {
+                    zugang = v.anbieter === 'bolt' ? 'Token je Lauf' : 'unbefristet';
+                } else {
+                    zugang = 'noch ' + v.tage_bis_ablauf + ' Tage';
+                }
+
+                return '<div class="vb-card' + (stufe ? ' ' + stufe : '') + '">' +
+                    '<div class="vb-top"><div><h4>' + titel + '</h4>' +
+                        (v.externe_id ? '<div class="sub">' + esc(v.externe_id) + '</div>' : '') +
+                    '</div><span class="vb-befund' + (stufe ? ' ' + stufe : '') + '">' +
+                        esc(v.befund) + '</span></div>' +
+                    '<div style="margin-top:9px"></div>' +
+                    kv('Letzter Lauf', vbZeit(v.letzter_lauf) +
+                        '<small style="color:var(--text-dim)"> · ' + vbGenau(v.letzter_lauf) + '</small>') +
+                    kv('Ergebnis', lauf) +
+                    kv('Läufe (7 Tage)', (v.laeufe_7t || 0) +
+                        (v.fehler_7t ? ', davon <span class="neg">' + v.fehler_7t + ' Fehler</span>' : '')) +
+                    kv('Zugang', zugang) +
+                    (v.daten_bis ? kv('Daten bis', esc(v.daten_bis)) : '') +
+                    (v.letzter_fehler
+                        ? '<div class="vb-fehler">' + esc(v.letzter_fehler) + '</div>' : '') +
+                    (!v.letzter_fehler && v.tage_bis_ablauf != null && v.tage_bis_ablauf <= 7
+                        ? '<div class="vb-hinweis">Zugang erneuern: Browserfenster öffnen, ' +
+                          'neu anmelden, scripts/uber-session-speichern.js laufen lassen.</div>' : '') +
+                '</div>';
+            }).join('');
+        }
+
         function switchTab(tab) {
+            menueZu();
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             if (tab === 'rechnungen') {
@@ -1572,6 +2367,18 @@
                 document.getElementById('tabAbrBot').classList.add('active');
                 document.getElementById('contentAbrBot').classList.add('active');
                 initAbrBot();
+            } else if (tab === 'verbindungen') {
+                document.getElementById('tabVerbindungen').classList.add('active');
+                document.getElementById('contentVerbindungen').classList.add('active');
+                initVerbindungen();
+            } else if (tab === 'fuhrpark') {
+                document.getElementById('tabFuhrpark').classList.add('active');
+                document.getElementById('contentFuhrpark').classList.add('active');
+                initFuhrpark();
+            } else if (tab === 'fahrer') {
+                document.getElementById('tabFahrer').classList.add('active');
+                document.getElementById('contentFahrer').classList.add('active');
+                initFahrer();
             } else if (tab === 'muessenzahlen') {
                 document.getElementById('tabMuessenZahlen').classList.add('active');
                 document.getElementById('contentMuessenZahlen').classList.add('active');
@@ -1598,6 +2405,9 @@
         if (savedTab === 'rechnungen') { switchTab('rechnungen'); }
         else if (savedTab === 'abrbot') { switchTab('abrbot'); }
         else if (savedTab === 'muessenzahlen') { switchTab('muessenzahlen'); }
+        else if (savedTab === 'fahrer') { switchTab('fahrer'); }
+        else if (savedTab === 'fuhrpark') { switchTab('fuhrpark'); }
+        else if (savedTab === 'verbindungen') { switchTab('verbindungen'); }
 
         function switchReSubTab(sub) {
             document.querySelectorAll('.re-sub-tab').forEach(b => b.classList.remove('active'));

@@ -133,15 +133,64 @@ abgemeldeten Audi, während er tatsächlich ein 550-€-Fahrzeug fährt.
 
 ### Drei Uber-Konten ohne Fahrer-Zuordnung, KW 2026-W38
 
-| Uber-Konto | Umsätze brutto | an die Firma gezahlt |
-|---|---|---|
-| Ossama Eid | 865,29 € | 775,95 € |
-| Suleiman Akhmadov | 308,63 € | 332,39 € |
-| Bislan Madaev | 275,29 € | 232,94 € |
-| **Summe** | **1.449,21 €** | **1.341,28 €** |
+| Uber-Konto | Fahrpreis | an die Firma gezahlt | abgerechnet? |
+|---|---|---|---|
+| Ossama Eid | 1.073,12 € | 775,95 € | ja, aber als `WARNUNG_KEIN_FAHRER` |
+| Suleiman Akhmadov | 386,66 € | 332,39 € | ja, auf "Suleyman Akhmadov" |
+| Bislan Madaev | 348,58 € | 232,94 € | ja, auf "Bislan Madaev" |
+| **Summe** | **1.808,36 €** | **1.341,28 €** | |
 
-"Suleiman Akhmadov" ist vermutlich der in Notion als "Suleyman" geführte Fahrer —
-**nicht bestätigt**, deshalb nicht zugeordnet.
+Wichtig: dieses Geld ist **nicht verloren**. Der CSV-Import hat es abgerechnet,
+nur ohne saubere Fahrerzuordnung. Die Beträge stimmen auf den Cent mit
+`settlements.uber_fahrpreis` überein — das **beweist**, dass "Suleiman
+Akhmadov" und "Suleyman Akhmadov" dieselbe Person sind. Ossama Eid trägt bis
+heute den Status `WARNUNG_KEIN_FAHRER`, also genau den Fehler, gegen den dieses
+Projekt gebaut wurde.
+
+Was fehlt, ist die Verknüpfung der drei Uber-Konten mit `fahrer.id`, damit der
+Abgleich künftig greift.
+
+## Der Abgleich im Abrechnungen-Tab
+
+View `abrechnung_abgleich`: je Woche und Fahrer stehen Bolt- und Uber-Zahlen aus
+der API neben `settlements`. Rein lesend. Im Abrechnungen-Tab erscheint darüber
+ein Kasten mit den Wochensummen, und Fahrer mit Abweichung bekommen ein **≠** in
+der Liste.
+
+Eine Plattform wird nur verglichen, wenn sie für die Woche überhaupt gesynct
+ist. Der erste Entwurf hatte das nicht: KW37 hat keine Uber-Daten, und die View
+meldete prompt 31 Abweichungen, die es nicht gab.
+
+### Was der Abgleich in KW 2026-W38 zeigt
+
+48 Fahrer: **42 stimmen exakt**, 5 weichen ab, 1 Fahrer liegt doppelt in `fahrer`.
+
+**Bislan Madaev: 758,70 € Bolt-Umsatz, nicht abgerechnet.**
+57 Fahrten in beiden Firmen (53 Serdo, 4 EH Limo), davon 30 bar über 352,60 €.
+In `settlements` steht `bolt_brutto = 0,00`, seine Auszahlung war 2,94 €. Das
+Bargeld ist bei ihm geblieben, die App-Fahrten (333,46 € netto) bei der Firma —
+verrechnet wurde nichts davon. **Das ist der Betrag, den der alte Weg übersehen
+hat, weil ein nicht zugeordneter Fahrer auf beiden Seiten unsichtbar ist.**
+
+**Aslanbek Dombaew liegt zweimal in `fahrer`** (633 und 639, beide Notion-Nr. 93,
+gleiche Telefonnummer). Das Uber-Konto hängt an 639, die Abrechnung an 633, also
+1.391,42 € auf zwei Zeilen. Kein Geldverlust, aber jede Zuordnung über diesen
+Fahrer ist Zufall, solange die Altzeile existiert.
+
+**Drei kleine Abweichungen** — Dragan Kovacs +33,11 €, Georgios Vavilin +32,75 €,
+Abdurakhman Eskiev +8,14 €, zusammen die bekannten 74,00 €. Das sind Ubers
+nachträgliche Korrekturen, kein Fehler im Import.
+
+### Korrektur zu den Bolt-Summen weiter oben
+
+Die geprüfte Gleichheit **16.990,60 € = 16.990,60 €** gilt für die Fahrer, die zu
+diesem Zeitpunkt zugeordnet waren. Sie war unvollständig: Bislan Madaevs 758,70 €
+fehlten auf **beiden** Seiten und fielen deshalb nicht auf. Mit Zuordnung lautet
+die Bolt-Summe aus der API **17.749,30 €** gegen 16.990,60 € abgerechnet.
+
+Daraus die eigentliche Lehre: eine Summe, die auf beiden Seiten dieselbe Lücke
+hat, stimmt und ist trotzdem falsch. Deshalb zählt `abrechnung_abgleich` auch
+Plattformkonten ohne Fahrer mit.
 
 ## Offene Punkte
 
@@ -155,10 +204,14 @@ abgemeldeten Audi, während er tatsächlich ein 550-€-Fahrzeug fährt.
    Nicht angefasst — das ist eine Entscheidung des Betreibers, keine technische.
 3. **`bolt_state_logs` ist angelegt, aber leer.** Offen, ob `lat`/`lng`
    gespeichert werden sollen (Standortdaten der Fahrer).
-4. **Die drei Uber-Konten oben** brauchen eine Bestätigung, wem sie gehören.
-5. **`uber-probe`** ist eine Wegwerf-Function aus der Erkundungsphase und noch
+4. **Die drei Uber-Konten oben** mit `fahrer.id` verknüpfen. Bei Suleiman/Suleyman
+   und Bislan Madaev ist die Identität über die Beträge belegt, bei Ossama Eid nicht.
+5. **Bislan Madaevs 758,70 € Bolt aus KW38** nachverrechnen — oder bewusst lassen.
+6. **Aslanbek Dombaew doppelt in `fahrer`** (633/639): die Altzeile gehört weg,
+   sonst bleibt jede Zuordnung über ihn Zufall.
+7. **`uber-probe`** ist eine Wegwerf-Function aus der Erkundungsphase und noch
    deployt. Kann gelöscht werden.
-6. **Vertauschtes Kennzeichenpaar und Aslan Abubakarovs Pauschale** müssen in
+8. **Vertauschtes Kennzeichenpaar und Aslan Abubakarovs Pauschale** müssen in
    Notion korrigiert werden, sonst rechnet der AbrechnungsBot weiter falsch.
 
 ## Fallen, die Zeit gekostet haben

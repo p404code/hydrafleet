@@ -36,6 +36,8 @@ Das Dashboard (`dashboard.html`) hat **7 Tabs**. Auf Mobil ersetzt ein Burger-Me
 die Tab-Leiste; Tabellen werden dort zu 3 Spalten + aufklappbarer `detail-row`.
 
 1. **Abrechnungen** — Wochenabrechnung je Fahrer aus `settlements`. Filter Woche/Fahrer/Status, Druck/WhatsApp.
+   Darüber der **Plattform-Abgleich** (`abrechnung_abgleich`): was Bolt und Uber für die Woche
+   melden, neben dem was abgerechnet wurde. Fahrer mit Abweichung bekommen ein `≠`.
 2. **Müssen zahlen** (Kassieren) — wochenübergreifende Schulden (`settlements.auszahlung < 0`), Zahlungen in `kassier_zahlungen`, "offen" wird live gerechnet. Nur anlegen + löschen, kein Update.
 3. **Fahrer** — Fahrer aus Notion neben ihren Bolt- und Uber-Konten (`fahrer_uebersicht`). Zeigt nicht zugeordnete Plattform-Konten.
 4. **Fuhrpark** — Fahrzeuge aus Notion, Bolt und Uber nebeneinander (`fuhrpark_uebersicht`), inkl. Fahrer-Zuordnung je Quelle und Konfliktmarkierung.
@@ -99,10 +101,11 @@ Verbindungen-Tab zeigt es an. Erneuern mit dem Skript oben.
 - `fuhrpark`, `notion_fahrer` — Notion-Lesekopien
 
 **Views (alle `security_invoker = true`):**
-`bolt_abgleich`, `fahrer_uebersicht`, `fuhrpark_uebersicht`, `zuordnung_abgleich`, `verbindungen_status`
+`abrechnung_abgleich`, `bolt_abgleich`, `fahrer_uebersicht`, `fuhrpark_uebersicht`, `zuordnung_abgleich`, `verbindungen_status`
 
 **Funktionen:** `verbindung_zugang`, `verbindung_setzen`, `kennzeichen_key`,
-`tel_key`, `name_key`, `fuhrpark_ersetzen`, `notion_zuordnung_aktualisieren`, `sync_takt`
+`tel_key`, `name_key`, `fuhrpark_ersetzen`, `notion_zuordnung_aktualisieren`,
+`settlement_fahrer`, `sync_takt`
 
 ## Key n8n Workflows
 
@@ -141,6 +144,15 @@ aktiviert ist — aktuell zwei.
   `/v1/databases/{id}/query` ist abgekündigt → `/v1/data_sources/{id}/query`.
 - **FKs auf `fahrer(id)` brauchen `ON DELETE SET NULL`**, sonst scheitert der
   bestehende n8n-Sync beim Löschen eines Fahrers.
+- **Fehlende Daten sind keine Abweichung.** Wird eine Plattform für eine Woche nicht
+  gesynct, darf der Abgleich das nicht als Fehlbetrag zeigen — `abrechnung_abgleich`
+  prüft deshalb je Woche, ob die Plattform überhaupt Daten hat.
+- **Eine Summe kann auf beiden Seiten dieselbe Lücke haben und trotzdem stimmen.**
+  Ein nicht zugeordnetes Plattformkonto fehlt sowohl in der API-Summe als auch in der
+  Abrechnung. Deshalb zählt `abrechnung_abgleich` Konten ohne Fahrer ausdrücklich mit.
+- **Die Uber-Sammelzeile der Organisation** (`uber_reports.umsaetze is null`, in KW38
+  −35.556,55 €) ist kein Fahrer und darf nie mitsummiert werden — dasselbe Muster wie
+  `__TRANSFER__` in `settlements`.
 - **Mobile**: Flex-Items haben `min-width: auto` — 7 Tab-Buttons sprengen 390px.
   Deshalb Burger-Menü. Jede neue Tab-Leiste am Handy prüfen.
 - **Dark Mode / Kennzeichen**: `.fz-main b` hat dieselbe Spezifität wie `.kz b`,

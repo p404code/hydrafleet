@@ -190,6 +190,18 @@
         .btn { padding: 6px 10px; border-radius: 7px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; }
         .btn:hover { background: var(--surface-2); }
         .alias-banner { display: none; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 20px 0; padding: 8px 12px; border-radius: 8px; background: var(--status-warn-bg); color: var(--warn); font-size: 12.5px; }
+        .abgleich { display: none; margin: 10px 20px 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 12.5px; }
+        .abgleich h4 { margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-mut); }
+        .abgleich .zeile { display: flex; align-items: baseline; gap: 8px; padding: 2px 0; }
+        .abgleich .zeile .pl { min-width: 38px; color: var(--text-mut); }
+        .abgleich .zeile .wert, .abgleich .zeile .d { font-variant-numeric: tabular-nums; }
+        .abgleich .zeile .gg { color: var(--text-mut); }
+        .abgleich .zeile .d { margin-left: auto; }
+        .abgleich .zeile .d.ok { color: var(--text-mut); }
+        .abgleich .zeile .d.ab { color: var(--warn); font-weight: 600; }
+        .abgleich .fuss { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); color: var(--text-mut); }
+        .abgleich .fuss b { color: var(--warn); }
+        .fahrer-ab { margin-left: 6px; padding: 0 5px; border-radius: 4px; background: var(--status-warn-bg); color: var(--warn); font-size: 10.5px; font-weight: 600; white-space: nowrap; }
         .excluded-panel { display: none; margin: 10px 20px 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
         .excluded-panel.show { display: block; }
         .excluded-panel h3 { font-size: 12px; margin: 0 0 6px; color: var(--text-mut); }
@@ -244,7 +256,7 @@
             .data-table th { padding: 6px 3px; letter-spacing: .03em; }
             .detail-row td { padding: 10px 12px 14px; }
             .group-row td { padding: 5px 12px; }
-            .alias-banner, .excluded-panel { margin: 10px 12px 0; }
+            .alias-banner, .excluded-panel, .abgleich { margin: 10px 12px 0; }
             .filters, .stats { margin-left: 12px; margin-right: 12px; }
             .table-card { overflow-x: auto; }
         }
@@ -745,6 +757,7 @@
                 <span><strong id="aliasBannerCount">0</strong> Fahrer ohne Zuordnung in dieser Woche</span>
                 <button class="btn" onclick="openAliasModal()">Jetzt zuordnen →</button>
             </div>
+            <div class="abgleich" id="abgleichBox"></div>
             <div class="excluded-panel" id="excludedPanel">
                 <h3>Ausgeschlossene Fahrer</h3>
                 <div class="excluded-list" id="excludedList"></div>
@@ -1246,6 +1259,7 @@
         let NAME_ALIASES = {};
         let FAHRER_LIST = [];
         let KASSIER = []; // all rows from kassier_zahlungen
+        let ABGLEICH = []; // abrechnung_abgleich: was Bolt/Uber sagen, neben settlements
         let mzStatusFilter = 'alle';
         let mzSearch = '';
         let mzWeek = '';
@@ -1474,7 +1488,7 @@
         function updateExcludedUI() { document.getElementById('excludedCount').textContent = excludedDrivers.length; const list = document.getElementById('excludedList'); if (excludedDrivers.length === 0) { list.innerHTML = '<span style="color: var(--text-muted)">Keine Fahrer ausgeschlossen</span>'; } else { list.innerHTML = excludedDrivers.map(name => `<span class="excluded-tag">${esc(name)} <button data-include="${esc(name)}">\u2715</button></span>`).join(''); } }
         document.getElementById('excludedList').addEventListener('click', function(e) { const btn = e.target.closest('[data-include]'); if (btn) includeDriver(btn.dataset.include); });
         async function fetchAllSettlements(client) { const pageSize = 1000; let from = 0; let all = []; while (true) { const { data, error } = await client.from('settlements').select('*').order('id', { ascending: true }).range(from, from + pageSize - 1); if (error) throw error; if (data && data.length) all = all.concat(data); if (!data || data.length < pageSize) break; from += pageSize; } return all; }
-        async function loadData() { try { const client = getSupabase(); const [settleData, aliasRes, fahrerRes, kassierRes] = await Promise.all([ fetchAllSettlements(client), client.from('name_aliases').select('csv_name,fahrer_name'), client.from('fahrer').select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon').eq('aktiv', true), client.from('kassier_zahlungen').select('*') ]); if (!settleData || settleData.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = settleData.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); NAME_ALIASES = {}; if (!aliasRes.error && aliasRes.data) { aliasRes.data.forEach(a => { NAME_ALIASES[a.csv_name.toLowerCase()] = a.fahrer_name; }); } FAHRER_LIST = (!fahrerRes.error && fahrerRes.data) ? fahrerRes.data : []; KASSIER = (!kassierRes.error && kassierRes.data) ? kassierRes.data : []; if (kassierRes.error) console.warn('kassier load error:', kassierRes.error); WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; document.getElementById('weekFilter').innerHTML = WEEKS.map(w => '<option value="'+w+'">'+w+'</option>').join(''); render(); } catch (err) { console.error('Load error:', err); const offlineHint = !navigator.onLine ? ' (Offline — keine Internetverbindung)' : ''; document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Fehler beim Laden: ' + esc(err.message) + offlineHint + '<br><button class="btn" style="margin-top:12px" onclick="loadData()">Erneut versuchen</button></td></tr>'; } }
+        async function loadData() { try { const client = getSupabase(); const [settleData, aliasRes, fahrerRes, kassierRes, abgleichRes] = await Promise.all([ fetchAllSettlements(client), client.from('name_aliases').select('csv_name,fahrer_name'), client.from('fahrer').select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon').eq('aktiv', true), client.from('kassier_zahlungen').select('*'), client.from('abrechnung_abgleich').select('*') ]); if (!settleData || settleData.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = settleData.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); NAME_ALIASES = {}; if (!aliasRes.error && aliasRes.data) { aliasRes.data.forEach(a => { NAME_ALIASES[a.csv_name.toLowerCase()] = a.fahrer_name; }); } FAHRER_LIST = (!fahrerRes.error && fahrerRes.data) ? fahrerRes.data : []; KASSIER = (!kassierRes.error && kassierRes.data) ? kassierRes.data : []; ABGLEICH = (abgleichRes && !abgleichRes.error && abgleichRes.data) ? abgleichRes.data : []; if (abgleichRes && abgleichRes.error) console.warn('abgleich load error:', abgleichRes.error); if (kassierRes.error) console.warn('kassier load error:', kassierRes.error); WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; document.getElementById('weekFilter').innerHTML = WEEKS.map(w => '<option value="'+w+'">'+w+'</option>').join(''); render(); } catch (err) { console.error('Load error:', err); const offlineHint = !navigator.onLine ? ' (Offline — keine Internetverbindung)' : ''; document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Fehler beim Laden: ' + esc(err.message) + offlineHint + '<br><button class="btn" style="margin-top:12px" onclick="loadData()">Erneut versuchen</button></td></tr>'; } }
         function updateThemeUI(isDark) { const icon = document.getElementById('themeIcon'); const text = document.getElementById('themeText'); if (isDark) { icon.innerHTML = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>'; text.textContent = 'Light'; } else { icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'; text.textContent = 'Dark'; } }
         function toggleTheme() { const html = document.documentElement; if (html.getAttribute('data-theme') === 'dark') { html.removeAttribute('data-theme'); localStorage.setItem('theme', 'light'); updateThemeUI(false); } else { html.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); updateThemeUI(true); } }
         function toggleSort(col) {
@@ -1586,6 +1600,51 @@
             data.sort(sorters[sortBy] || sorters.name_asc);
             return data;
         }
+        // Zeigt, was Bolt und Uber fuer die Woche melden, neben dem was abgerechnet
+        // wurde. Liefert eine Map Fahrername -> Abgleichzeile fuer die Marker in der
+        // Liste zurueck. Rein anzeigend; settlements wird hier nie veraendert.
+        function renderAbgleich(w) {
+            const box = document.getElementById('abgleichBox');
+            const marken = new Map();
+            const rows = ABGLEICH.filter(function(r) { return r.woche === w; });
+            // Eine Plattform gilt nur als gesynct, wenn sie fuer diese Woche Daten
+            // hat - sonst liest sich eine fehlende Woche wie ein Fehlbetrag.
+            const boltDa = rows.some(function(r) { return r.bolt_diff !== null; });
+            const uberDa = rows.some(function(r) { return r.uber_diff !== null; });
+            if (!rows.length || (!boltDa && !uberDa)) { box.style.display = 'none'; return marken; }
+            const sum = function(f) { return rows.reduce(function(a, r) { return a + (parseFloat(r[f]) || 0); }, 0); };
+            const zeile = function(name, api, abg) {
+                const d = api - abg;
+                return '<div class="zeile"><span class="pl">' + name + '</span>'
+                     + '<span class="wert">' + fmt(api) + '</span>'
+                     + '<span class="gg">abgerechnet ' + fmt(abg) + '</span>'
+                     + '<span class="d ' + (Math.abs(d) >= 1 ? 'ab' : 'ok') + '">' + (d > 0 ? '+' : '') + fmt(d) + '</span></div>';
+            };
+            let html = '<h4>Plattform-Abgleich</h4>';
+            if (boltDa) html += zeile('Bolt', sum('bolt_api_brutto'), sum('bolt_abgerechnet'));
+            if (uberDa) html += zeile('Uber', sum('uber_api_brutto'), sum('uber_abgerechnet'));
+            const probleme = rows.filter(function(r) { return r.befund === 'weicht ab' || r.befund === 'nur Plattform'; });
+            const lose = rows.filter(function(r) { return r.befund === 'Konto ohne Fahrer'; });
+            probleme.forEach(function(r) { if (r.fahrer) marken.set(r.fahrer, r); });
+            const teile = [];
+            if (probleme.length) teile.push('<b>' + probleme.length + (probleme.length === 1 ? ' Fahrer</b> weicht ab' : ' Fahrer</b> weichen ab'));
+            if (lose.length) teile.push('<b>' + lose.length + ' Plattformkonten</b> ohne Fahrer (' + fmt(lose.reduce(function(a, r) { return a + (parseFloat(r.diff_gesamt) || 0); }, 0)) + ')');
+            html += '<div class="fuss">' + (teile.length ? teile.join(' \u00B7 ') : 'Stimmt mit den Plattformen \u00FCberein.') + '</div>';
+            box.innerHTML = html;
+            box.style.display = 'block';
+            return marken;
+        }
+        function abgleichTitel(r) {
+            const t = [];
+            if (r.bolt_diff !== null && Math.abs(parseFloat(r.bolt_diff)) >= 0.01) t.push('Bolt: ' + fmt(r.bolt_api_brutto) + ' laut API, ' + fmt(r.bolt_abgerechnet) + ' abgerechnet');
+            if (r.uber_diff !== null && Math.abs(parseFloat(r.uber_diff)) >= 0.01) t.push('Uber: ' + fmt(r.uber_api_brutto) + ' laut API, ' + fmt(r.uber_abgerechnet) + ' abgerechnet');
+            if (!t.length) t.push(r.befund);
+            return t.join(' \u00B7 ');
+        }
+        function abwBadge(name, marken) {
+            const r = marken.get(name);
+            return r ? '<span class="fahrer-ab" title="' + esc(abgleichTitel(r)) + '">\u2260</span>' : '';
+        }
         function render() {
             const data = getData();
             const all = SETTLEMENTS.filter(function(s) { return s.woche === week && s.fahrer_name !== '__TRANSFER__' && !excludedDrivers.includes(s.fahrer_name); });
@@ -1621,6 +1680,7 @@
             const aliasBannerEl = document.getElementById('aliasBanner');
             aliasBannerEl.style.display = noMatchCount > 0 ? 'flex' : 'none';
             if (noMatchCount > 0) { document.getElementById('aliasBannerCount').textContent = noMatchCount; }
+            const ABW = renderAbgleich(week);
             const tbody = document.getElementById('tableBody');
             const panel = document.getElementById('detailPanel');
             if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Keine Einträge</td></tr>'; panel.innerHTML = '<div class="placeholder">Keine Einträge</div>'; return; }
@@ -1635,7 +1695,7 @@
                 const sel = selectedDriver === s.fahrer_name;
                 const cell = function(v) { const n = parseFloat(v) || 0; return '<td class="' + (n === 0 ? 'zero' : '') + '">' + fmtInt(n) + '</td>'; };
                 return '<tr class="' + (isWarn ? 'warning' : '') + (sel ? ' selected' : '') + '" data-row="' + esc(s.fahrer_name) + '">'
-                    + '<td title="' + esc(s.fahrer_name) + '"><span class="dot ' + dot + '"></span>' + esc(s.fahrer_name) + (korr !== 0 ? '<span class="fahrer-korr ' + (korr > 0 ? 'pos' : 'neg') + '" title="' + esc(s.korrektur_note || '') + '">Korr ' + (korr > 0 ? '+' : '') + fmt(korr) + '</span>' : '') + '</td>'
+                    + '<td title="' + esc(s.fahrer_name) + '"><span class="dot ' + dot + '"></span>' + esc(s.fahrer_name) + abwBadge(s.fahrer_name, ABW) + (korr !== 0 ? '<span class="fahrer-korr ' + (korr > 0 ? 'pos' : 'neg') + '" title="' + esc(s.korrektur_note || '') + '">Korr ' + (korr > 0 ? '+' : '') + fmt(korr) + '</span>' : '') + '</td>'
                     + cell(s.mypos_summe) + cell(lohnOf(s)) + cell(s.miete)
                     + '<td class="pay' + (net < 0 ? ' neg' : '') + '">' + fmt(net) + '</td>'
                     + '</tr>'

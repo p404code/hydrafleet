@@ -1,7 +1,12 @@
 # Fahrerapp HYDRAFLEET — Plan
 
 **Datum:** 2026-09-23
-**Stand:** Plan, nichts davon gebaut. Drei Entscheidungen fehlen (Abschnitt 7).
+**Stand:** Plan, nichts davon gebaut.
+**Gehört zu:** `docs/2026-09-23-fahrerapp-admin-plan.md` — die Admin-Seite im
+Dashboard (Wochenfreigabe, Vorschau als Fahrer, Zuordnungs-Werkzeug, Ampel).
+**Achtung:** Abschnitt 7 unten ist der *ursprüngliche* Fragenstand. Fünf der neun
+Fragen sind inzwischen entschieden — der gültige Stand steht im Admin-Plan,
+Abschnitte 6 und 7.
 **Erstellt von:** Claude Fable. Die Zahlen sind nachgeprüft, siehe *Nachgeprüft*-Kästen.
 
 ## Ergebnis in drei Sätzen

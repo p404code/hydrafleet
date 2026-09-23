@@ -41,7 +41,8 @@ wer eine Edge Function ändert, muss beides nachziehen.
 |---|---|
 | `CLAUDE.md` | Architektur, Regeln, die vollständige Fallstrickliste |
 | `docs/2026-09-22-plattform-anbindung-protokoll.md` | Was gebaut wurde, welche Zahlen geprüft sind, was der Abgleich gefunden hat |
-| `docs/2026-09-23-fahrerapp-plan.md` | Plan für die Fahrerapp, noch nichts davon gebaut |
+| `docs/2026-09-23-fahrerapp-plan.md` | Plan für die Fahrerseite, noch nichts davon gebaut |
+| `docs/2026-09-23-fahrerapp-admin-plan.md` | Plan für die Admin-Seite im Dashboard. **Enthält den gültigen Stand der offenen Fragen.** |
 | `migrations/2026-09-22-*.sql` | Das gesamte neue Schema, chronologisch |
 
 ---
@@ -145,6 +146,17 @@ CSV-Upload, Rechnungen. Am Handy Burger-Menü statt Tab-Leiste.
 9. `uber-probe` ist eine Wegwerf-Function aus der Erkundungsphase und noch
    deployt. Kann gelöscht werden.
 
+### Sicherheit, lokal
+
+10. **`.n8n-backup/` enthält Supabase-Schlüssel im Klartext** (JWTs im
+    exportierten Workflow und in den `berechnung-v*.js`). Der Ordner ist
+    gitignoriert und war **nie** in einem Commit — geprüft mit
+    `git log --all -- .n8n-backup/`. Also keine Repo-Lücke, sondern eine
+    Klartextkopie auf der Platte. `scripts/uber-session-speichern.js` und
+    `scripts/notion-token-speichern.js` lesen den Service-Key von dort. Wer es
+    sauberer will, legt den Schlüssel in eine `.env` oder den Schlüsselbund und
+    zieht die Skripte nach.
+
 ---
 
 ## Für die frische Code-Session
@@ -172,8 +184,8 @@ Punkte dort sind alle teuer erkauft. Die drei, die am ehesten wieder zuschlagen:
 **Womit man anfangen könnte**, in dieser Reihenfolge:
 1. Uber-Sitzungserneuerung einmal durchspielen (Frist 06.10.).
 2. Die Datenhygiene-Punkte 5–7 — sie blockieren die Fahrerapp.
-3. Die Admin-Seite der Fahrerapp im Dashboard (Freigabe, Vorschau als Fahrer,
-   Zuordnungs-Werkzeug, Telefonnummern-Ampel).
+3. Die Admin-Seite der Fahrerapp nach `docs/2026-09-23-fahrerapp-admin-plan.md`
+   (Freigabe, Vorschau als Fahrer, Zuordnungs-Werkzeug, Telefonnummern-Ampel).
 4. Die Fahrerapp selbst nach `docs/2026-09-23-fahrerapp-plan.md`.
 
 ## Für die Planungs-Session
@@ -184,6 +196,12 @@ entfernt), Fraunces für das Logo, Inter für die Oberfläche, Akzent Gold #F5B5
 Am Handy Burger-Menü, Tabellen auf drei Spalten reduziert mit aufklappbarer
 Detailzeile.
 
-Die drei Entscheidungen, die die Fahrerapp blockieren, stehen in
-`docs/2026-09-23-fahrerapp-plan.md`, Abschnitt 7: SMS-Provider ja oder nein, ab
-welcher Woche Fahrer zurückschauen dürfen, und wer eine Woche freigeben darf.
+Die vier Entscheidungen, die die Fahrerapp blockieren, stehen in
+`docs/2026-09-23-fahrerapp-admin-plan.md`, Abschnitt 7: SMS-Provider ja oder
+nein, welche Wochen rückwirkend freigegeben werden, wer freigeben darf, und wer
+Plattformkonten zuordnen darf.
+
+Alles Übrige ist entschieden und im Admin-Plan begründet. Der wichtigste Punkt
+für die Reihenfolge: die **Vorschau als Fahrer** läuft mit der Büro-Session und
+braucht keinen SMS-Provider. Das Büro kann die ganze Fahrerseite prüfen, bevor
+die erste SMS existiert.

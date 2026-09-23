@@ -145,6 +145,7 @@
         .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 7px; vertical-align: middle; }
         .dot.neg { background: var(--err); }
         .dot.warn { background: var(--warn); }
+        .dot.aus { background: var(--text-dim); }
         .fahrer-korr { display: inline-block; font-size: 10.5px; color: var(--text-mut); margin-left: 6px; }
         .fahrer-korr.neg { color: var(--err); }
         /* Detail: Zeile (Handy) oder Panel (Desktop) */
@@ -727,7 +728,7 @@
                 </button>
                 <button class="tab-btn" onclick="switchTab('fahrer')" id="tabFahrer">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg>
-                    Fahrer
+                    Fahrer/App
                 </button>
                 <button class="tab-btn" onclick="switchTab('fuhrpark')" id="tabFuhrpark">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 17h-2v-6l2-5h9l4 5h3a1 1 0 011 1v5h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>
@@ -973,12 +974,11 @@
     <div class="tab-content" id="contentFahrer">
         <div class="hero">
             <div class="hero-top">
-                <div class="week-pick"><span style="font-size:18px;font-weight:700">Fahrer</span></div>
+                <div class="week-pick"><span style="font-size:18px;font-weight:700">Fahrer/App</span></div>
                 <div class="hero-big"><b id="fzCountBig">--</b><small id="fzCountSub">angezeigt</small></div>
             </div>
             <div class="kpi">
                 <div class="kpi-item"><small>Mit Problem</small><b id="fzKpiProblem">--</b></div>
-                <div class="kpi-item"><small>Offene Salden</small><b class="err" id="fzKpiSaldo">--</b></div>
                 <div class="kpi-item"><small>Bolt-Konten</small><b id="fzKpiBolt">--</b></div>
                 <div class="kpi-item"><small>Fahrten 30 Tage</small><b id="fzKpiFahrten">--</b></div>
                 <div class="kpi-item"><small>App bereit</small><b id="fzKpiApp">--</b></div>
@@ -988,6 +988,7 @@
             <input type="text" class="search" id="fzSearch" placeholder="Name, Kennzeichen, ID">
             <button class="chip active" data-fz="alle">Alle <span class="cnt" id="fzCntAlle"></span></button>
             <button class="chip" data-fz="problem">Mit Problem <span class="cnt" id="fzCntProblem"></span></button>
+            <button class="chip" data-fz="mitapp">mit App <span class="cnt" id="fzCntMitApp"></span></button>
             <button class="chip" data-fz="ohneapp">ohne App <span class="cnt" id="fzCntOhneApp"></span></button>
             <button class="chip" data-fz="archiv">Archiviert <span class="cnt" id="fzCntArchiv"></span></button>
             <div class="sp"></div>
@@ -1002,10 +1003,9 @@
                         <th data-fzsort="kennzeichen">Kennzeichen</th>
                         <th data-fzsort="marke">Marke</th>
                         <th data-fzsort="modell">Modell</th>
-                        <th data-fzsort="offen">Saldo</th>
-                        <th data-fzsort="letzte_auszahlung">Zahlung</th>
+                        <th data-fzsort="app_rang">App-Status</th>
                     </tr></thead>
-                    <tbody id="fzBody"><tr><td colspan="7" class="empty">Lade ...</td></tr></tbody>
+                    <tbody id="fzBody"><tr><td colspan="6" class="empty">Lade ...</td></tr></tbody>
                 </table>
                 <section class="pk-karte" id="pkKarte">
                     <div class="pk-kopf">
@@ -1063,7 +1063,7 @@
         <div class="menue-liste">
             <button onclick="switchTab('abrechnungen')" data-menue="abrechnungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Abrechnung</button>
             <button onclick="switchTab('muessenzahlen')" data-menue="muessenzahlen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Kassieren</button>
-            <button onclick="switchTab('fahrer')" data-menue="fahrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg>Fahrer</button>
+            <button onclick="switchTab('fahrer')" data-menue="fahrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg>Fahrer/App</button>
             <button onclick="switchTab('fuhrpark')" data-menue="fuhrpark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 17h-2v-6l2-5h9l4 5h3a1 1 0 011 1v5h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>Fuhrpark</button>
             <button onclick="switchTab('verbindungen')" data-menue="verbindungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/><path d="M3 12h4M17 12h4"/><circle cx="12" cy="12" r="9"/></svg>Verbindungen<span class="tab-warn" id="vbWarnMenue"></span></button>
             <button onclick="switchTab('abrbot')" data-menue="abrbot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload</button>
@@ -2098,7 +2098,7 @@
             ]).catch(function (e) { return [{ error: e }, { error: e }, { error: e }]; });
             if (res.error) {
                 document.getElementById('fzBody').innerHTML =
-                    '<tr><td colspan="7" class="empty">Fehler beim Laden: ' + esc(res.error.message || String(res.error)) + '</td></tr>';
+                    '<tr><td colspan="6" class="empty">Fehler beim Laden: ' + esc(res.error.message || String(res.error)) + '</td></tr>';
                 return;
             }
             FZ = res.data || [];
@@ -2112,6 +2112,7 @@
         function fzListe() {
             let rows = FZ.slice();
             if (fzFilter === 'problem') { rows = rows.filter(function (f) { return f.aktiv && fzProbleme(f).length; }); }
+            else if (fzFilter === 'mitapp') { rows = rows.filter(function (f) { return f.aktiv && f.app_bereit; }); }
             else if (fzFilter === 'ohneapp') { rows = rows.filter(function (f) { return f.aktiv && !f.app_bereit; }); }
             else if (fzFilter === 'archiv') { rows = rows.filter(function (f) { return !f.aktiv; }); }
             else { rows = rows.filter(function (f) { return f.aktiv; }); }
@@ -2126,6 +2127,7 @@
             const zahl = ['notion_fahrer_id', 'offen', 'letzte_auszahlung', 'fahrten_30t', 'bolt_konten', 'baujahr'];
             const istZahl = zahl.indexOf(fzSort) >= 0;
             rows.sort(function (a, b) {
+                if (fzSort === 'app_rang') { return (fzAppStatus(a).rang - fzAppStatus(b).rang) * fzDir; }
                 if (istZahl) { return ((parseFloat(a[fzSort]) || 0) - (parseFloat(b[fzSort]) || 0)) * fzDir; }
                 return String(a[fzSort] || '').localeCompare(String(b[fzSort] || ''), 'de') * fzDir;
             });
@@ -2139,8 +2141,6 @@
             document.getElementById('fzCntProblem').textContent = mitProblem;
             document.getElementById('fzCntArchiv').textContent = FZ.length - aktiv.length;
             document.getElementById('fzKpiProblem').textContent = mitProblem;
-            document.getElementById('fzKpiSaldo').textContent =
-                fmt(aktiv.reduce(function (s, f) { return s + (parseFloat(f.offen) || 0); }, 0));
             document.getElementById('fzKpiBolt').textContent =
                 aktiv.reduce(function (s, f) { return s + (f.bolt_konten || 0); }, 0);
             document.getElementById('fzKpiFahrten').textContent =
@@ -2152,6 +2152,7 @@
             kpiApp.textContent = appDa ? bereit + ' / ' + aktiv.length : '–';
             kpiApp.className = appDa && bereit === aktiv.length ? 'ok' : '';
             document.getElementById('fzCntOhneApp').textContent = appDa ? aktiv.length - bereit : '';
+            document.getElementById('fzCntMitApp').textContent = appDa ? bereit : '';
 
             const rows = fzListe();
             document.getElementById('fzCountBig').textContent = rows.length;
@@ -2161,29 +2162,26 @@
             });
 
             const body = document.getElementById('fzBody');
-            if (!rows.length) { body.innerHTML = '<tr><td colspan="7" class="empty">Kein Fahrer gefunden.</td></tr>'; return; }
+            if (!rows.length) { body.innerHTML = '<tr><td colspan="6" class="empty">Kein Fahrer gefunden.</td></tr>'; return; }
 
             const mobil = isMobile();
             body.innerHTML = rows.map(function (f) {
                 const p = fzProbleme(f);
-                const offen = parseFloat(f.offen) || 0;
-                const zahlung = f.letzte_auszahlung == null ? null : parseFloat(f.letzte_auszahlung);
+                const app = fzAppStatus(f);
+                const appZelle = '<span class="dot ' + app.dot + '"></span>' + esc(app.text);
                 const sel = fzSel === f.fahrer_id;
                 const punkt = '<span class="prob-dot' + (p.length ? '' : ' leer') + '"></span>';
                 const klick = ' onclick="selectFahrer(' + f.fahrer_id + ')"';
 
                 if (mobil) {
-                    // Drei Spalten: Name, Kennzeichen, Zahlung. Rest im Aufklapper.
+                    // Drei Spalten: Name, Kennzeichen, App-Status. Rest im Aufklapper.
                     return '<tr' + (sel ? ' class="selected"' : '') + klick + '>' +
                         '<td><span class="fz-main"><b>' + punkt + esc(f.name) + '</b>' +
                             '<small>' + esc(f.telefon || '-') + '</small></span></td>' +
                         '<td>' + kzHtml(f.kennzeichen) +
                             '<span class="zeile-sub">Nr. ' +
                             (f.notion_fahrer_id == null ? '-' : f.notion_fahrer_id) + '</span></td>' +
-                        '<td class="pay' + (zahlung != null && zahlung < 0 ? ' neg' : '') + '">' +
-                            (zahlung == null ? '-' : fmt(zahlung)) +
-                            (offen > 0 ? '<span class="zeile-sub neg">' + fmt(offen) + ' offen</span>' : '') +
-                        '</td>' +
+                        '<td>' + appZelle + '</td>' +
                     '</tr>' +
                     (sel ? '<tr class="detail-row"><td colspan="3">' + fzDetailHtml(f) + '</td></tr>' : '');
                 }
@@ -2195,9 +2193,7 @@
                     '<td>' + kzHtml(f.kennzeichen) + '</td>' +
                     '<td>' + esc(f.marke || '-') + '</td>' +
                     '<td>' + esc(f.modell || '-') + '</td>' +
-                    '<td class="' + (offen > 0 ? 'neg' : 'zero') + '">' + (offen > 0 ? fmt(offen) : '-') + '</td>' +
-                    '<td class="pay' + (zahlung != null && zahlung < 0 ? ' neg' : '') + '">' +
-                        (zahlung == null ? '-' : fmt(zahlung)) + '</td>' +
+                    '<td>' + appZelle + '</td>' +
                 '</tr>';
             }).join('');
 
@@ -2257,6 +2253,14 @@
         let PK_OHNE = [], PK_MIT = [], PK_FEHLER = '', pkFilter = 'umsatz', pkOffen = null;
         let FZ_PIN = null, fzBusy = false;
 
+        // App-Status je Fahrer fuer Tabelle und Sortierung (rang: aktiv zuerst)
+        function fzAppStatus(f) {
+            if (!fzAppDa()) return { text: '–', dot: 'aus', rang: 9 };
+            if (f.app_zugang === 'aktiv')    return { text: 'aktiv', dot: '', rang: 0 };
+            if (f.app_zugang === 'gesperrt') return { text: 'gesperrt', dot: 'neg', rang: 1 };
+            if (!f.app_faehig) return { text: f.notion_fahrer_id == null ? 'keine Fahrer-ID' : 'Fahrer-ID doppelt', dot: 'warn', rang: 2 };
+            return { text: 'kein Zugang', dot: 'aus', rang: 3 };
+        }
         function fzAppDa() { return FZ.length > 0 && Object.prototype.hasOwnProperty.call(FZ[0], 'app_bereit'); }
         function fzKv(k, v, cls) {
             return '<div class="detail-kv' + (cls ? ' ' + cls : '') + '"><span>' + k + '</span><span>' + v + '</span></div>';

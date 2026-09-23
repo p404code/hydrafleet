@@ -179,6 +179,19 @@
         .contact b { font-size: 16px; font-weight: 700; }
         .contact p { font-size: 12.5px; color: var(--text-mut); line-height: 1.5; }
         .sec-h.err { color: var(--err); }
+        /* Lohnzettel / Dienstgeber */
+        .dg { padding: 9px 12px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .dg:last-child { border-bottom: 0; }
+        .dg b { font-size: 13.5px; font-weight: 700; overflow-wrap: anywhere; }
+        .dg span { font-size: 11.5px; color: var(--text-mut); line-height: 1.45; overflow-wrap: anywhere; }
+        .lzrow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .lzrow:last-child { border-bottom: 0; }
+        .lzrow-l { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+        .lzrow-l b { font-weight: 500; }
+        .lzrow-l span { font-size: 11.5px; color: var(--text-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lzrow .num { font-weight: 700; white-space: nowrap; }
+        .btn-ghost.sm { width: auto; height: 32px; padding: 0 10px; border-radius: 8px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+        .btn-ghost.sm:disabled { opacity: .6; cursor: default; }
         .icon-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; color: var(--err); flex-shrink: 0; }
 
         @media (min-width: 600px) {
@@ -246,13 +259,16 @@
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         /* Zustand. mode: 'fahrer' (eigene Sitzung) oder 'vorschau' (Büro-Sitzung, ?vorschau=<fahrer_id>). */
-        const S = { mode: null, vorschauId: null, profil: null, abr: [], offen: [], loadedAt: 0, loading: false };
+        const S = { mode: null, vorschauId: null, profil: null, abr: [], offen: [], loadedAt: 0, loading: false, lz: lzLeer() };
+        /* Lohnzettel + Dienstgeber: eigener Ladezustand, lazy beim ersten Öffnen (Start oder Lohnzettel), nach >5 Min neu */
+        function lzLeer() { return { rows: [], dg: [], err: false, loadedAt: 0, loading: false }; }
 
         const ICON_BACK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>';
         const ICON_CHEV = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>';
         const ICON_CASH = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle></svg>';
         const ICON_CHAT = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"></path></svg>';
         const ICON_CHECK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>';
+        const ICON_DOC = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"></path><path d="M14 3v5h5"></path></svg>';
         const ICON_TEL = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>';
 
         /* ---------- Formate (wie dashboard.html) ---------- */
@@ -282,6 +298,8 @@
             return p2(monday.getUTCDate()) + '.' + p2(monday.getUTCMonth() + 1) + '. – ' + p2(sunday.getUTCDate()) + '.' + p2(sunday.getUTCMonth() + 1) + '.' + sunday.getUTCFullYear();
         }
         function datum(ts) { if (!ts) return ''; const d = new Date(ts); if (isNaN(d)) return ''; return d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Vienna' }); }
+        const MONATE = ['Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+        function monatText(d) { const m = /^(\d{4})-(\d{2})/.exec(d || ''); return m ? MONATE[parseInt(m[2], 10) - 1] + ' ' + m[1] : String(d || ''); }
         function fhr(nr) { return nr == null ? 'ohne Nr.' : 'FHR-' + nr; }
 
         /* ---------- Rollen (allein aus app_metadata, Vertrag Abschnitt 3) ---------- */
@@ -354,7 +372,7 @@
         fidInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); pinInputs[0].focus(); } });
 
         function showLogin() {
-            S.mode = null; S.profil = null; S.abr = []; S.offen = [];
+            S.mode = null; S.profil = null; S.abr = []; S.offen = []; S.lz = lzLeer();
             clearPins();
             document.getElementById('loginErr').textContent = '';
             try { const last = localStorage.getItem('fahrer_nr_last'); if (last && /^[0-9]{1,9}$/.test(last) && !fidInput.value) fidInput.value = last; } catch (e) {}
@@ -422,6 +440,30 @@
             S.loadedAt = Date.now();
         }
 
+        /* Lohnzettel + Dienstgeber (eigene RPCs, gleiches Vorschau-Muster wie laden()) */
+        function lzAlt() { return !S.lz.loadedAt || Date.now() - S.lz.loadedAt > 5 * 60 * 1000; }
+        async function ladenLohn() {
+            if (S.lz.loading) return;
+            S.lz.loading = true;
+            const arg = S.mode === 'vorschau' ? { p_fahrer_id: S.vorschauId } : null;
+            const call = name => (arg ? sb.rpc(name, arg) : sb.rpc(name));
+            try {
+                const res = await Promise.all([call('fahrer_app_lohnzettel'), call('fahrer_app_dienstgeber')]);
+                if (res[0].error) { console.warn('Lohnzettel:', res[0].error); S.lz.err = true; S.lz.rows = []; }
+                else { S.lz.err = false; S.lz.rows = (res[0].data || []).slice().sort((a, b) => (a.monat < b.monat ? 1 : a.monat > b.monat ? -1 : String(a.firma_name || '').localeCompare(String(b.firma_name || '')))); }
+                if (res[1].error) { console.warn('Dienstgeber:', res[1].error); S.lz.dg = []; }
+                else S.lz.dg = (res[1].data || []).filter(d => d && d.firma_name);
+            } catch (err) {
+                console.warn('Lohnzettel laden:', err);
+                S.lz.err = true;
+            } finally {
+                S.lz.loadedAt = Date.now(); // auch bei Fehler: kein Dauer-Nachladen, nächster Versuch nach 5 Min
+                S.lz.loading = false;
+            }
+            const n = route().name;
+            if (n === 'start' || n === 'lohnzettel') render();
+        }
+
         async function startApp() {
             showLoading();
             S.loading = true;
@@ -470,15 +512,16 @@
         function route() {
             const h = decodeURIComponent((location.hash || '').replace(/^#/, ''));
             const parts = h.split('/');
-            const name = ['start', 'abrechnung', 'offen', 'kontakt', 'mehr'].indexOf(parts[0]) >= 0 ? parts[0] : 'start';
+            const name = ['start', 'abrechnung', 'offen', 'kontakt', 'mehr', 'lohnzettel'].indexOf(parts[0]) >= 0 ? parts[0] : 'start';
             return { name: name, arg: parts.slice(1).join('/') };
         }
-        const TAB_FOR = { start: 'start', abrechnung: 'abrechnung', offen: 'mehr', kontakt: 'mehr', mehr: 'mehr' };
+        const TAB_FOR = { start: 'start', abrechnung: 'abrechnung', offen: 'mehr', kontakt: 'mehr', mehr: 'mehr', lohnzettel: 'mehr' };
 
         function render() {
             if (!S.profil || document.getElementById('shell').hidden) return;
             const r = route();
-            const out = ({ start: viewStart, abrechnung: viewAbrechnung, offen: viewOffen, kontakt: viewKontakt, mehr: viewMehr })[r.name](r.arg);
+            if ((r.name === 'start' || r.name === 'lohnzettel') && lzAlt() && !S.lz.loading) ladenLohn();
+            const out = ({ start: viewStart, abrechnung: viewAbrechnung, offen: viewOffen, kontakt: viewKontakt, mehr: viewMehr, lohnzettel: viewLohnzettel })[r.name](r.arg);
             document.getElementById('topbar').className = 'topbar' + (out.back ? ' sub' : '');
             document.getElementById('topbar').innerHTML = out.back
                 ? '<a class="back" href="' + out.back + '" aria-label="Zurück">' + ICON_BACK + '</a><div class="title">' + esc(out.title) + '</div><div class="who">' + esc(out.right || '') + '</div>'
@@ -506,7 +549,8 @@
             if (!S.abr.length) {
                 return { html: '<section class="hero"><div class="hero-row"><div class="hero-l"><div class="hero-t">Abrechnung</div><div class="hero-s">Noch keine Abrechnung freigegeben.</div></div></div>'
                     + '<div class="kpis">' + offenKpi + '</div></section>'
-                    + '<div class="empty"><b>Noch keine Abrechnung freigegeben.</b><span>Sobald das Büro deine Woche freigibt, steht sie hier.</span></div>' };
+                    + '<div class="empty"><b>Noch keine Abrechnung freigegeben.</b><span>Sobald das Büro deine Woche freigibt, steht sie hier.</span></div>'
+                    + dienstgeberHtml() };
             }
             const a = S.abr[0];
             const du = duBekommst(a);
@@ -533,6 +577,7 @@
                 const notes = frueher.filter(s => duBekommst(s) < 0 && lohnOf(s) > 0).map(s => esc(kw(s.woche)) + ': ' + fmt(lohnOf(s)) + ' Lohn überwiesen, deshalb negativ.');
                 if (notes.length) html += '<div class="note">' + notes.join('<br>') + '</div>';
             }
+            html += dienstgeberHtml();
             return { html: html };
         }
 
@@ -572,6 +617,73 @@
                 + '</section>'
                 + '<div class="note">Fragen zur Abrechnung? Bitte im Büro melden.</div>';
             return { back: '#start', title: 'Abrechnung ' + kw(s.woche), right: weekRangeNumeric(s.woche), html: html };
+        }
+
+        /* Dienstgeber – Firma(en) des neuesten Lohnzettel-Monats; ohne Daten kein Block */
+        function dienstgeberHtml() {
+            const dg = S.lz.dg;
+            if (!dg.length) return '';
+            return '<div class="sec-h"><span>Dienstgeber</span></div><div class="list">'
+                + dg.map(d => '<div class="dg"><b>' + esc(d.firma_name) + '</b>'
+                    + (d.adresse && String(d.adresse).trim() ? '<span>' + esc(String(d.adresse).trim()).replace(/\r?\n/g, '<br>') + '</span>' : '')
+                    + '</div>').join('') + '</div>';
+        }
+
+        /* Lohnzettel – Design Screen 8, Spec Abschnitt 6 */
+        function viewLohnzettel(arg) {
+            const base = { back: '#mehr', title: 'Lohnzettel', right: '' };
+            if (!S.lz.loadedAt) return Object.assign(base, { html: '<div class="note" style="text-align:center;margin-top:24px">Lade …</div>' });
+            if (S.lz.err) return Object.assign(base, { html: dienstgeberHtml() + '<div class="empty"><b>Lohnzettel noch nicht verfügbar.</b><span>Bitte später erneut versuchen.</span></div>' });
+            const rows = S.lz.rows;
+            if (!rows.length) return Object.assign(base, { html: dienstgeberHtml() + '<div class="empty"><b>Noch keine Lohnzettel.</b><span>Sobald das Büro deinen Lohnzettel hochlädt, steht er hier als PDF.</span></div>' });
+            const jahre = [];
+            rows.forEach(z => { const j = String(z.monat || '').slice(0, 4); if (j && jahre.indexOf(j) < 0) jahre.push(j); });
+            jahre.sort().reverse();
+            const jahr = jahre.indexOf(arg) >= 0 ? arg : jahre[0];
+            const imJahr = rows.filter(z => String(z.monat || '').slice(0, 4) === jahr);
+            const summe = imJahr.reduce((t, z) => t + num(z.auszahlung), 0);
+            const firmen = [];
+            imJahr.forEach(z => { if (z.firma_name && firmen.indexOf(z.firma_name) < 0) firmen.push(z.firma_name); });
+            let html = '';
+            if (jahre.length > 1) {
+                html += '<div class="chips" role="tablist">' + jahre.map(j => '<a class="chip' + (j === jahr ? ' on' : '') + '" role="tab" aria-selected="' + (j === jahr) + '" href="#lohnzettel/' + encodeURIComponent(j) + '">' + esc(j) + '</a>').join('') + '</div>';
+            }
+            html += '<section class="hero"><div class="hero-row">'
+                + '<div class="hero-l"><div class="hero-t num">' + esc(jahr) + '</div><div class="hero-s">' + esc(firmen.join(' · ') || (imJahr.length + ' Lohnzettel')) + '</div></div>'
+                + '<div class="hero-r"><div class="big num' + payCls(summe) + '">' + fmt(summe) + '</div><div class="big-l">Auszahlung ' + esc(jahr) + '</div></div>'
+                + '</div></section>';
+            html += dienstgeberHtml();
+            html += '<div class="sec-h"><span>Monatliche Lohnzettel</span><span>Auszahlung</span></div><div class="list">'
+                + imJahr.map(z => '<div class="lzrow"><div class="lzrow-l"><b>' + esc(monatText(z.monat)) + '</b><span>' + esc(z.firma_name || '–') + '</span></div>'
+                    + '<span class="num' + zc(z.auszahlung) + '">' + fmt(z.auszahlung) + '</span>'
+                    + (z.pfad ? '<button type="button" class="btn-ghost sm" data-act="pdf" data-pfad="' + esc(z.pfad) + '">PDF öffnen</button>' : '<span class="zero" style="font-size:11.5px">kein PDF</span>')
+                    + '</div>').join('') + '</div>'
+                + '<div class="note">Der Lohn wird in der Wochenabrechnung abgezogen („Lohn bereits überwiesen“). Fragen? Bitte im Büro melden.</div>';
+            return Object.assign(base, { html: html });
+        }
+
+        /* PDF über Signed URL öffnen. iOS-PWA (standalone): im selben Tab, sonst blockt Safari.
+           Sonst: Fenster synchron vor dem await öffnen, danach Adresse setzen. */
+        async function pdfOeffnen(btn) {
+            const pfad = btn.getAttribute('data-pfad');
+            if (!pfad || btn.disabled) return;
+            const standalone = window.navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+            let w = null;
+            if (!standalone) { try { w = window.open('about:blank', '_blank'); } catch (e) { w = null; } }
+            const label = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Öffne …';
+            try {
+                const { data, error } = await sb.storage.from('lohnzettel').createSignedUrl(pfad, 60);
+                if (error || !data || !data.signedUrl) throw error || new Error('keine URL');
+                if (w && !w.closed) { try { w.opener = null; } catch (e) {} w.location.href = data.signedUrl; }
+                else location.href = data.signedUrl;
+                btn.disabled = false; btn.textContent = label;
+            } catch (err) {
+                console.warn('PDF:', err);
+                if (w && !w.closed) { try { w.close(); } catch (e) {} }
+                btn.textContent = 'Nicht verfügbar';
+                setTimeout(function() { btn.disabled = false; btn.textContent = label; }, 3000);
+            }
         }
 
         /* Offen – wie getOpenDebts() im Tab „Müssen zahlen“ */
@@ -621,6 +733,7 @@
             if (p.kennzeichen) sub.push(esc(p.kennzeichen));
             let html = '<section class="profile"><b>' + esc(p.name) + '</b><span>' + sub.join(' · ') + '</span></section>'
                 + '<div class="group">'
+                + '<a class="item" href="#lohnzettel">' + ICON_DOC + '<span class="grow">Lohnzettel</span>' + ICON_CHEV + '</a>'
                 + '<a class="item" href="#offen">' + ICON_CASH + '<span class="grow">Offene Beträge</span><span class="num' + (offen > 0.005 ? ' neg' : ' zero') + '" style="font-size:13px;font-weight:700">' + fmt(offen) + '</span>' + ICON_CHEV + '</a>'
                 + '<a class="item" href="#kontakt">' + ICON_CHAT + '<span class="grow">Kontakt</span>' + ICON_CHEV + '</a>'
                 + '</div>'
@@ -640,6 +753,7 @@
             if (act === 'logout') { e.preventDefault(); abmelden(); }
             else if (act === 'theme') { e.preventDefault(); toggleTheme(); }
             else if (act === 'retry') { e.preventDefault(); startApp(); }
+            else if (act === 'pdf') { e.preventDefault(); pdfOeffnen(t); }
         });
         window.addEventListener('hashchange', function() { render(); window.scrollTo(0, 0); });
         document.addEventListener('visibilitychange', async function() {

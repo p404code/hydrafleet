@@ -320,14 +320,28 @@ Erst, wenn Fahrer tatsächlich eingeloggt sind.
 | Bolt-Sync täglich | **Nicht vor Phase 3.** Bis dahin zeigt die App nur `settlements`. |
 | Pilotfahrer | **Kriterien entschieden, das Büro wählt:** Ampel grün, in KW37 und KW38 `status='berechnet'`, kein ≠-Marker, darunter einer mit Schuld und einer mit Lohn-Eintrag. |
 
+### Nachtrag Betreiber, 23.09.
+
+| Frage | Entscheidung |
+|---|---|
+| SMS-Provider | **Nein.** Anmeldung mit Fahrer-ID (Notion „Fahrer ID“, `FHR-…`) + 6-stelligem PIN. Details: Fahrerapp-Plan, Abschnitt 0. |
+| Rückblick | **Aktuelle freigegebene Woche + 2 davor.** |
+| Freigeben / Zurücknehmen | **Jeder mit Dashboard-Zugang** (`is_app_user()`), mit Namensprotokoll wie geplant. |
+
+Folgen hier im Admin-Plan: Schritt 8 (SMS, Turnstile, OTP) entfällt, stattdessen
+„App-Zugang anlegen / PIN zurücksetzen“ im Fahrer-Tab. Die Ampel prüft
+Notion-Nr. eindeutig + Zugang angelegt statt Telefonnummer.
+
 ## 7. Was der Betreiber noch entscheiden muss
 
-1. **SMS-Provider** (Twilio, MessageBird, Vonage): Konto anlegen — ja oder nein?
-   Wer verwaltet und zahlt?
-2. **Rückwirkende Freigabe:** nur KW37 und KW38, oder weiter zurück?
-   (Vorschlag: nur diese beiden.)
-3. **Freigeben und Zurücknehmen:** jeder Büro-User — Vorschlag, mit
-   Namensprotokoll — oder nur Admin?
+~~1–3~~ entschieden, siehe Nachtrag oben. Offen bleibt nur Punkt 4.
+
+1. ~~**SMS-Provider** (Twilio, MessageBird, Vonage): Konto anlegen — ja oder nein?
+   Wer verwaltet und zahlt?~~
+2. ~~**Rückwirkende Freigabe:** nur KW37 und KW38, oder weiter zurück?
+   (Vorschlag: nur diese beiden.)~~
+3. ~~**Freigeben und Zurücknehmen:** jeder Büro-User — Vorschlag, mit
+   Namensprotokoll — oder nur Admin?~~
 4. **Plattformkonten zuordnen und lösen:** jeder Büro-User (Vorschlag) oder nur Admin?
 
 ---

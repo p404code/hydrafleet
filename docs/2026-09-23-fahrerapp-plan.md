@@ -7,6 +7,7 @@ Dashboard (Wochenfreigabe, Vorschau als Fahrer, Zuordnungs-Werkzeug, Ampel).
 **Achtung:** Abschnitt 7 unten ist der *ursprüngliche* Fragenstand. Fünf der neun
 Fragen sind inzwischen entschieden — der gültige Stand steht im Admin-Plan,
 Abschnitte 6 und 7.
+**Entscheidungen 23.09.:** Anmeldung, Rückblick und Freigabe sind entschieden — siehe Abschnitt 0, hat Vorrang vor Abschnitt 2 und 7.
 **Erstellt von:** Claude Fable. Die Zahlen sind nachgeprüft, siehe *Nachgeprüft*-Kästen.
 
 ## Ergebnis in drei Sätzen
@@ -19,6 +20,56 @@ Fassung zeigt genau das, was heute auf dem Druckzettel steht — Wochenabrechnun
 und offener Betrag —, und nur für **freigegebene Wochen**. Kein Framework, keine
 neue Stammdatenhaltung; `settlements`, der AbrechnungsBot und der CSV-Upload
 bleiben unangetastet, die einzige neue Tabelle ist die Wochenfreigabe.
+
+---
+
+## 0. Entscheidungen des Betreibers (23.09.2026)
+
+**Design:** `docs/2026-09-23-fahrerapp-design.md` (Screens, Inhalte, Phasen) und
+`docs/fahrerapp-design.html` (alle Screens zum Ansehen im Browser).
+
+Haben Vorrang vor allem, was weiter unten anders steht.
+
+1. **Anmeldung: Fahrer-ID + 6-stelliger PIN.** Kein SMS-Provider. Die Fahrer-ID
+   ist die Notion-Spalte „Fahrer ID" (Anzeige `FHR-123`, als Zahl `123`).
+   Ersetzt die Empfehlung C aus Abschnitt 2.
+2. **Rückblick: die aktuelle freigegebene Woche plus 2 Wochen davor.** Mehr sieht
+   der Fahrer nicht.
+3. **Freigeben darf jeder mit Dashboard-Zugang** (`is_app_user()`).
+
+### Was sich dadurch technisch ändert
+
+- **Anker ist die Fahrer-ID statt der Telefonnummer.** `mein_fahrer_id()` löst
+  über `app_metadata.fahrer_nr` gegen `fahrer.notion_fahrer_id` auf, weiterhin mit
+  `having count(*) = 1`. **Vor dem Bauen prüfen:** dass `fahrer.notion_fahrer_id`
+  wirklich dieselbe Zahl ist wie die Notion-Spalte „Fahrer ID".
+- **Ein Auth-User pro Fahrer**, angelegt vom Büro. Interne E-Mail nach dem
+  Muster der Büro-User (z. B. `fhr-123@hydralink.local`), `app_metadata.fahrer_nr`
+  gesetzt, **kein** `app_role` — damit greift keine bestehende Policy, das
+  Dashboard bleibt für Fahrer leer wie im Plan vorgesehen.
+- **Der PIN ist das Passwort**, ohne Umrechnung im Quelltext. Mindestlänge im
+  Supabase-Dashboard auf 6 stellen. Gegen Durchprobieren: Sign-in-Rate-Limits
+  prüfen, dazu eine Sperre nach wenigen Fehlversuchen (Umsetzung offen).
+- **Neue Edge Function für das Büro** (weicht vom Admin-Plan „keine neue Edge Function“ ab — Auth-User anlegen geht nur mit service_role): Zugang anlegen und PIN zurücksetzen
+  (service_role, nur für `is_app_user()`). Im Dashboard ein Bereich „App-Zugang"
+  mit Anlegen / PIN neu / Sperren.
+- **Guards:** `/fahrer/` verlangt `app_metadata.fahrer_nr` statt des
+  `phone`-Claims. `index.html` und `dashboard.html` wie in Abschnitt 3.
+- **Freigabe:** wie im Admin-Plan (`woche_freigeben()` + Delete-Policy auf `is_app_user()`) — passt schon so.
+- **`fahrer_app_abrechnungen()`** liefert nur die letzten 3 freigegebenen Wochen.
+- **Blockiert weiterhin:** Dombaew-Duplikat (zwei Zeilen, dieselbe Nummer 93 →
+  `having count(*) = 1` sperrt ihn). **Blockiert nicht mehr:** fehlende
+  Telefonnummern bei Murad Izrailov und Alik Selmurzaev.
+- **Entfällt:** SMS-Provider, Turnstile, E.164-Normalisierung, Admin-Plan Schritt 8.
+- **Ampel im Admin-Plan** prüft dann nicht mehr die Telefonnummer, sondern: Notion-Nr. eindeutig + App-Zugang angelegt.
+
+### Noch offen
+
+- Offene Beträge: nur aus den 3 sichtbaren Wochen, oder bleiben ältere offene
+  Wochen (ab KW37) sichtbar, bis sie bezahlt sind?
+- Wo liegen Dienstvertrag, GISA, Mietvertrag, Vollmacht, Polizze und Lohnzettel
+  als PDF? Der Betreiber will sie in der App (Design: Start-Seite und Fahrzeug),
+  Abschnitt 1 hatte die Personalakte bewusst ausgeschlossen.
 
 ---
 
@@ -50,6 +101,10 @@ einen Fehler, den das Büro schon kennt.
 ---
 
 ## 2. Anmeldung
+
+> **Überholt durch Abschnitt 0, Entscheidung 1** (Fahrer-ID + 6-stelliger PIN statt SMS).
+> Der Teil *Türsteher: Funktionen statt Policies* gilt weiter, nur mit
+> `app_metadata.fahrer_nr` statt `phone` als Anker.
 
 ### Was in der Datenbank tatsächlich eindeutig ist
 

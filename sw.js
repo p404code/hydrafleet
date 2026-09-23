@@ -1,9 +1,11 @@
-const CACHE_NAME = 'hydralink-v9';
+const CACHE_NAME = 'hydralink-v10';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
   '/dashboard.html',
   '/manifest.json',
+  '/fahrer/',
+  '/fahrer/manifest.json',
   '/icon-192x192.png',
   '/icon-512x512.png',
   '/apple-touch-icon.png',

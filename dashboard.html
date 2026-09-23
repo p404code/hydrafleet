@@ -667,6 +667,47 @@
         .prob-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); margin-right: 6px; vertical-align: middle; }
         .prob-list { margin: 6px 0 0; padding-left: 16px; font-size: 11.5px; color: var(--warn); }
         .prob-list li { margin: 1px 0; }
+        /* Fahrerapp: Wochenfreigabe im Abrechnungen-Kopf */
+        .freigabe { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 8px; font-size: 12px; }
+        .freigabe:empty { display: none; }
+        .fg-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-weight: 600; font-size: 11.5px; background: var(--surface-2); color: var(--text-mut); min-width: 0; }
+        .fg-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+        .fg-pill.ok { background: var(--status-ok-bg); color: var(--accent); }
+        .fg-pill.geaendert { background: var(--status-warn-bg); color: var(--warn); flex-wrap: wrap; border-radius: 10px; }
+        .fg-pill span { font-weight: 400; }
+        .fg-link { background: none; border: none; padding: 2px 0; color: var(--text-mut); text-decoration: underline; cursor: pointer; font-size: 12px; font-family: inherit; }
+        .fg-link:hover { color: var(--err); }
+        .btn.fg-go { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        /* Fahrerapp: App-Zugang im Fahrer-Detail */
+        .app-pin { margin-top: 8px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--accent-line); background: var(--accent-faint); }
+        .app-pin b { display: block; font-family: var(--mono); font-size: 20px; letter-spacing: .06em; color: var(--text); word-break: break-all; }
+        .app-pin small { display: block; color: var(--warn); font-size: 11.5px; margin-top: 4px; }
+        .app-hinweis { font-size: 11.5px; color: var(--text-mut); margin-top: 6px; }
+        .detail-acts.wrap { flex-wrap: wrap; }
+        .detail-acts.wrap > button { flex: 1 1 120px; }
+        .pk-zeile { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px dotted var(--border); font-size: 12px; }
+        .pk-zeile .pk-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pk-zeile small { color: var(--text-mut); font-size: 11px; }
+        .pk-zeile .btn { padding: 3px 8px; font-size: 11.5px; }
+        /* Fahrerapp: Plattformkonten ohne Fahrer - Kartenliste, auch am Schreibtisch */
+        .pk-karte { margin: 16px 20px 24px; }
+        .pk-kopf { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+        .pk-kopf h4 { margin: 0 auto 0 0; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-mut); }
+        .pk-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+        .pk-card { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; padding: 11px 13px; min-width: 0; font-size: 12px; }
+        .pk-card-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .pk-card-top b { flex: 1; min-width: 0; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pk-card-top .num { font-weight: 700; }
+        .pk-meta { color: var(--text-mut); font-size: 11.5px; margin-top: 3px; overflow-wrap: anywhere; }
+        .pk-vorschlag { margin-top: 6px; font-size: 11.5px; color: var(--info); }
+        .pk-card .detail-acts { margin-top: 8px; }
+        .pk-card select { width: 100%; height: 36px; margin-top: 8px; font-size: 13px; }
+        .pk-leer { color: var(--text-mut); font-size: 12px; padding: 6px 0; }
+        @media (max-width: 768px) {
+            .pk-karte { margin: 14px 12px 20px; }
+            .pk-liste { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -729,6 +770,7 @@
                     </div>
                     <div class="hero-big"><b id="statAuszahlung">--</b><small>Auszahlungen (tatsächlich)</small></div>
                 </div>
+                <div class="freigabe" id="freigabeBox"></div>
                 <div class="kpi">
                     <div class="kpi-item"><small>Unterm Strich</small><b class="ok" id="statUntermStrich" title="Auszahlungen minus Zu kassieren">--</b></div>
                     <div class="kpi-item"><small>Zu kassieren</small><b class="err" id="statKassieren">--</b></div>
@@ -939,12 +981,14 @@
                 <div class="kpi-item"><small>Offene Salden</small><b class="err" id="fzKpiSaldo">--</b></div>
                 <div class="kpi-item"><small>Bolt-Konten</small><b id="fzKpiBolt">--</b></div>
                 <div class="kpi-item"><small>Fahrten 30 Tage</small><b id="fzKpiFahrten">--</b></div>
+                <div class="kpi-item"><small>App bereit</small><b id="fzKpiApp">--</b></div>
             </div>
         </div>
         <div class="toolbar">
             <input type="text" class="search" id="fzSearch" placeholder="Name, Kennzeichen, ID">
             <button class="chip active" data-fz="alle">Alle <span class="cnt" id="fzCntAlle"></span></button>
             <button class="chip" data-fz="problem">Mit Problem <span class="cnt" id="fzCntProblem"></span></button>
+            <button class="chip" data-fz="ohneapp">ohne App <span class="cnt" id="fzCntOhneApp"></span></button>
             <button class="chip" data-fz="archiv">Archiviert <span class="cnt" id="fzCntArchiv"></span></button>
             <div class="sp"></div>
             <span class="badge" id="fzShown"></span>
@@ -963,6 +1007,14 @@
                     </tr></thead>
                     <tbody id="fzBody"><tr><td colspan="7" class="empty">Lade ...</td></tr></tbody>
                 </table>
+                <section class="pk-karte" id="pkKarte">
+                    <div class="pk-kopf">
+                        <h4>Plattformkonten ohne Fahrer</h4>
+                        <button class="chip active" data-pk="umsatz">mit Umsatz <span class="cnt" id="pkCntUmsatz"></span></button>
+                        <button class="chip" data-pk="alle">alle <span class="cnt" id="pkCntAlle"></span></button>
+                    </div>
+                    <div class="pk-liste" id="pkListe"><div class="pk-leer">Lade ...</div></div>
+                </section>
             </div>
             <div class="side-panel" id="fzPanel"><div class="placeholder">Fahrer auswählen</div></div>
         </div>
@@ -1230,6 +1282,13 @@
                 const client = getSupabase();
                 const { data } = await client.auth.getSession();
                 if (!data || !data.session) { forceLogout(); return; }
+                // Rolle allein aus app_metadata: Buero hat app_role, Fahrer nur fahrer_nr.
+                const am = (data.session.user && data.session.user.app_metadata) || {};
+                if (am.app_role !== 'admin' && am.app_role !== 'user') {
+                    if (am.fahrer_nr != null && am.fahrer_nr !== '') { window.location.replace('/fahrer/'); return; }
+                    try { await client.auth.signOut(); } catch (e2) {}
+                    forceLogout(); return;
+                }
                 client.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_OUT') forceLogout(); });
             } catch (e) { forceLogout(); }
         });
@@ -1488,7 +1547,7 @@
         function updateExcludedUI() { document.getElementById('excludedCount').textContent = excludedDrivers.length; const list = document.getElementById('excludedList'); if (excludedDrivers.length === 0) { list.innerHTML = '<span style="color: var(--text-muted)">Keine Fahrer ausgeschlossen</span>'; } else { list.innerHTML = excludedDrivers.map(name => `<span class="excluded-tag">${esc(name)} <button data-include="${esc(name)}">\u2715</button></span>`).join(''); } }
         document.getElementById('excludedList').addEventListener('click', function(e) { const btn = e.target.closest('[data-include]'); if (btn) includeDriver(btn.dataset.include); });
         async function fetchAllSettlements(client) { const pageSize = 1000; let from = 0; let all = []; while (true) { const { data, error } = await client.from('settlements').select('*').order('id', { ascending: true }).range(from, from + pageSize - 1); if (error) throw error; if (data && data.length) all = all.concat(data); if (!data || data.length < pageSize) break; from += pageSize; } return all; }
-        async function loadData() { try { const client = getSupabase(); const [settleData, aliasRes, fahrerRes, kassierRes, abgleichRes] = await Promise.all([ fetchAllSettlements(client), client.from('name_aliases').select('csv_name,fahrer_name'), client.from('fahrer').select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon').eq('aktiv', true), client.from('kassier_zahlungen').select('*'), client.from('abrechnung_abgleich').select('*') ]); if (!settleData || settleData.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = settleData.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); NAME_ALIASES = {}; if (!aliasRes.error && aliasRes.data) { aliasRes.data.forEach(a => { NAME_ALIASES[a.csv_name.toLowerCase()] = a.fahrer_name; }); } FAHRER_LIST = (!fahrerRes.error && fahrerRes.data) ? fahrerRes.data : []; KASSIER = (!kassierRes.error && kassierRes.data) ? kassierRes.data : []; ABGLEICH = (abgleichRes && !abgleichRes.error && abgleichRes.data) ? abgleichRes.data : []; if (abgleichRes && abgleichRes.error) console.warn('abgleich load error:', abgleichRes.error); if (kassierRes.error) console.warn('kassier load error:', kassierRes.error); WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; document.getElementById('weekFilter').innerHTML = WEEKS.map(w => '<option value="'+w+'">'+w+'</option>').join(''); render(); } catch (err) { console.error('Load error:', err); const offlineHint = !navigator.onLine ? ' (Offline — keine Internetverbindung)' : ''; document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Fehler beim Laden: ' + esc(err.message) + offlineHint + '<br><button class="btn" style="margin-top:12px" onclick="loadData()">Erneut versuchen</button></td></tr>'; } }
+        async function loadData() { try { const client = getSupabase(); const [settleData, aliasRes, fahrerRes, kassierRes, abgleichRes, freigabeRes] = await Promise.all([ fetchAllSettlements(client), client.from('name_aliases').select('csv_name,fahrer_name'), client.from('fahrer').select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon').eq('aktiv', true), client.from('kassier_zahlungen').select('*'), client.from('abrechnung_abgleich').select('*'), client.from('abrechnung_freigaben').select('*') ]); if (!settleData || settleData.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = settleData.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); NAME_ALIASES = {}; if (!aliasRes.error && aliasRes.data) { aliasRes.data.forEach(a => { NAME_ALIASES[a.csv_name.toLowerCase()] = a.fahrer_name; }); } FAHRER_LIST = (!fahrerRes.error && fahrerRes.data) ? fahrerRes.data : []; KASSIER = (!kassierRes.error && kassierRes.data) ? kassierRes.data : []; ABGLEICH = (abgleichRes && !abgleichRes.error && abgleichRes.data) ? abgleichRes.data : []; if (abgleichRes && abgleichRes.error) console.warn('abgleich load error:', abgleichRes.error); if (kassierRes.error) console.warn('kassier load error:', kassierRes.error); FREIGABEN_OK = !!(freigabeRes && !freigabeRes.error); FREIGABEN = (FREIGABEN_OK && freigabeRes.data) ? freigabeRes.data : []; if (freigabeRes && freigabeRes.error) console.warn('freigaben load error:', freigabeRes.error); WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; fillWeekFilter(); render(); } catch (err) { console.error('Load error:', err); const offlineHint = !navigator.onLine ? ' (Offline — keine Internetverbindung)' : ''; document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Fehler beim Laden: ' + esc(err.message) + offlineHint + '<br><button class="btn" style="margin-top:12px" onclick="loadData()">Erneut versuchen</button></td></tr>'; } }
         function updateThemeUI(isDark) { const icon = document.getElementById('themeIcon'); const text = document.getElementById('themeText'); if (isDark) { icon.innerHTML = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>'; text.textContent = 'Light'; } else { icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'; text.textContent = 'Dark'; } }
         function toggleTheme() { const html = document.documentElement; if (html.getAttribute('data-theme') === 'dark') { html.removeAttribute('data-theme'); localStorage.setItem('theme', 'light'); updateThemeUI(false); } else { html.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); updateThemeUI(true); } }
         function toggleSort(col) {
@@ -1634,6 +1693,112 @@
             box.style.display = 'block';
             return marken;
         }
+        /* === WOCHENFREIGABE (Fahrerapp) ===
+           Der Fahrer sieht eine Woche erst nach der Freigabe. Die Freigabe haelt
+           einen Schnappschuss (anzahl, summe); weicht die Live-Zahl davon ab, zeigt
+           der Kasten "Seit Freigabe geaendert". Fahrer sehen trotzdem die Live-Zahlen. */
+        let FREIGABEN = [], FREIGABEN_OK = false, freigabeLaeuft = false;
+        function freigabeVon(w) { return FREIGABEN.find(function(f) { return f.woche === w; }) || null; }
+        function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
+        function fillWeekFilter() {
+            const sel = document.getElementById('weekFilter');
+            sel.innerHTML = WEEKS.map(function(w) { return '<option value="' + esc(w) + '">' + esc(w) + (freigabeVon(w) ? ' ✓' : '') + '</option>'; }).join('');
+            sel.value = week;
+        }
+        // Live-Werte genau wie der Schnappschuss in woche_freigeben()
+        function freigabeLive(w) {
+            const rows = SETTLEMENTS.filter(function(s) { return s.woche === w && s.status === 'berechnet'; });
+            const summe = round2(rows.filter(function(s) { return s.auszahlung != null; }).reduce(function(a, s) { return a + ((parseFloat(s.auszahlung) || 0) - lohnOf(s)); }, 0));
+            return { anzahl: rows.length, summe: summe };
+        }
+        function fgDatum(ts) {
+            const d = new Date(ts); if (isNaN(d)) return '–';
+            const z = function(n) { return String(n).padStart(2, '0'); };
+            return z(d.getDate()) + '.' + z(d.getMonth() + 1) + '. ' + z(d.getHours()) + ':' + z(d.getMinutes());
+        }
+        function renderFreigabe(w) {
+            const box = document.getElementById('freigabeBox');
+            if (!FREIGABEN_OK || !w) { box.innerHTML = ''; return; }
+            const fr = freigabeVon(w);
+            const live = freigabeLive(w);
+            const dis = freigabeLaeuft ? ' disabled' : '';
+            // Untergrenze wie in woche_freigeben(): vor KW37 nie freigeben
+            if (!fr && !/^\d{4}-W\d{2}k?$/.test(w)) { box.innerHTML = ''; return; }
+            if (!fr && w < '2026-W37') {
+                box.innerHTML = '<span class="fg-pill">Für Fahrer nicht sichtbar <span>· vor KW37 keine Freigabe</span></span>';
+                return;
+            }
+            if (!fr) {
+                box.innerHTML = '<span class="fg-pill">Für Fahrer nicht sichtbar</span>'
+                    + (live.anzahl ? '<button class="btn fg-go" data-fg="freigeben"' + dis + '>Für Fahrer freigeben</button>'
+                                   : '<span class="fg-pill"><span>keine berechneten Zeilen</span></span>');
+                return;
+            }
+            const geaendert = live.anzahl !== (parseInt(fr.anzahl, 10) || 0) || Math.abs(live.summe - (parseFloat(fr.summe) || 0)) >= 0.01;
+            if (geaendert) {
+                box.innerHTML = '<span class="fg-pill geaendert" title="Freigegeben ' + esc(fgDatum(fr.freigegeben_am)) + ' von ' + esc(fr.freigegeben_von || '') + '">Seit Freigabe geändert '
+                    + '<span class="num">' + fr.anzahl + ' Fahrer · ' + fmt(fr.summe) + ' → ' + live.anzahl + ' Fahrer · ' + fmt(live.summe) + '</span></span>'
+                    + '<button class="btn fg-go" data-fg="freigeben"' + dis + '>Erneut freigeben</button>'
+                    + '<button class="fg-link" data-fg="zuruecknehmen"' + dis + '>zurücknehmen</button>';
+                return;
+            }
+            box.innerHTML = '<span class="fg-pill ok">Fahrer sehen diese Woche <span>· seit ' + esc(fgDatum(fr.freigegeben_am)) + ' · ' + esc(fr.freigegeben_von || '') + '</span></span>'
+                + '<button class="fg-link" data-fg="zuruecknehmen"' + dis + '>zurücknehmen</button>';
+        }
+        function freigabeDialogText(w) {
+            const rows = SETTLEMENTS.filter(function(s) { return s.woche === w && s.status === 'berechnet' && s.fahrer_name && s.fahrer_name.indexOf('__') !== 0; });
+            const ausz = rows.reduce(function(a, s) { const n = netAuszahlung(s); return a + (n > 0 ? n : 0); }, 0);
+            const schulden = rows.filter(function(s) { return (s.auszahlung || 0) < 0; }).length;
+            const abw = ABGLEICH.filter(function(r) { return r.woche === w && (r.befund === 'weicht ab' || r.befund === 'nur Plattform'); }).length;
+            const warn = SETTLEMENTS.filter(function(s) { return s.woche === w && s.status && s.status.indexOf('WARNUNG') >= 0; }).length;
+            return 'KW ' + w + ' für Fahrer freigeben?\n\n'
+                + rows.length + ' Fahrer · Auszahlungen ' + fmt(ausz) + '\n'
+                + schulden + ' mit Schulden\n'
+                + abw + ' ≠-Abweichungen (Plattform-Abgleich)\n'
+                + warn + (warn === 1 ? ' Warnung' : ' Warnungen') + ' (für Fahrer nicht sichtbar)\n\n'
+                + 'Die Fahrer sehen danach ihre Abrechnung und offenen Beträge dieser Woche in der App.';
+        }
+        function fgFehler(error) {
+            if (error && error.code === '42501') return 'Keine Berechtigung.';
+            return (error && error.message) || String(error);
+        }
+        async function woche_freigeben_ui(w) {
+            if (!confirm(freigabeDialogText(w))) return;
+            freigabeLaeuft = true; renderFreigabe(week);
+            try {
+                const { data, error } = await getSupabase().rpc('woche_freigeben', { p_woche: w });
+                if (error) throw error;
+                const row = Array.isArray(data) ? data[0] : data;
+                FREIGABEN = FREIGABEN.filter(function(f) { return f.woche !== w; });
+                if (row && row.woche) FREIGABEN.push(row);
+                showReToast('KW ' + w + ' freigegeben', 'success');
+            } catch (e) {
+                alert('Freigabe fehlgeschlagen: ' + fgFehler(e));
+            } finally {
+                freigabeLaeuft = false; fillWeekFilter(); renderFreigabe(week);
+            }
+        }
+        async function woche_zuruecknehmen_ui(w) {
+            if (!confirm('Freigabe für KW ' + w + ' zurücknehmen?\n\nDie Fahrer sehen diese Woche dann nicht mehr in der App.')) return;
+            freigabeLaeuft = true; renderFreigabe(week);
+            try {
+                const { data, error } = await getSupabase().from('abrechnung_freigaben').delete().eq('woche', w).select('woche');
+                if (error) throw error;
+                if (!data || !data.length) throw new Error('Nichts zurückgenommen (keine Berechtigung oder schon zurückgenommen).');
+                FREIGABEN = FREIGABEN.filter(function(f) { return f.woche !== w; });
+                showReToast('Freigabe KW ' + w + ' zurückgenommen', 'success');
+            } catch (e) {
+                alert('Zurücknehmen fehlgeschlagen: ' + fgFehler(e));
+            } finally {
+                freigabeLaeuft = false; fillWeekFilter(); renderFreigabe(week);
+            }
+        }
+        document.getElementById('freigabeBox').addEventListener('click', function(e) {
+            const b = e.target.closest('[data-fg]');
+            if (!b || b.disabled || !week) return;
+            if (b.dataset.fg === 'freigeben') woche_freigeben_ui(week);
+            else if (b.dataset.fg === 'zuruecknehmen') woche_zuruecknehmen_ui(week);
+        });
         function abgleichTitel(r) {
             const t = [];
             if (r.bolt_diff !== null && Math.abs(parseFloat(r.bolt_diff)) >= 0.01) t.push('Bolt: ' + fmt(r.bolt_api_brutto) + ' laut API, ' + fmt(r.bolt_abgerechnet) + ' abgerechnet');
@@ -1681,6 +1846,7 @@
             aliasBannerEl.style.display = noMatchCount > 0 ? 'flex' : 'none';
             if (noMatchCount > 0) { document.getElementById('aliasBannerCount').textContent = noMatchCount; }
             const ABW = renderAbgleich(week);
+            renderFreigabe(week);
             const tbody = document.getElementById('tableBody');
             const panel = document.getElementById('detailPanel');
             if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Keine Einträge</td></tr>'; panel.innerHTML = '<div class="placeholder">Keine Einträge</div>'; return; }
@@ -1908,21 +2074,45 @@
                     renderFahrer();
                 });
             });
-            try {
-                const res = await getSupabase().from('fahrer_uebersicht').select('*');
-                if (res.error) throw res.error;
-                FZ = res.data || [];
-            } catch (e) {
+            document.querySelectorAll('[data-pk]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    document.querySelectorAll('[data-pk]').forEach(function (x) { x.classList.remove('active'); });
+                    b.classList.add('active'); pkFilter = b.dataset.pk; renderPlattformKonten();
+                });
+            });
+            ['fzBody', 'fzPanel'].forEach(function (id) {
+                document.getElementById(id).addEventListener('click', fzAppKlick);
+            });
+            document.getElementById('pkListe').addEventListener('click', pkKlick);
+            await ladeFahrer();
+        }
+
+        /* Laedt Fahrerliste und Plattformkonten (neu). Wird nach jeder
+           Aenderung (Zugang, Zuordnung) erneut aufgerufen. */
+        async function ladeFahrer() {
+            const sb = getSupabase();
+            const [res, ohne, mit] = await Promise.all([
+                sb.from('fahrer_uebersicht').select('*'),
+                sb.from('plattform_konten').select('*').is('fahrer_id', null),
+                sb.from('plattform_konten').select('*').not('fahrer_id', 'is', null)
+            ]).catch(function (e) { return [{ error: e }, { error: e }, { error: e }]; });
+            if (res.error) {
                 document.getElementById('fzBody').innerHTML =
-                    '<tr><td colspan="7" class="empty">Fehler beim Laden: ' + esc(e.message || String(e)) + '</td></tr>';
+                    '<tr><td colspan="7" class="empty">Fehler beim Laden: ' + esc(res.error.message || String(res.error)) + '</td></tr>';
                 return;
             }
+            FZ = res.data || [];
+            PK_FEHLER = ohne.error ? (ohne.error.message || String(ohne.error)) : '';
+            PK_OHNE = ohne.error ? [] : (ohne.data || []);
+            PK_MIT = mit.error ? [] : (mit.data || []);
             renderFahrer();
+            renderPlattformKonten();
         }
 
         function fzListe() {
             let rows = FZ.slice();
             if (fzFilter === 'problem') { rows = rows.filter(function (f) { return f.aktiv && fzProbleme(f).length; }); }
+            else if (fzFilter === 'ohneapp') { rows = rows.filter(function (f) { return f.aktiv && !f.app_bereit; }); }
             else if (fzFilter === 'archiv') { rows = rows.filter(function (f) { return !f.aktiv; }); }
             else { rows = rows.filter(function (f) { return f.aktiv; }); }
             if (fzSearch) {
@@ -1955,6 +2145,13 @@
                 aktiv.reduce(function (s, f) { return s + (f.bolt_konten || 0); }, 0);
             document.getElementById('fzKpiFahrten').textContent =
                 fmtInt(aktiv.reduce(function (s, f) { return s + (f.fahrten_30t || 0); }, 0));
+            // Ampel: app_bereit kommt aus fahrer_uebersicht (gruen = Nr. eindeutig + Zugang aktiv)
+            const appDa = fzAppDa();
+            const bereit = aktiv.filter(function (f) { return f.app_bereit; }).length;
+            const kpiApp = document.getElementById('fzKpiApp');
+            kpiApp.textContent = appDa ? bereit + ' / ' + aktiv.length : '–';
+            kpiApp.className = appDa && bereit === aktiv.length ? 'ok' : '';
+            document.getElementById('fzCntOhneApp').textContent = appDa ? aktiv.length - bereit : '';
 
             const rows = fzListe();
             document.getElementById('fzCountBig').textContent = rows.length;
@@ -2015,6 +2212,7 @@
 
         function selectFahrer(id) {
             fzSel = (fzSel === id && isMobile()) ? null : id;     // nochmal tippen = zuklappen
+            if (FZ_PIN && FZ_PIN.fahrer_id !== fzSel) FZ_PIN = null;   // PIN nur beim eigenen Fahrer zeigen
             renderFahrer();
         }
 
@@ -2047,7 +2245,224 @@
                 kv('Letzte Woche', esc(f.letzte_woche || '-')) +
                 kv('Auszahlung', f.letzte_auszahlung == null ? '-' : fmt(f.letzte_auszahlung), 'strong') +
                 kv('Offener Saldo', offen > 0 ? fmt(offen) : '-', 'strong') +
+                fzAppHtml(f) +
+                fzKontenHtml(f) +
             '</div>';
+        }
+
+        /* === FAHRERAPP: App-Zugang, Vorschau, Plattformkonten ===
+           App-Zugang laeuft ueber die Edge Function fahrer-zugang (service_role
+           bleibt serverseitig). Der PIN kommt genau einmal zurueck und steht nur
+           im Speicher, bis "Fertig" gedrueckt oder ein anderer Fahrer gewaehlt wird. */
+        let PK_OHNE = [], PK_MIT = [], PK_FEHLER = '', pkFilter = 'umsatz', pkOffen = null;
+        let FZ_PIN = null, fzBusy = false;
+
+        function fzAppDa() { return FZ.length > 0 && Object.prototype.hasOwnProperty.call(FZ[0], 'app_bereit'); }
+        function fzKv(k, v, cls) {
+            return '<div class="detail-kv' + (cls ? ' ' + cls : '') + '"><span>' + k + '</span><span>' + v + '</span></div>';
+        }
+        function srcBadge(anbieter) {
+            return anbieter === 'uber' ? '<span class="src uber on" title="Uber">U</span>' : '<span class="src bolt on" title="Bolt">B</span>';
+        }
+
+        function fzAppHtml(f) {
+            let h = '<div class="detail-sec">App-Zugang</div>';
+            if (!fzAppDa()) return h + '<div class="app-hinweis">Noch nicht verfügbar – die Datenbank-Erweiterung für die Fahrerapp ist nicht eingespielt.</div>' + fzVorschauKnopf(f);
+            const nr = f.notion_fahrer_id;
+            const z = f.app_zugang || 'kein_zugang';
+            const seit = f.app_zugang_seit ? new Date(f.app_zugang_seit).toLocaleDateString('de-AT') : '';
+            const status = z === 'aktiv' ? '<span style="color:var(--accent)">aktiv</span>' + (seit ? ' seit ' + seit : '')
+                : z === 'gesperrt' ? '<span class="neg">gesperrt</span>' : 'kein Zugang';
+            h += fzKv('Login', nr == null ? '-' : 'FHR-' + nr) +
+                 fzKv('Status', status) +
+                 fzKv('Anmeldung', f.app_bereit ? '<span style="color:var(--accent)">möglich</span>' : '<span class="neg">nicht möglich</span>');
+            if (!f.app_faehig) {
+                h += '<div class="app-hinweis">' + (!f.aktiv ? 'Fahrer ist archiviert.'
+                    : nr == null ? 'Keine Fahrer-ID in Notion – erst in Notion eintragen.'
+                    : 'Fahrer-ID ' + nr + ' ist in Notion doppelt vergeben – erst bereinigen.') + '</div>';
+            }
+            if (FZ_PIN && FZ_PIN.fahrer_id === f.fahrer_id) {
+                h += '<div class="app-pin"><b>FHR-' + FZ_PIN.nr + ' · PIN ' + esc(FZ_PIN.pin) + '</b>' +
+                     '<small>Wird nicht noch einmal angezeigt. Jetzt dem Fahrer geben.</small>' +
+                     '<div class="detail-acts"><button class="btn-ghost" data-fzpinok="1">Fertig</button></div></div>';
+            }
+            const dis = fzBusy ? ' disabled' : '';
+            const knopf = function (aktion, text, cls) {
+                return '<button class="' + (cls || 'btn-ghost') + '" data-fzapp="' + aktion + '" data-nr="' + nr + '" data-id="' + f.fahrer_id + '"' + dis + '>' + text + '</button>';
+            };
+            let acts = '';
+            if (nr != null) {
+                if (z === 'kein_zugang' && f.app_faehig) acts = knopf('anlegen', 'Zugang anlegen', 'btn-primary ok');
+                else if (z === 'aktiv') acts = knopf('pin_neu', 'PIN neu') + knopf('sperren', 'Sperren', 'btn-ghost danger');
+                else if (z === 'gesperrt') acts = knopf('pin_neu', 'PIN neu') + knopf('entsperren', 'Entsperren');
+            }
+            if (acts) h += '<div class="detail-acts wrap">' + acts + '</div>';
+            return h + fzVorschauKnopf(f);
+        }
+        function fzVorschauKnopf(f) {
+            return '<div class="detail-acts"><button class="btn-ghost" data-fzvorschau="' + f.fahrer_id + '">Als Fahrer ansehen</button></div>';
+        }
+
+        function fzKontenHtml(f) {
+            let h = '<div class="detail-sec">Plattformkonten</div>';
+            if (PK_FEHLER) return h + '<div class="app-hinweis">Noch nicht verfügbar.</div>';
+            const konten = PK_MIT.filter(function (k) { return k.fahrer_id === f.fahrer_id; })
+                .sort(function (a, b) { return (a.anbieter + a.konto_name).localeCompare(b.anbieter + b.konto_name, 'de'); });
+            if (!konten.length) return h + '<div class="app-hinweis">Keine Plattformkonten zugeordnet.</div>';
+            const QUELLE = { telefon: 'über Telefon', name: 'über Name', manuell: 'von Hand' };
+            const dis = fzBusy ? ' disabled' : '';
+            return h + konten.map(function (k) {
+                const quelle = (QUELLE[k.zuordnung_quelle] || 'automatisch') +
+                    (k.zuordnung_quelle === 'manuell' && k.manuell_von ? ' · ' + esc(k.manuell_von) : '');
+                return '<div class="pk-zeile">' + srcBadge(k.anbieter) +
+                    '<span class="pk-name">' + esc(k.konto_name || '(ohne Namen)') + '<br><small>' + quelle +
+                        ' · ' + fmt(k.umsatz_letzte_woche) + ' letzte Woche</small></span>' +
+                    (k.zuordnung_quelle === 'manuell'
+                        ? '<button class="btn" data-fzloesen="1" data-anbieter="' + esc(k.anbieter) + '" data-uuid="' + esc(k.driver_uuid) + '"' + dis + '>Lösen</button>' : '') +
+                '</div>';
+            }).join('');
+        }
+
+        async function zugangAufruf(aktion, nr) {
+            const { data, error } = await getSupabase().functions.invoke('fahrer-zugang', { body: { aktion: aktion, fahrer_nr: nr } });
+            if (error) {
+                let body = null;
+                try { if (error.context && typeof error.context.json === 'function') body = await error.context.json(); } catch (x) {}
+                throw new Error((body && body.meldung) || ('Zugangsdienst nicht erreichbar: ' + (error.message || error)));
+            }
+            if (!data || data.ok !== true) throw new Error((data && data.meldung) || 'Unerwartete Antwort.');
+            return data;
+        }
+        async function fzZugang(aktion, nr, id) {
+            if (fzBusy || !nr) return;
+            const FRAGE = {
+                anlegen: 'App-Zugang für FHR-' + nr + ' anlegen?\n\nDer PIN wird danach genau einmal angezeigt.',
+                pin_neu: 'Neuen PIN für FHR-' + nr + ' erzeugen?\n\nDer alte PIN gilt dann nicht mehr. Wer schon angemeldet ist, bleibt angemeldet – dafür „Sperren“ nutzen.',
+                sperren: 'App-Zugang FHR-' + nr + ' sperren?\n\nDer Fahrer sieht ab sofort nichts mehr in der App.',
+                entsperren: 'App-Zugang FHR-' + nr + ' wieder freischalten?'
+            };
+            if (!FRAGE[aktion] || !confirm(FRAGE[aktion])) return;
+            fzBusy = true; renderFahrer();
+            try {
+                const r = await zugangAufruf(aktion, nr);
+                FZ_PIN = r.pin ? { fahrer_id: id, nr: nr, pin: String(r.pin) } : null;
+                const TEXT = { anlegen: 'Zugang angelegt', pin_neu: 'Neuer PIN erzeugt', sperren: 'Zugang gesperrt', entsperren: 'Zugang entsperrt' };
+                showReToast(TEXT[aktion] + ' · FHR-' + nr, 'success');
+            } catch (e) {
+                alert(e.message || String(e));
+            } finally {
+                fzBusy = false;
+                await ladeFahrer();
+            }
+        }
+        async function kontoLoesen(anbieter, uuid) {
+            if (fzBusy) return;
+            if (!confirm('Handzuordnung lösen?\n\nDanach darf der automatische Abgleich das Konto wieder über Telefon oder Name zuordnen.')) return;
+            fzBusy = true; renderFahrer();
+            try {
+                const { data, error } = await getSupabase().rpc('konto_loesen', { p_anbieter: anbieter, p_driver_uuid: uuid });
+                if (error) throw error;
+                showReToast(data ? 'Zuordnung gelöst' : 'Nichts geändert – keine Handzuordnung', data ? 'success' : 'error');
+            } catch (e) {
+                alert('Lösen fehlgeschlagen: ' + fgFehler(e));
+            } finally {
+                fzBusy = false;
+                await ladeFahrer();
+            }
+        }
+        function fzAppKlick(e) {
+            const v = e.target.closest('[data-fzvorschau]');
+            if (v) {
+                const url = '/fahrer/?vorschau=' + encodeURIComponent(v.dataset.fzvorschau);
+                if (isMobile()) window.location.href = url; else window.open(url, '_blank');
+                return;
+            }
+            const a = e.target.closest('[data-fzapp]');
+            if (a) { if (!a.disabled) fzZugang(a.dataset.fzapp, parseInt(a.dataset.nr, 10), parseInt(a.dataset.id, 10)); return; }
+            const l = e.target.closest('[data-fzloesen]');
+            if (l) { if (!l.disabled) kontoLoesen(l.dataset.anbieter, l.dataset.uuid); return; }
+            if (e.target.closest('[data-fzpinok]')) { FZ_PIN = null; renderFahrer(); }
+        }
+
+        function renderPlattformKonten() {
+            const liste = document.getElementById('pkListe');
+            if (PK_FEHLER) {
+                document.getElementById('pkCntUmsatz').textContent = '';
+                document.getElementById('pkCntAlle').textContent = '';
+                liste.innerHTML = '<div class="pk-leer">Noch nicht verfügbar: ' + esc(PK_FEHLER) + '</div>';
+                return;
+            }
+            const umsatz = function (k) { return parseFloat(k.umsatz_letzte_woche) || 0; };
+            const mitUmsatz = PK_OHNE.filter(function (k) { return umsatz(k) !== 0; });
+            document.getElementById('pkCntUmsatz').textContent = mitUmsatz.length;
+            document.getElementById('pkCntAlle').textContent = PK_OHNE.length;
+            const rows = (pkFilter === 'alle' ? PK_OHNE.slice() : mitUmsatz.slice()).sort(function (a, b) {
+                return (umsatz(b) - umsatz(a)) || String(a.konto_name || '').localeCompare(String(b.konto_name || ''), 'de');
+            });
+            if (!rows.length) {
+                liste.innerHTML = '<div class="pk-leer">' + (pkFilter === 'alle'
+                    ? 'Alle Plattformkonten sind einem Fahrer zugeordnet.'
+                    : 'Keine Konten ohne Fahrer mit Umsatz in der letzten Woche.') + '</div>';
+                return;
+            }
+            const aktive = FZ.filter(function (f) { return f.aktiv; })
+                .sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'de'); });
+            const GRUND = { name: 'Name gleich', betrag: 'Betrag gleich' };
+            const dis = fzBusy ? ' disabled' : '';
+            liste.innerHTML = rows.map(function (k) {
+                const key = k.anbieter + '|' + k.driver_uuid;
+                const vf = k.vorschlag_fahrer_id != null ? FZ.filter(function (x) { return x.fahrer_id === k.vorschlag_fahrer_id; })[0] : null;
+                const vName = vf ? vf.name + (vf.notion_fahrer_id != null ? ' (Nr. ' + vf.notion_fahrer_id + ')' : '')
+                                 : (k.vorschlag_fahrer_id != null ? 'Fahrer ' + k.vorschlag_fahrer_id : '');
+                const meta = [k.telefon || 'keine Nummer', k.firma || '–', fmtInt(k.fahrten_30t || 0) + ' Fahrten 30 T.']
+                    .concat(k.state ? [k.state] : []).map(function (x) { return esc(String(x)); }).join(' · ');
+                let html = '<div class="pk-card">' +
+                    '<div class="pk-card-top">' + srcBadge(k.anbieter) +
+                        '<b title="' + esc(k.konto_name || '') + '">' + esc(k.konto_name || '(ohne Namen)') + '</b>' +
+                        '<span class="num" title="Umsatz letzte Woche">' + fmt(k.umsatz_letzte_woche) + '</span></div>' +
+                    '<div class="pk-meta">' + meta + '</div>' +
+                    (vName ? '<div class="pk-vorschlag">Vorschlag: ' + esc(vName) + ' · ' + (GRUND[k.vorschlag_grund] || '') + '</div>' : '');
+                if (pkOffen === key) {
+                    // Vorschlag nur vorauswaehlen, wenn er waehlbar ist (aktiv, mit Notion-Nr.) -
+                    // sonst Platzhalter, damit nicht still der erste Fahrer der Liste gewaehlt ist.
+                    const vorWaehlbar = aktive.some(function (f) { return f.fahrer_id === k.vorschlag_fahrer_id && f.notion_fahrer_id != null; });
+                    html += '<select data-pksel="1" aria-label="Fahrer wählen">' +
+                        (!vorWaehlbar ? '<option value="">Fahrer wählen …</option>' : '') +
+                        aktive.map(function (f) {
+                            const ohneNr = f.notion_fahrer_id == null;
+                            return '<option value="' + f.fahrer_id + '"' + (vorWaehlbar && f.fahrer_id === k.vorschlag_fahrer_id ? ' selected' : '') +
+                                (ohneNr ? ' disabled' : '') + '>' + esc(f.name) + (ohneNr ? ' (ohne Fahrer-ID)' : ' · Nr. ' + f.notion_fahrer_id) + '</option>';
+                        }).join('') + '</select>' +
+                        '<div class="detail-acts"><button class="btn-primary ok" data-pkspeichern="1" data-anbieter="' + esc(k.anbieter) + '" data-uuid="' + esc(k.driver_uuid) + '"' + dis + '>Zuordnen</button>' +
+                        '<button class="btn-ghost" data-pkzu="1">Abbrechen</button></div>';
+                } else {
+                    html += '<div class="detail-acts"><button class="btn-ghost" data-pkauf="' + esc(key) + '"' + dis + '>Zuordnen</button></div>';
+                }
+                return html + '</div>';
+            }).join('');
+        }
+        async function pkKlick(e) {
+            const auf = e.target.closest('[data-pkauf]');
+            if (auf) { pkOffen = auf.dataset.pkauf; renderPlattformKonten(); return; }
+            if (e.target.closest('[data-pkzu]')) { pkOffen = null; renderPlattformKonten(); return; }
+            const sp = e.target.closest('[data-pkspeichern]');
+            if (!sp || sp.disabled || fzBusy) return;
+            const sel = sp.closest('.pk-card').querySelector('[data-pksel]');
+            const fid = sel ? parseInt(sel.value, 10) : NaN;
+            if (!fid) { alert('Bitte einen Fahrer wählen.'); return; }
+            fzBusy = true; renderPlattformKonten();
+            try {
+                const { error } = await getSupabase().rpc('konto_zuordnen', { p_anbieter: sp.dataset.anbieter, p_driver_uuid: sp.dataset.uuid, p_fahrer_id: fid });
+                if (error) throw error;
+                pkOffen = null;
+                const f = FZ.filter(function (x) { return x.fahrer_id === fid; })[0];
+                showReToast('Zugeordnet: ' + (f ? f.name : 'Fahrer ' + fid), 'success');
+            } catch (err) {
+                alert('Zuordnen fehlgeschlagen: ' + fgFehler(err));
+            } finally {
+                fzBusy = false;
+                await ladeFahrer();
+            }
         }
 
         /* === FUHRPARK-TAB === */

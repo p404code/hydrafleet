@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>HYDRAlink Fahrer</title>
+    <link rel="manifest" href="/fahrer/manifest.json">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <meta name="theme-color" content="#FBFBFC">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="HYDRAlink">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="HYDRAlink Fahrer">
+    <meta name="robots" content="noindex">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <script>try { if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}</script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg:#FBFBFC; --surface:#FFFFFF; --surface-2:#F1F3F5; --surface-3:#E6E8EB;
+            --border:#E6E8EB; --border-strong:#CFD4DA;
+            --text:#101418; --text-mut:#6B7280; --text-dim:#B0B6BF;
+            --accent:#0B6B4F; --accent-ink:#FFFFFF; --accent-faint:rgba(11,107,79,.08);
+            --warn:#B45309; --err:#B42318;
+            --band-bg:#FEF3C7; --band-text:#78350F; --band-border:#F5B51B;
+            --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+            --sans:-apple-system,"Inter","Segoe UI",system-ui,sans-serif;
+            --safe-top:env(safe-area-inset-top, 0px); --safe-bot:env(safe-area-inset-bottom, 0px);
+            color-scheme: light;
+        }
+        [data-theme="dark"] {
+            --bg:#0F1115; --surface:#15181D; --surface-2:#1A1E24; --surface-3:#20252C;
+            --border:#23272F; --border-strong:#323843;
+            --text:#EDEEF0; --text-mut:#989FA7; --text-dim:#5F666E;
+            --accent:#3ECF8E; --accent-ink:#062D1C; --accent-faint:rgba(62,207,142,.08);
+            --warn:#E5B454; --err:#F0555D;
+            --band-bg:#3A2E0B; --band-text:#F5D06B; --band-border:#8A6A12;
+            color-scheme: dark;
+        }
+        html { -webkit-text-size-adjust: 100%; }
+        body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; min-height: 100dvh; -webkit-font-smoothing: antialiased; font-size: 13px; line-height: 1.4; overflow-x: hidden; }
+        [hidden] { display: none !important; }
+        a { color: inherit; }
+        button { font-family: inherit; }
+        .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+        .zero { color: var(--text-dim) !important; }
+        .pos { color: var(--accent) !important; }
+        .neg { color: var(--err) !important; }
+        .brand { font-size: 14px; font-weight: 800; letter-spacing: -.3px; white-space: nowrap; }
+        .brand span { font-weight: 400; color: var(--text-mut); }
+
+        /* Buttons wie dashboard.html */
+        .btn-primary, .btn-ghost { display: flex; align-items: center; justify-content: center; gap: 6px; height: 44px; padding: 0 14px; border-radius: 7px; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; border: 1px solid transparent; width: 100%; }
+        .btn-primary { background: var(--text); color: var(--bg); }
+        .btn-ghost { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
+        .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+        /* ---------- Login ---------- */
+        .login { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; gap: 36px; padding: calc(var(--safe-top) + 12vh) 24px calc(var(--safe-bot) + 32px); max-width: 440px; margin: 0 auto; }
+        .login-brand { font-size: 26px; font-weight: 800; letter-spacing: -.5px; }
+        .login-brand span { font-weight: 400; color: var(--text-mut); }
+        .login-sub { font-size: 13px; color: var(--text-mut); margin-top: 6px; }
+        .login-form { display: flex; flex-direction: column; gap: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+        .field { display: flex; flex-direction: column; gap: 6px; }
+        .field-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-mut); }
+        .fid-box { display: flex; align-items: center; height: 44px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); padding: 0 12px; gap: 4px; }
+        .fid-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-faint); }
+        .fid-box .pre { font-size: 16px; color: var(--text-dim); }
+        .fid-box input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text); font-size: 16px; outline: none; padding: 0; }
+        .pins { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+        .pins input { height: 48px; min-width: 0; width: 100%; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-2); color: var(--text); font-size: 18px; text-align: center; outline: none; padding: 0; }
+        .pins input.filled { border-color: var(--accent); background: var(--surface); }
+        .pins input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-faint); }
+        .login-err { color: var(--err); font-size: 12.5px; font-weight: 500; min-height: 17px; text-align: center; margin: -6px 0 -8px; }
+        .login-hint { font-size: 12px; color: var(--text-mut); text-align: center; margin-top: auto; }
+
+        /* ---------- Hinweis-Seiten (Laden, Kein Zugang, Fehler) ---------- */
+        .msg { min-height: 60vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+        .msg-card { width: 100%; max-width: 400px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px 18px; display: flex; flex-direction: column; gap: 8px; text-align: center; }
+        .msg-card h2 { font-size: 15px; font-weight: 700; }
+        .msg-card p { font-size: 12.5px; color: var(--text-mut); line-height: 1.5; }
+        .msg-card .acts { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+
+        /* ---------- App-Rahmen ---------- */
+        .top { position: sticky; top: 0; z-index: 20; }
+        .band { background: var(--band-bg); color: var(--band-text); border-bottom: 1px solid var(--band-border); padding: calc(var(--safe-top) + 7px) 12px 7px; font-size: 12px; line-height: 1.4; }
+        .band b { font-weight: 700; }
+        .band a { font-weight: 600; text-decoration: underline; white-space: nowrap; }
+        .band .band-status { margin-top: 2px; }
+        .topbar { height: calc(46px + var(--safe-top)); padding: var(--safe-top) 12px 0; display: flex; align-items: center; gap: 8px; background: var(--surface); border-bottom: 1px solid var(--border); }
+        .band:not([hidden]) + .topbar { height: 46px; padding-top: 0; }
+        .topbar.sub { padding-left: 4px; gap: 2px; }
+        .topbar .who { margin-left: auto; font-size: 12px; color: var(--text-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .topbar .title { font-size: 14px; font-weight: 700; white-space: nowrap; }
+        .back { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; color: var(--text); flex-shrink: 0; }
+        main { padding-bottom: calc(66px + var(--safe-bot)); }
+
+        .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; height: calc(54px + var(--safe-bot)); padding-bottom: var(--safe-bot); background: var(--surface); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none; color: var(--text-mut); font-size: 10.5px; font-weight: 500; min-width: 0; -webkit-tap-highlight-color: transparent; }
+        .tab svg { width: 18px; height: 18px; }
+        .tab.active { color: var(--text); font-weight: 700; }
+        .tab.off { color: var(--text-dim); cursor: default; gap: 1px; }
+        .tab .soon { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; line-height: 1; }
+        .tab-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* ---------- Inhalte ---------- */
+        .hero { padding: 14px 12px 12px; background: var(--surface); border-bottom: 1px solid var(--border); }
+        .hero-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+        .hero-l { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .hero-t { font-size: 18px; font-weight: 700; }
+        .hero-s { font-size: 12px; color: var(--text-mut); }
+        .hero-r { text-align: right; flex-shrink: 0; }
+        .big { font-size: 30px; font-weight: 700; letter-spacing: -.6px; line-height: 1.1; white-space: nowrap; }
+        .big-l { font-size: 11.5px; color: var(--text-mut); }
+        .kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+        .kpis.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .kpi { background: var(--surface-2); border-radius: 8px; padding: 7px 10px; min-width: 0; text-align: left; border: 0; color: inherit; text-decoration: none; display: block; }
+        .kpi-k { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .kpi-v { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .kpi-s { font-size: 10.5px; color: var(--text-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        a.kpi { cursor: pointer; }
+        .hero .btn-primary { height: 40px; margin-top: 10px; }
+        .sec-h { display: flex; justify-content: space-between; gap: 8px; padding: 14px 12px 6px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-mut); }
+        .list { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+        .wrow { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr); align-items: center; padding: 11px 12px; border-bottom: 1px solid var(--border); font-size: 13px; text-decoration: none; color: var(--text); }
+        .wrow:last-child { border-bottom: 0; }
+        .wrow .r { text-align: right; }
+        .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; vertical-align: middle; flex-shrink: 0; }
+        .dot.ok { background: var(--accent); } .dot.bad { background: var(--err); } .dot.part { background: var(--warn); }
+        .note { padding: 8px 12px; font-size: 11.5px; color: var(--text-mut); line-height: 1.5; }
+        .empty { margin: 24px 12px 0; padding: 24px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+        .empty b { font-size: 14px; font-weight: 600; }
+        .empty span { font-size: 12px; color: var(--text-mut); line-height: 1.5; }
+
+        /* Zettel */
+        .chips { display: flex; gap: 6px; padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; }
+        .chip { height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: 12px; font-weight: 500; text-decoration: none; display: flex; align-items: center; white-space: nowrap; flex-shrink: 0; }
+        .chip.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+        .slip { padding: 12px 20px 16px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; }
+        .slip-name { font-size: 16px; font-weight: 700; }
+        .slip-sub { font-size: 11.5px; color: var(--text-mut); margin-bottom: 4px; }
+        .slip-pay { font-size: 24px; font-weight: 700; margin: 2px 0 2px; }
+        .slip-pay-l { font-size: 11.5px; color: var(--text-mut); }
+        .slip-sec { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-mut); margin: 12px 0 2px; }
+        .kv { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px dotted var(--border); font-size: 13px; }
+        .kv > span:first-child { color: var(--text-mut); min-width: 0; overflow-wrap: anywhere; }
+        .kv > span:last-child { white-space: nowrap; }
+        .kv.strong > span:last-child { font-weight: 700; }
+        .lohn { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface-2); border-radius: 8px; padding: 8px 10px; margin: 12px 0 4px; font-size: 13px; }
+
+        /* Offen */
+        .orow { padding: 11px 12px; border-bottom: 1px solid var(--border); }
+        .orow:last-child { border-bottom: 0; }
+        .orow-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 13px; }
+        .orow-top b { font-weight: 600; }
+        .orow-sub { font-size: 11.5px; color: var(--text-mut); margin: 2px 0 0 14px; }
+        .zahl { font-size: 11.5px; color: var(--text-mut); margin: 3px 0 0 14px; }
+
+        /* Mehr / Kontakt */
+        .profile { padding: 14px 12px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; }
+        .profile b { font-size: 16px; font-weight: 700; }
+        .profile span { font-size: 12px; color: var(--text-mut); }
+        .group { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-top: 12px; }
+        .item { display: flex; align-items: center; gap: 10px; padding: 0 12px; min-height: 50px; border-bottom: 1px solid var(--border); text-decoration: none; color: var(--text); background: none; border-left: 0; border-right: 0; border-top: 0; width: 100%; font-size: 13.5px; font-weight: 500; text-align: left; cursor: pointer; }
+        .item:last-child { border-bottom: 0; }
+        .item .grow { flex: 1; min-width: 0; }
+        .item svg { flex-shrink: 0; }
+        .item.danger { color: var(--err); }
+        .switch { width: 40px; height: 24px; border-radius: 999px; background: var(--border-strong); position: relative; flex-shrink: 0; transition: background .15s; }
+        .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; transition: left .15s; }
+        .switch.on { background: var(--accent); }
+        .switch.on::after { left: 19px; }
+        .contact { padding: 14px 12px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
+        .contact b { font-size: 16px; font-weight: 700; }
+        .contact p { font-size: 12.5px; color: var(--text-mut); line-height: 1.5; }
+        .sec-h.err { color: var(--err); }
+        .icon-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; color: var(--err); flex-shrink: 0; }
+
+        @media (min-width: 600px) {
+            main { max-width: 560px; margin: 0 auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Login -->
+    <div id="screenLogin" class="login" hidden>
+        <div>
+            <div class="login-brand">HYDRA<span>link</span></div>
+            <div class="login-sub">Fahrer-Zugang</div>
+        </div>
+        <form id="loginForm" class="login-form" novalidate autocomplete="off">
+            <div class="field">
+                <label class="field-label" for="fid">Fahrer-ID</label>
+                <div class="fid-box">
+                    <span class="pre num">FHR-</span>
+                    <input id="fid" class="num" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="9" autocomplete="username" placeholder="123" aria-label="Fahrer-ID ohne FHR-">
+                </div>
+            </div>
+            <div class="field">
+                <label class="field-label" for="pin0">PIN (6 Ziffern)</label>
+                <div class="pins" id="pins">
+                    <input id="pin0" class="num" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN Ziffer 1">
+                    <input class="num" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN Ziffer 2">
+                    <input class="num" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN Ziffer 3">
+                    <input class="num" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN Ziffer 4">
+                    <input class="num" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN Ziffer 5">
+                    <input class="num" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN Ziffer 6">
+                </div>
+            </div>
+            <div class="login-err" id="loginErr" role="alert"></div>
+            <button type="submit" class="btn-primary" id="loginBtn">Anmelden</button>
+        </form>
+        <div class="login-hint">PIN vergessen? Bitte im Büro melden.</div>
+    </div>
+
+    <!-- Laden / Kein Zugang / Fehler -->
+    <div id="screenMsg" class="msg" hidden><div class="msg-card" id="msgCard"></div></div>
+
+    <!-- App -->
+    <div id="shell" hidden>
+        <div class="top">
+            <div class="band" id="band" hidden></div>
+            <header class="topbar" id="topbar"></header>
+        </div>
+        <main id="view"></main>
+        <nav class="tabbar" id="tabbar" aria-label="Hauptmenü">
+            <a class="tab" href="#start" data-tab="start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg><span class="tab-label">Start</span></a>
+            <a class="tab" href="#abrechnung" data-tab="abrechnung"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"></rect><path d="M9 8h6"></path><path d="M9 12h6"></path><path d="M9 16h3"></path></svg><span class="tab-label">Abrechnung</span></a>
+            <span class="tab off" aria-disabled="true" title="Kommt bald"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg><span class="tab-label">Nachrichten</span><span class="soon">bald</span></span>
+            <span class="tab off" aria-disabled="true" title="Kommt bald"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 16h14v-4l-2-5H7l-2 5z"></path><circle cx="8" cy="16.5" r="1.5"></circle><circle cx="16" cy="16.5" r="1.5"></circle><path d="M5 12h14"></path></svg><span class="tab-label">Fahrzeug</span><span class="soon">bald</span></span>
+            <a class="tab" href="#mehr" data-tab="mehr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg><span class="tab-label">Mehr</span></a>
+        </nav>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script>
+        const SUPABASE_URL = 'https://pkxcwfkfaaorwnbdmylg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBreGN3ZmtmYWFvcnduYmRteWxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3NTE1ODUsImV4cCI6MjA3OTMyNzU4NX0.xBDHKKXA9DFFwcTO18aDH_VHJr9BZyI__lv-L4Apryo';
+        const AUTH_DOMAIN = '@hydralink.local';
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        /* Zustand. mode: 'fahrer' (eigene Sitzung) oder 'vorschau' (Büro-Sitzung, ?vorschau=<fahrer_id>). */
+        const S = { mode: null, vorschauId: null, profil: null, abr: [], offen: [], loadedAt: 0, loading: false };
+
+        const ICON_BACK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>';
+        const ICON_CHEV = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>';
+        const ICON_CASH = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle></svg>';
+        const ICON_CHAT = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"></path></svg>';
+        const ICON_CHECK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>';
+        const ICON_TEL = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>';
+
+        /* ---------- Formate (wie dashboard.html) ---------- */
+        function esc(v) { if (v == null) return ''; return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+        function num(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+        /* fmt() aus dashboard.html, nur null → „–“ statt „-“ (Vertrag 4.1) */
+        function fmt(v) { if (v == null || v === '') return '–'; const n = parseFloat(v); if (isNaN(n)) return '–'; return (n < 0 ? '-' : '') + Math.abs(n).toLocaleString('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
+        function fmtInt(v) { return Math.round(num(v)).toLocaleString('de-AT'); }
+        function isZero(v) { return v == null || v === '' || Math.abs(num(v)) < 0.005; }
+        /* Farbe für Beträge: 0/null grau, sonst neutral (oder gezielt pos/neg) */
+        function zc(v) { return isZero(v) ? ' zero' : ''; }
+        function payCls(v) { return isZero(v) ? ' zero' : (num(v) < 0 ? ' neg' : ' pos'); }
+        /* lohnOf / netAuszahlung: identischer Rechenweg wie dashboard.html */
+        function lohnOf(s) { return parseFloat(s && s.lohn) || 0; }
+        function netAuszahlung(s) { return (parseFloat(s.auszahlung) || 0) - lohnOf(s); }
+        function duBekommst(s) { return s.du_bekommst != null ? num(s.du_bekommst) : netAuszahlung(s); }
+        function kw(woche) { const m = /^(\d{4})-W(\d{2})(k?)$/.exec(woche || ''); return m ? 'KW ' + parseInt(m[2], 10) + m[3] : String(woche || ''); }
+        function weekRangeNumeric(woche) {
+            const m = /^(\d{4})-W(\d{2})$/.exec(woche || '');
+            if (!m) return '';
+            const year = parseInt(m[1], 10), wk = parseInt(m[2], 10);
+            const jan4 = new Date(Date.UTC(year, 0, 4));
+            const dow = jan4.getUTCDay() || 7;
+            const monday = new Date(jan4.getTime() - (dow - 1) * 86400000 + (wk - 1) * 7 * 86400000);
+            const sunday = new Date(monday.getTime() + 6 * 86400000);
+            const p2 = n => String(n).padStart(2, '0');
+            return p2(monday.getUTCDate()) + '.' + p2(monday.getUTCMonth() + 1) + '. – ' + p2(sunday.getUTCDate()) + '.' + p2(sunday.getUTCMonth() + 1) + '.' + sunday.getUTCFullYear();
+        }
+        function datum(ts) { if (!ts) return ''; const d = new Date(ts); if (isNaN(d)) return ''; return d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Vienna' }); }
+        function fhr(nr) { return nr == null ? 'ohne Nr.' : 'FHR-' + nr; }
+
+        /* ---------- Rollen (allein aus app_metadata, Vertrag Abschnitt 3) ---------- */
+        function rolle(session) {
+            const m = (session && session.user && session.user.app_metadata) || {};
+            if (m.app_role === 'admin' || m.app_role === 'user') return 'buero';
+            if (!m.app_role && m.fahrer_nr != null && m.fahrer_nr !== '') return 'fahrer';
+            return 'sonst';
+        }
+        function vorschauParam() {
+            const p = new URLSearchParams(location.search);
+            return { has: p.has('vorschau'), val: p.get('vorschau') };
+        }
+        function dropParams() { try { history.replaceState(null, '', '/fahrer/' + location.hash); } catch (e) {} }
+
+        /* ---------- Bildschirme umschalten ---------- */
+        function show(id) { ['screenLogin', 'screenMsg', 'shell'].forEach(x => { document.getElementById(x).hidden = (x !== id); }); }
+        function showMsg(html) { document.getElementById('msgCard').innerHTML = html; show('screenMsg'); }
+        function showLoading() { showMsg('<p>Lade …</p>'); }
+
+        /* ---------- Theme ---------- */
+        function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+        function applyThemeColor() { const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', isDark() ? '#0F1115' : '#FBFBFC'); }
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (isDark()) { html.removeAttribute('data-theme'); try { localStorage.setItem('theme', 'light'); } catch (e) {} }
+            else { html.setAttribute('data-theme', 'dark'); try { localStorage.setItem('theme', 'dark'); } catch (e) {} }
+            applyThemeColor();
+            render();
+        }
+
+        /* ---------- Login ---------- */
+        const pinInputs = Array.from(document.querySelectorAll('#pins input'));
+        const fidInput = document.getElementById('fid');
+        function pinValue() { return pinInputs.map(i => i.value).join(''); }
+        function clearPins() { pinInputs.forEach(i => { i.value = ''; i.classList.remove('filled'); }); }
+        function fillPinsFrom(start, digits) {
+            let idx = start;
+            for (const ch of digits) { if (idx > 5) break; pinInputs[idx].value = ch; pinInputs[idx].classList.add('filled'); idx++; }
+            return idx;
+        }
+        pinInputs.forEach((input, idx) => {
+            input.addEventListener('input', function() {
+                const digits = this.value.replace(/\D/g, '');
+                if (!digits) { this.value = ''; this.classList.remove('filled'); return; }
+                const next = fillPinsFrom(idx, digits);
+                if (next <= 5) pinInputs[next].focus();
+                else { this.blur(); if (pinValue().length === 6 && fidInput.value) document.getElementById('loginForm').requestSubmit(); }
+            });
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && !this.value && idx > 0) {
+                    e.preventDefault();
+                    pinInputs[idx - 1].value = ''; pinInputs[idx - 1].classList.remove('filled'); pinInputs[idx - 1].focus();
+                }
+            });
+            input.addEventListener('paste', function(e) {
+                const t = ((e.clipboardData || window.clipboardData).getData('text') || '').replace(/\D/g, '');
+                if (!t) return;
+                e.preventDefault();
+                const next = fillPinsFrom(idx, t);
+                if (next <= 5) pinInputs[next].focus();
+                else { this.blur(); if (pinValue().length === 6 && fidInput.value) document.getElementById('loginForm').requestSubmit(); }
+            });
+            input.addEventListener('focus', function() { this.select(); });
+        });
+        fidInput.addEventListener('input', function() {
+            const v = this.value.replace(/^\s*fhr-?/i, '').replace(/\D/g, '');
+            if (v !== this.value) this.value = v;
+        });
+        fidInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); pinInputs[0].focus(); } });
+
+        function showLogin() {
+            S.mode = null; S.profil = null; S.abr = []; S.offen = [];
+            clearPins();
+            document.getElementById('loginErr').textContent = '';
+            try { const last = localStorage.getItem('fahrer_nr_last'); if (last && /^[0-9]{1,9}$/.test(last) && !fidInput.value) fidInput.value = last; } catch (e) {}
+            show('screenLogin');
+        }
+
+        function loginFehler(error) {
+            const code = error && error.code;
+            if (code === 'user_banned') return 'Dein Zugang ist gesperrt. Bitte im Büro melden.';
+            if (code === 'over_request_rate_limit' || (error && error.status === 429)) return 'Zu viele Versuche. Bitte später erneut versuchen.';
+            if (code === 'invalid_credentials' || (!code && error && error.status === 400)) return 'Fahrer-ID oder PIN falsch.';
+            return 'Verbindungsfehler. Bitte erneut versuchen.';
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const errEl = document.getElementById('loginErr');
+            const btn = document.getElementById('loginBtn');
+            const nrRaw = fidInput.value.replace(/\D/g, '');
+            const pin = pinValue();
+            errEl.textContent = '';
+            if (!/^[0-9]{1,9}$/.test(nrRaw) || parseInt(nrRaw, 10) < 1) { errEl.textContent = 'Bitte Fahrer-ID eingeben.'; fidInput.focus(); return; }
+            if (!/^[0-9]{6}$/.test(pin)) { errEl.textContent = 'Bitte 6-stelligen PIN eingeben.'; pinInputs[Math.min(pin.length, 5)].focus(); return; }
+            if (btn.disabled) return;
+            btn.disabled = true; btn.textContent = 'Prüfe …';
+            try {
+                const email = 'fhr-' + parseInt(nrRaw, 10) + AUTH_DOMAIN;
+                const { data, error } = await sb.auth.signInWithPassword({ email: email, password: pin });
+                if (error) { errEl.textContent = loginFehler(error); clearPins(); pinInputs[0].focus(); return; }
+                const session = data && data.session;
+                if (!session || rolle(session) !== 'fahrer') {
+                    if (session) await sb.auth.signOut();
+                    errEl.textContent = 'Fahrer-ID oder PIN falsch.'; clearPins(); pinInputs[0].focus(); return;
+                }
+                try { localStorage.setItem('fahrer_nr_last', String(parseInt(nrRaw, 10))); } catch (e2) {}
+                clearPins();
+                S.mode = 'fahrer'; S.vorschauId = null;
+                if (!location.hash) history.replaceState(null, '', '/fahrer/#start');
+                await startApp();
+            } catch (err) {
+                console.error('Login:', err);
+                errEl.textContent = 'Verbindungsfehler. Bitte erneut versuchen.';
+            } finally {
+                btn.disabled = false; btn.textContent = 'Anmelden';
+            }
+        });
+
+        async function abmelden() {
+            if (S.mode === 'vorschau') return; // Vorschau meldet nie ab – sonst wäre das Büro abgemeldet
+            try { await sb.auth.signOut(); } catch (e) {}
+            try { history.replaceState(null, '', '/fahrer/'); } catch (e) {}
+            showLogin();
+        }
+
+        /* ---------- Daten ---------- */
+        async function laden() {
+            const arg = S.mode === 'vorschau' ? { p_fahrer_id: S.vorschauId } : null;
+            const call = name => (arg ? sb.rpc(name, arg) : sb.rpc(name));
+            const res = await Promise.all([call('fahrer_app_profil'), call('fahrer_app_abrechnungen'), call('fahrer_app_offen')]);
+            const err = res.map(r => r.error).find(Boolean);
+            if (err) throw err;
+            S.profil = (res[0].data || [])[0] || null;
+            S.abr = (res[1].data || []).slice().sort((a, b) => (a.woche < b.woche ? 1 : a.woche > b.woche ? -1 : 0));
+            S.offen = (res[2].data || []).slice().sort((a, b) => (a.woche < b.woche ? 1 : a.woche > b.woche ? -1 : 0));
+            S.loadedAt = Date.now();
+        }
+
+        async function startApp() {
+            showLoading();
+            S.loading = true;
+            try { await laden(); }
+            catch (err) {
+                console.error('Laden:', err);
+                S.loading = false;
+                showMsg('<h2>Daten konnten nicht geladen werden</h2><p>Bitte Internetverbindung prüfen und erneut versuchen.</p>'
+                    + '<div class="acts"><button class="btn-primary" data-act="retry">Erneut versuchen</button>'
+                    + (S.mode === 'vorschau' ? '<a class="btn-ghost" href="/dashboard.html">Zurück zum Dashboard</a>' : '<button class="btn-ghost" data-act="logout">Abmelden</button>')
+                    + '</div>');
+                return;
+            }
+            S.loading = false;
+            if (!S.profil) {
+                if (S.mode === 'vorschau') {
+                    showMsg('<h2>Vorschau</h2><p>Fahrer ' + esc(S.vorschauId) + ' nicht gefunden.</p><div class="acts"><a class="btn-primary" href="/dashboard.html">Zurück zum Dashboard</a></div>');
+                } else {
+                    showMsg('<h2>Kein Zugang</h2><p>Dein Zugang ist gerade nicht aktiv. Bitte im Büro melden.</p><div class="acts"><button class="btn-primary" data-act="logout">Abmelden</button></div>');
+                }
+                return;
+            }
+            show('shell');
+            renderBand();
+            render();
+        }
+
+        /* ---------- Vorschau-Band ---------- */
+        function renderBand() {
+            const band = document.getElementById('band');
+            if (S.mode !== 'vorschau' || !S.profil) { band.hidden = true; band.innerHTML = ''; return; }
+            const p = S.profil;
+            let status;
+            if (p.nr_eindeutig && p.app_zugang === 'aktiv') status = 'ja';
+            else if (p.fahrer_nr == null) status = 'nein — keine Fahrer-Nr. in Notion';
+            else if (!p.nr_eindeutig) status = 'nein — Fahrer-Nr. in Notion doppelt';
+            else if (p.app_zugang === 'kein_zugang') status = 'nein — noch kein App-Zugang angelegt';
+            else if (p.app_zugang === 'gesperrt') status = 'nein — Zugang gesperrt';
+            else status = 'nein';
+            band.innerHTML = '<div><b>Vorschau:</b> ' + esc(p.name) + ' (' + esc(fhr(p.fahrer_nr)) + ') — so sieht der Fahrer die App · <a href="/dashboard.html">Zurück zum Dashboard</a></div>'
+                + '<div class="band-status">Kann sich anmelden: <b>' + esc(status) + '</b></div>';
+            band.hidden = false;
+        }
+
+        /* ---------- Routing ---------- */
+        function route() {
+            const h = decodeURIComponent((location.hash || '').replace(/^#/, ''));
+            const parts = h.split('/');
+            const name = ['start', 'abrechnung', 'offen', 'kontakt', 'mehr'].indexOf(parts[0]) >= 0 ? parts[0] : 'start';
+            return { name: name, arg: parts.slice(1).join('/') };
+        }
+        const TAB_FOR = { start: 'start', abrechnung: 'abrechnung', offen: 'mehr', kontakt: 'mehr', mehr: 'mehr' };
+
+        function render() {
+            if (!S.profil || document.getElementById('shell').hidden) return;
+            const r = route();
+            const out = ({ start: viewStart, abrechnung: viewAbrechnung, offen: viewOffen, kontakt: viewKontakt, mehr: viewMehr })[r.name](r.arg);
+            document.getElementById('topbar').className = 'topbar' + (out.back ? ' sub' : '');
+            document.getElementById('topbar').innerHTML = out.back
+                ? '<a class="back" href="' + out.back + '" aria-label="Zurück">' + ICON_BACK + '</a><div class="title">' + esc(out.title) + '</div><div class="who">' + esc(out.right || '') + '</div>'
+                : '<div class="brand">HYDRA<span>link</span></div><div class="who">' + esc(S.profil.name) + ' · <span class="num">' + esc(fhr(S.profil.fahrer_nr)) + '</span></div>';
+            document.getElementById('view').innerHTML = out.html;
+            document.querySelectorAll('#tabbar [data-tab]').forEach(a => {
+                const on = a.getAttribute('data-tab') === TAB_FOR[r.name];
+                a.classList.toggle('active', on);
+                if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+            });
+        }
+
+        function offenSumme() { return S.offen.reduce((t, o) => t + num(o.offen), 0); }
+        function kv(k, v, cls, strong) { return '<div class="kv' + (strong ? ' strong' : '') + '"><span>' + k + '</span><span class="num' + (cls || '') + '">' + v + '</span></div>'; }
+        function kpi(label, value, cls, sub, href) {
+            const inner = '<div class="kpi-k">' + label + '</div><div class="kpi-v num' + (cls || '') + '">' + value + '</div>' + (sub ? '<div class="kpi-s num">' + sub + '</div>' : '');
+            return href ? '<a class="kpi" href="' + href + '">' + inner + '</a>' : '<div class="kpi">' + inner + '</div>';
+        }
+        function wocheHref(woche) { return '#abrechnung/' + encodeURIComponent(woche); }
+
+        /* Start */
+        function viewStart() {
+            const offen = offenSumme();
+            const offenKpi = kpi('Noch offen', fmt(offen), offen > 0.005 ? ' neg' : ' zero', '', '#offen');
+            if (!S.abr.length) {
+                return { html: '<section class="hero"><div class="hero-row"><div class="hero-l"><div class="hero-t">Abrechnung</div><div class="hero-s">Noch keine Abrechnung freigegeben.</div></div></div>'
+                    + '<div class="kpis">' + offenKpi + '</div></section>'
+                    + '<div class="empty"><b>Noch keine Abrechnung freigegeben.</b><span>Sobald das Büro deine Woche freigibt, steht sie hier.</span></div>' };
+            }
+            const a = S.abr[0];
+            const du = duBekommst(a);
+            const range = weekRangeNumeric(a.woche);
+            const sub = [range, a.freigegeben_am ? 'freigegeben ' + datum(a.freigegeben_am) : ''].filter(Boolean).join(' · ');
+            let html = '<section class="hero"><div class="hero-row">'
+                + '<div class="hero-l"><div class="hero-t">' + esc(kw(a.woche)) + '</div><div class="hero-s">' + esc(sub) + '</div></div>'
+                + '<div class="hero-r"><div class="big num' + payCls(du) + '">' + fmt(du) + '</div><div class="big-l">Du bekommst</div></div>'
+                + '</div><div class="kpis">'
+                + kpi('Umsatz brutto', fmt(a.bruttoumsatz_gesamt), zc(a.bruttoumsatz_gesamt))
+                + kpi('Pauschale + %', fmt(a.abzug_gesamt), zc(a.abzug_gesamt), fmt(a.miete) + ' · ' + fmt(a.prozent_abzug))
+                + kpi('Lohn überwiesen', fmt(lohnOf(a)), zc(lohnOf(a)))
+                + offenKpi
+                + '</div><a class="btn-primary" href="' + wocheHref(a.woche) + '">Abrechnung ' + esc(kw(a.woche)) + ' ansehen</a></section>';
+            const frueher = S.abr.slice(1, 3);
+            if (frueher.length) {
+                html += '<div class="sec-h"><span>Frühere Wochen</span><span>Brutto · Du bekommst</span></div><div class="list">'
+                    + frueher.map(s => {
+                        const d = duBekommst(s);
+                        return '<a class="wrow" href="' + wocheHref(s.woche) + '"><span style="font-weight:500"><span class="dot ' + (d < 0 ? 'bad' : 'ok') + '"></span>' + esc(kw(s.woche)) + '</span>'
+                            + '<span class="r num" style="color:var(--text-mut)">' + fmtInt(s.bruttoumsatz_gesamt) + '</span>'
+                            + '<span class="r num' + (d < 0 ? ' neg' : (isZero(d) ? ' zero' : '')) + '" style="font-weight:700">' + fmt(d) + '</span></a>';
+                    }).join('') + '</div>';
+                const notes = frueher.filter(s => duBekommst(s) < 0 && lohnOf(s) > 0).map(s => esc(kw(s.woche)) + ': ' + fmt(lohnOf(s)) + ' Lohn überwiesen, deshalb negativ.');
+                if (notes.length) html += '<div class="note">' + notes.join('<br>') + '</div>';
+            }
+            return { html: html };
+        }
+
+        /* Abrechnung KW – Zettel wie printDriver()/detailHtml() */
+        function viewAbrechnung(arg) {
+            if (!S.abr.length) {
+                return { back: '#start', title: 'Abrechnung', html: '<div class="empty"><b>Noch keine Abrechnung freigegeben.</b><span>Sobald das Büro deine Woche freigibt, steht sie hier.</span></div>' };
+            }
+            const s = S.abr.find(x => x.woche === arg) || S.abr[0];
+            const p = S.profil;
+            const du = duBekommst(s);
+            const korr = parseFloat(s.korrektur) || 0;
+            const lohn = lohnOf(s);
+            const subParts = ['<span class="num">' + esc(fhr(p.fahrer_nr)) + '</span>'];
+            if (p.kennzeichen) subParts.push(esc(p.kennzeichen));
+            if (p.fahrzeug_modell) subParts.push(esc(p.fahrzeug_modell));
+            subParts.push('Modell ' + esc(s.mietmodell || p.mietmodell || '–'));
+            let html = '';
+            if (S.abr.length > 1) {
+                html += '<div class="chips" role="tablist">' + S.abr.map(x => '<a class="chip' + (x.woche === s.woche ? ' on' : '') + '" role="tab" aria-selected="' + (x.woche === s.woche) + '" href="' + wocheHref(x.woche) + '">' + esc(kw(x.woche)) + '</a>').join('') + '</div>';
+            }
+            html += '<section class="slip">'
+                + '<div class="slip-name">' + esc(p.name) + '</div>'
+                + '<div class="slip-sub">' + subParts.join(' · ') + '</div>'
+                + '<div class="slip-pay num' + payCls(du) + '">' + fmt(du) + '</div>'
+                + '<div class="slip-pay-l">Du bekommst' + (s.freigegeben_am ? ' · freigegeben am ' + esc(datum(s.freigegeben_am)) : '') + '</div>'
+                + '<div class="slip-sec">Einnahmen brutto</div>'
+                + kv('Bolt', fmt(s.bolt_brutto), zc(s.bolt_brutto)) + kv('Uber', fmt(s.uber_fahrpreis), zc(s.uber_fahrpreis)) + kv('MyPOS', fmt(s.mypos_summe), zc(s.mypos_summe)) + kv('Gesamt', fmt(s.bruttoumsatz_gesamt), zc(s.bruttoumsatz_gesamt), true)
+                + '<div class="slip-sec">Netto</div>'
+                + kv('Bolt Auszahlung', fmt(s.bolt_auszahlung), zc(s.bolt_auszahlung)) + kv('Uber Auszahlung', fmt(s.uber_auszahlung), zc(s.uber_auszahlung)) + kv('MyPOS', fmt(s.mypos_summe), zc(s.mypos_summe)) + kv('Wir bekommen', fmt(s.wir_bekommen), zc(s.wir_bekommen), true)
+                + '<div class="slip-sec">Abzüge</div>'
+                + kv('Pauschale', fmt(s.miete), zc(s.miete)) + kv('Prozent', fmt(s.prozent_abzug), zc(s.prozent_abzug)) + kv('Abzug gesamt', fmt(s.abzug_gesamt), zc(s.abzug_gesamt), true)
+                + (korr !== 0 ? '<div class="slip-sec">Korrektur</div>' + kv(esc(s.korrektur_note || 'Korrektur'), (korr > 0 ? '+' : '') + fmt(korr)) : '')
+                + '<div class="lohn"><span>Lohn bereits überwiesen</span><b class="num' + (lohn > 0 ? '' : ' zero') + '">' + (lohn > 0 ? '-' + fmt(lohn) : '–') + '</b></div>'
+                + kv('Auszahlung vor Lohn', fmt(s.auszahlung), zc(s.auszahlung))
+                + kv('Du bekommst', fmt(du), payCls(du), true)
+                + '</section>'
+                + '<div class="note">Fragen zur Abrechnung? Bitte im Büro melden.</div>';
+            return { back: '#start', title: 'Abrechnung ' + kw(s.woche), right: weekRangeNumeric(s.woche), html: html };
+        }
+
+        /* Offen – wie getOpenDebts() im Tab „Müssen zahlen“ */
+        function viewOffen() {
+            const sumOffen = offenSumme();
+            const sumSchuld = S.offen.reduce((t, o) => t + num(o.schuld), 0);
+            const sumKass = S.offen.reduce((t, o) => t + num(o.kassiert), 0);
+            const n = S.offen.length;
+            let html = '<section class="hero"><div class="hero-row">'
+                + '<div class="hero-l"><div class="hero-t">Offen</div><div class="hero-s">' + (n ? (n === 1 ? '1 Woche offen' : n + ' Wochen offen') : 'Nichts offen') + '</div></div>'
+                + '<div class="hero-r"><div class="big num' + (sumOffen > 0.005 ? ' neg' : ' zero') + '">' + fmt(sumOffen) + '</div><div class="big-l">Noch offen</div></div>'
+                + '</div><div class="kpis three">'
+                + kpi('Schuld', fmt(sumSchuld), zc(sumSchuld)) + kpi('Kassiert', fmt(sumKass), zc(sumKass)) + kpi('Wochen', String(n), n ? '' : ' zero')
+                + '</div></section>';
+            if (!n) {
+                html += '<div class="empty">' + ICON_CHECK + '<b>Du schuldest uns nichts</b><span>Wenn eine Abrechnung ins Minus geht, steht die Woche hier, mit allen Zahlungen.</span></div>';
+                return { html: html };
+            }
+            html += '<div class="sec-h"><span>Wochen</span><span>Offen</span></div><div class="list">'
+                + S.offen.map(o => {
+                    const zahlungen = Array.isArray(o.zahlungen) ? o.zahlungen : [];
+                    return '<div class="orow"><div class="orow-top"><b><span class="dot ' + (o.status === 'teilweise' ? 'part' : 'bad') + '"></span>' + esc(kw(o.woche)) + '</b>'
+                        + '<span class="num neg" style="font-weight:700">' + fmt(o.offen) + '</span></div>'
+                        + '<div class="orow-sub num">Schuld ' + fmt(o.schuld) + ' · kassiert ' + fmt(o.kassiert) + '</div>'
+                        + zahlungen.map(z => '<div class="zahl num">' + esc(datum(z && z.datum)) + ' · ' + esc((z && z.art) || '–') + ' · ' + fmt(z && z.betrag) + '</div>').join('')
+                        + '</div>';
+                }).join('') + '</div>'
+                + '<div class="note">Fragen zu einem Betrag? Bitte im Büro melden.</div>';
+            return { html: html };
+        }
+
+        /* Kontakt – v1 ohne WhatsApp-Nummer */
+        function viewKontakt() {
+            const html = '<section class="contact"><b>Fragen?</b><p>Bitte das Büro anrufen oder im Büro vorbeikommen. Die Hilfe über WhatsApp kommt bald.</p></section>'
+                + '<div class="sec-h err"><span>Notfall</span></div>'
+                + '<div class="list"><div class="item" style="cursor:default"><div class="grow"><div>Euro-Notruf</div><div class="num" style="font-size:11px;color:var(--text-mut)">112</div></div>'
+                + '<a class="icon-btn" href="tel:112" aria-label="112 anrufen">' + ICON_TEL + '</a></div></div>';
+            return { back: '#mehr', title: 'Kontakt', right: '', html: html };
+        }
+
+        /* Mehr */
+        function viewMehr() {
+            const p = S.profil;
+            const offen = offenSumme();
+            const sub = ['<span class="num">' + esc(fhr(p.fahrer_nr)) + '</span>'];
+            if (p.fahrzeug_modell) sub.push(esc(p.fahrzeug_modell));
+            if (p.kennzeichen) sub.push(esc(p.kennzeichen));
+            let html = '<section class="profile"><b>' + esc(p.name) + '</b><span>' + sub.join(' · ') + '</span></section>'
+                + '<div class="group">'
+                + '<a class="item" href="#offen">' + ICON_CASH + '<span class="grow">Offene Beträge</span><span class="num' + (offen > 0.005 ? ' neg' : ' zero') + '" style="font-size:13px;font-weight:700">' + fmt(offen) + '</span>' + ICON_CHEV + '</a>'
+                + '<a class="item" href="#kontakt">' + ICON_CHAT + '<span class="grow">Kontakt</span>' + ICON_CHEV + '</a>'
+                + '</div>'
+                + '<div class="group">'
+                + '<button type="button" class="item" data-act="theme" role="switch" aria-checked="' + isDark() + '"><span class="grow">Dunkles Design</span><span class="switch' + (isDark() ? ' on' : '') + '"></span></button>'
+                + (S.mode === 'vorschau' ? '<a class="item" href="/dashboard.html">Zurück zum Dashboard</a>' : '<button type="button" class="item danger" data-act="logout">Abmelden</button>')
+                + '</div>'
+                + '<div class="note" style="text-align:center;margin-top:8px">Fragen? Bitte im Büro melden.</div>';
+            return { html: html };
+        }
+
+        /* ---------- Ereignisse ---------- */
+        document.addEventListener('click', function(e) {
+            const t = e.target.closest('[data-act]');
+            if (!t) return;
+            const act = t.getAttribute('data-act');
+            if (act === 'logout') { e.preventDefault(); abmelden(); }
+            else if (act === 'theme') { e.preventDefault(); toggleTheme(); }
+            else if (act === 'retry') { e.preventDefault(); startApp(); }
+        });
+        window.addEventListener('hashchange', function() { render(); window.scrollTo(0, 0); });
+        document.addEventListener('visibilitychange', async function() {
+            if (document.visibilityState !== 'visible' || !S.profil || S.loading) return;
+            if (Date.now() - S.loadedAt < 5 * 60 * 1000) return;
+            S.loading = true;
+            try { await laden(); if (!S.profil) { startApp(); return; } renderBand(); render(); } catch (err) { console.warn('Aktualisieren:', err); }
+            finally { S.loading = false; }
+        });
+        sb.auth.onAuthStateChange(function(event) {
+            if (event === 'SIGNED_OUT' && S.mode) { try { history.replaceState(null, '', '/fahrer/'); } catch (e) {} showLogin(); }
+        });
+
+        /* ---------- Start: Guard (Vertrag Abschnitt 3) ---------- */
+        async function boot() {
+            applyThemeColor();
+            showLoading();
+            const vp = vorschauParam();
+            const vorschauOk = vp.has && /^[0-9]{1,9}$/.test(vp.val || '') && parseInt(vp.val, 10) > 0;
+            let session = null;
+            try { const { data } = await sb.auth.getSession(); session = data && data.session; } catch (e) { session = null; }
+            if (!session) { if (vp.has) dropParams(); showLogin(); return; }
+            const r = rolle(session);
+            if (r === 'buero') {
+                if (vorschauOk) { S.mode = 'vorschau'; S.vorschauId = parseInt(vp.val, 10); await startApp(); return; }
+                location.replace('/dashboard.html');
+                return;
+            }
+            if (r === 'fahrer') {
+                if (vp.has) dropParams();
+                S.mode = 'fahrer'; S.vorschauId = null;
+                await startApp();
+                return;
+            }
+            try { await sb.auth.signOut(); } catch (e) {}
+            if (vp.has) dropParams();
+            showLogin();
+        }
+        boot();
+    </script>
+    <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js').catch(() => {}); }</script>
+</body>
+</html>

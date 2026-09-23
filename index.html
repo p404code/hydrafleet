@@ -60,6 +60,8 @@
         .btn-login:hover { opacity: .92; }
         .btn-login:disabled { opacity: .5; cursor: not-allowed; }
         .error-message { color: var(--err); font-size: 12.5px; text-align: center; margin-bottom: 10px; min-height: 16px; font-weight: 500; }
+        .driver-link { display: block; text-align: center; margin-top: 16px; font-size: 12.5px; font-weight: 500; color: var(--text-mut); text-decoration: none; }
+        .driver-link:hover { color: var(--text); text-decoration: underline; }
         .theme-toggle { position: fixed; top: 12px; right: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 5px 10px; font-size: 12px; font-weight: 500; color: var(--text-mut); cursor: pointer; font-family: inherit; }
         .theme-toggle:hover { background: var(--surface-2); color: var(--text); }
         @media (max-width: 480px) {
@@ -95,6 +97,7 @@
                 <div class="error-message" id="errorMessage"></div>
                 <button type="submit" class="btn-login" id="loginBtn">Anmelden</button>
             </form>
+            <a class="driver-link" href="/fahrer/">Fahrer? Hier anmelden</a>
         </div>
     </div>
 
@@ -163,8 +166,22 @@
         async function checkSession() {
             try {
                 const { data } = await sb.auth.getSession();
-                if (data && data.session) { window.location.href = 'dashboard.html'; }
-                else { localStorage.removeItem('hydralink_session'); }
+                const session = data && data.session;
+                if (!session) { localStorage.removeItem('hydralink_session'); return; }
+                // Rolle allein aus app_metadata: Büro -> Dashboard, Fahrer -> /fahrer/, sonst abmelden
+                const meta = (session.user && session.user.app_metadata) || {};
+                if (meta.app_role === 'admin' || meta.app_role === 'user') {
+                    // Nur weiter, wenn dashboard.html den hydralink_session-Eintrag auch akzeptiert (gleiche Regel, 30 Tage) –
+                    // sonst schickt es sofort hierher zurück: Endlos-Weiterleitung index <-> dashboard (auch von /fahrer/ aus).
+                    let hs = null; try { hs = JSON.parse(localStorage.getItem('hydralink_session') || 'null'); } catch (e2) { hs = null; }
+                    if (hs && hs.timestamp && Date.now() - hs.timestamp <= 30 * 24 * 60 * 60 * 1000) { window.location.href = 'dashboard.html'; return; }
+                    await sb.auth.signOut({ scope: 'local' }); // nur dieses Gerät, andere Büro-Geräte bleiben angemeldet
+                    localStorage.removeItem('hydralink_session');
+                    return;
+                }
+                if (!meta.app_role && meta.fahrer_nr != null && meta.fahrer_nr !== '') { window.location.replace('/fahrer/'); return; }
+                await sb.auth.signOut();
+                localStorage.removeItem('hydralink_session');
             } catch(e) {}
         }
 

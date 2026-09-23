@@ -43,8 +43,25 @@ function serviceKey() {
   if (!cs.length) throw new Error('Keine Cookies gefunden - im Browserfenster angemeldet?');
 
   const cookieHeader = cs.map((c) => `${c.name}=${c.value}`).join('; ');
-  const frueheste = Math.min(...cs.filter((c) => c.expires > 0).map((c) => c.expires));
-  const laeuftAb = new Date(frueheste * 1000).toISOString();
+  const ablauf = cs.filter((c) => c.expires > 0).map((c) => c.expires);
+  const laeuftAb = ablauf.length ? new Date(Math.min(...ablauf) * 1000).toISOString() : null;
+
+  // Neue Sitzung bei Uber pruefen, BEVOR die alte im Vault ueberschrieben wird -
+  // sonst ersetzt ein abgemeldetes Fenster eine noch gueltige Sitzung.
+  // Gleicher Aufruf wie in uber-sync (portal()).
+  const probe = await fetch('https://fleethub.uber.com/api/vs-sp-reports-management/GetUserOrganizations?localeCode=de-DE', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json', 'x-csrf-token': 'x', Cookie: cookieHeader,
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36',
+    },
+    body: '{}',
+  });
+  let pj = null; try { pj = JSON.parse(await probe.text()); } catch {}
+  if (!probe.ok || pj?.status !== 'success')
+    throw new Error(`Neue Sitzung ungueltig (HTTP ${probe.status}) - Vault NICHT geaendert. Im Fenster anmelden.`);
+  if (ORG && !(pj.data || []).some((o) => o.uuid === ORG))
+    throw new Error('org_id gehoert nicht zu dieser Sitzung - Vault NICHT geaendert');
 
   const key = serviceKey();
   const res = await fetch('https://pkxcwfkfaaorwnbdmylg.supabase.co/rest/v1/rpc/verbindung_setzen', {
@@ -62,6 +79,6 @@ function serviceKey() {
   if (!res.ok) throw new Error(`Supabase ${res.status}: ${text}`);
 
   console.log('Verbindung:', text.replace(/"/g, ''));
-  console.log('Cookies gespeichert:', cs.length, '| kuerzeste Gueltigkeit bis', laeuftAb.slice(0, 16));
+  console.log('Cookies gespeichert:', cs.length, '| kuerzeste Gueltigkeit bis', (laeuftAb || 'Sitzungsende').slice(0, 16));
   process.exit(0);
 })().catch((e) => { console.error('FEHLER:', e.message); process.exit(1); });

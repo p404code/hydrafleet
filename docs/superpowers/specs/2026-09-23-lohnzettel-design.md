@@ -175,6 +175,16 @@ Screen „Lohnzettel“ (Design Screen 8), erreichbar über „Mehr“ → Lohnz
 - Leer: „Noch keine Lohnzettel.“
 - Vorschau-Modus (`?vorschau=`) zeigt die Zettel des angesehenen Fahrers.
 
+**Dienstgeber** (Nachtrag Betreiber 23.09.): auf der Start-Seite und oben im
+Lohnzettel-Screen ein Block „Dienstgeber“ mit **Firmenname und Adresse**. Quelle:
+die Firma des neuesten Lohnzettels des Fahrers, Adresse aus der bestehenden
+Tabelle `companies` (Rechnungs-Modul) über `companies.name = lohn_laeufe.firma_name`.
+`companies` wird nur gelesen. Hat der Fahrer im neuesten Monat Zettel mehrerer
+Firmen: alle nennen. Kein Treffer in `companies`: nur der Name aus dem PDF; das
+Dashboard zeigt beim Lauf „Adresse fehlt – Firma unter Rechnungen anlegen“.
+Geliefert über `fahrer_app_profil` nicht — eigene RPC
+`fahrer_app_dienstgeber(p_fahrer_id integer default null)` → `firma_name, adresse`.
+
 Daten über neue RPC `fahrer_app_lohnzettel(p_fahrer_id integer default null)`
 (`security definer`, Ziel über `fahrer_app_ziel`), liefert `monat, firma_name,
 auszahlung, pfad`. Der Fahrer holt das PDF selbst über Storage; die

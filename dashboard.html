@@ -610,6 +610,37 @@
             #fpTable td:first-child, #fzTable td:first-child { padding-left: 12px; }
             #fpTable td:last-child, #fzTable td:last-child { padding-right: 12px; }
         }
+        /* API-Abrechnung (nur Ansicht) */
+        .ap-band { margin: 10px 20px 0; padding: 8px 12px; border-radius: 8px; background: var(--surface-2); color: var(--text-mut); font-size: 12.5px; }
+        .ap-band .ap-fehlt { display: block; margin-top: 4px; color: var(--warn); font-weight: 600; }
+        .kpi-item b.warn, .ap-warn, .detail-kv span.ap-warn { color: var(--warn); }
+        #contentApi .kpi-item b.quelle { white-space: normal; }
+        #apTable th { white-space: normal; line-height: 1.25; vertical-align: bottom; }
+        #tabApi { white-space: nowrap; }
+        /* Acht Reiter: zwischen Handy und breitem Schirm etwas enger setzen */
+        @media (min-width: 769px) and (max-width: 1280px) {
+            .header { gap: 12px; }
+            .tab-nav { gap: 2px; }
+            .tab-btn { padding: 6px 7px; gap: 5px; }
+        }
+        #contentApi .kpi { grid-template-columns: repeat(4, 1fr); }
+        #contentApi .kpi-item b.quelle { font-family: var(--sans); font-size: 12.5px; }
+        .ap-alt { display: block; font-size: 10.5px; color: var(--text-mut); font-weight: 400; }
+        .detail-kv .ap-alt { display: inline; margin-left: 6px; }
+        .ap-hinweis { margin-top: 10px; font-size: 11.5px; color: var(--warn); }
+        #apTable th:nth-child(1), #apTable td:nth-child(1) { width: 25%; }
+        @media (max-width: 768px) {
+            #contentApi .kpi { grid-template-columns: repeat(2, 1fr); }
+            .ap-band { margin: 10px 12px 0; }
+            #apTable thead { display: none; }
+            #apTable td { font-size: 12.5px; padding-left: 4px; padding-right: 4px; }
+            #apTable td:nth-child(1) { width: 50%; }
+            #apTable td:nth-child(2) { width: 27%; }
+            #apTable td:nth-child(3) { width: 23%; }
+            #apTable td:first-child { padding-left: 12px; }
+            #apTable td:last-child { padding-right: 12px; }
+            #apTable .zeile-sub { display: block; font-family: var(--mono); font-size: 11px; color: var(--text-mut); margin-top: 2px; }
+        }
         /* Verbindungen-Statusseite */
         .vb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
                    gap: 12px; padding: 14px 20px 24px; }
@@ -722,6 +753,10 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                     Abrechnung
                 </button>
+                <button class="tab-btn" onclick="switchTab('api')" id="tabApi">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-6"/></svg>
+                    API-Abrechnung
+                </button>
                 <button class="tab-btn" onclick="switchTab('muessenzahlen')" id="tabMuessenZahlen">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
                     Kassieren
@@ -823,6 +858,50 @@
                 <aside class="side-panel" id="detailPanel"><div class="placeholder">Fahrer anklicken für Details</div></aside>
             </div>
         </div><!-- end contentAbrechnungen -->
+
+    <div class="tab-content" id="contentApi">
+        <div class="hero">
+            <div class="hero-top">
+                <div class="week-pick">
+                    <select id="apWeek"><option value="">Laden...</option></select>
+                    <span class="week-range"><span id="apFahrer">--</span> Fahrer</span>
+                </div>
+                <div class="hero-big"><b id="apSumme">--</b><small>Du bekommst (API)</small></div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-item"><small>Alte Abrechnung</small><b id="apKpiAlt">--</b></div>
+                <div class="kpi-item"><small>Differenz</small><b id="apKpiDiff">--</b></div>
+                <div class="kpi-item"><small>Weicht ab</small><b id="apKpiAb">--</b></div>
+                <div class="kpi-item"><small>Quelle</small><b class="quelle" id="apKpiQuelle">--</b></div>
+            </div>
+        </div>
+        <div class="ap-band" id="apBand">Nur zur Ansicht. Ausgezahlt wird nach der Abrechnung im Reiter Abrechnungen.</div>
+        <div class="toolbar">
+            <input type="text" class="search" id="apSearch" placeholder="Fahrer suchen">
+            <button class="chip active" data-ap="alle">Alle <span class="cnt" id="apCntAlle"></span></button>
+            <button class="chip" data-ap="ab">Abweichend <span class="cnt" id="apCntAb"></span></button>
+            <button class="chip" data-ap="nurapi">Nur API <span class="cnt" id="apCntNurApi"></span></button>
+            <button class="chip" data-ap="nuralt">Nur alt <span class="cnt" id="apCntNurAlt"></span></button>
+            <button class="chip" data-ap="ohne">Ohne Fahrer <span class="cnt" id="apCntOhne"></span></button>
+        </div>
+        <div class="split">
+            <div class="split-main">
+                <table class="data-table" id="apTable">
+                    <thead><tr>
+                        <th data-apsort="name">Fahrer</th>
+                        <th data-apsort="brutto">Brutto</th>
+                        <th data-apsort="miete">Pauschale</th>
+                        <th data-apsort="prozent">Prozent</th>
+                        <th data-apsort="api">Du bekommst (API)</th>
+                        <th data-apsort="alt">Du bekommst (alt)</th>
+                        <th data-apsort="diff">≠</th>
+                    </tr></thead>
+                    <tbody id="apBody"><tr><td colspan="7" class="empty">Lade ...</td></tr></tbody>
+                </table>
+            </div>
+            <div class="side-panel" id="apPanel"><div class="placeholder">Fahrer anklicken für Details</div></div>
+        </div>
+    </div>
 
     <div class="tab-content" id="contentRechnungen">
         <div class="re-wrap">
@@ -1062,6 +1141,7 @@
     <div class="menue" id="menue">
         <div class="menue-liste">
             <button onclick="switchTab('abrechnungen')" data-menue="abrechnungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Abrechnung</button>
+            <button onclick="switchTab('api')" data-menue="api"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-6"/></svg>API-Abrechnung</button>
             <button onclick="switchTab('muessenzahlen')" data-menue="muessenzahlen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Kassieren</button>
             <button onclick="switchTab('fahrer')" data-menue="fahrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg>Fahrer/App</button>
             <button onclick="switchTab('fuhrpark')" data-menue="fuhrpark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 17h-2v-6l2-5h9l4 5h3a1 1 0 011 1v5h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>Fuhrpark</button>
@@ -1579,6 +1659,7 @@
                 render();
                 if (fzLoaded) renderFahrer();
                 if (fpLoaded) renderFuhrpark();
+                if (apLoaded) renderApi();
                 menueZu();
             }); document.getElementById('printAllBtn').addEventListener('click', printAllDrivers); document.getElementById('exportBtn').addEventListener('click', exportCSV); document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); }); document.getElementById('logoutBtn').addEventListener('click', async function() { try { await getSupabase().auth.signOut(); } catch (e) {} localStorage.removeItem('hydralink_session'); window.location.href = 'index.html'; });
             /* Signierte PDF-URL (privater Bucket) */
@@ -2701,6 +2782,276 @@
             '</div>';
         }
 
+        /* === API-ABRECHNUNG (nur Ansicht) ===
+           Quelle: public.api_abrechnung_wochen / public.api_abrechnung (Views,
+           Spec docs/superpowers/specs/2026-09-23-api-abrechnung-design.md).
+           Liest nur. Kein Drucken, kein WhatsApp, kein Export. Zeilen ohne
+           fahrer_id zaehlen nicht in Summen, nur im Filter "Ohne Fahrer". */
+        let AP_WOCHEN = [], AP_ROWS = [], AP_CACHE = {}, apWoche = '', apFilter = 'alle', apSearch = '',
+            apSort = 'diff', apDir = -1, apSel = null, apLoaded = false, apFehler = false;
+
+        function apNum(v) { if (v == null || v === '') return null; const n = parseFloat(v); return isNaN(n) ? null : n; }
+        function apKey(r) { return r.fahrer_id != null ? 'f' + r.fahrer_id : 'x' + (r.konto || r.alt_fahrer_name || r.fahrer || ''); }
+        function apName(r) { return r.fahrer || r.konto || r.alt_fahrer_name || '–'; }
+        function apDot(r) {
+            if (r.befund === 'weicht ab') return 'neg';
+            if (r.befund === 'ok') return '';
+            return 'warn';
+        }
+        function apDiffHtml(r) {
+            const d = apNum(r.diff);
+            if (d == null) return '–';
+            return '<span' + (Math.abs(d) >= 1 ? ' class="neg"' : '') + '>' + (d > 0 ? '+' : '') + fmt(d) + '</span>';
+        }
+        function apFehlend(w) {
+            const f = [];
+            if (w && !w.bolt_gesynct) f.push('Bolt');
+            if (w && !w.uber_gesynct) f.push('Uber');
+            return f;
+        }
+
+        async function initApi() {
+            if (apLoaded) return;
+            apLoaded = true;
+            document.getElementById('apSearch').addEventListener('input', function (e) {
+                apSearch = e.target.value.toLowerCase().trim(); renderApi();
+            });
+            document.querySelectorAll('[data-ap]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    document.querySelectorAll('[data-ap]').forEach(function (x) { x.classList.remove('active'); });
+                    b.classList.add('active'); apFilter = b.dataset.ap; renderApi();
+                });
+            });
+            document.querySelectorAll('[data-apsort]').forEach(function (th) {
+                th.addEventListener('click', function () {
+                    const k = th.dataset.apsort;
+                    if (apSort === k) { apDir = -apDir; } else { apSort = k; apDir = k === 'name' ? 1 : -1; }
+                    renderApi();
+                });
+            });
+            document.getElementById('apWeek').addEventListener('change', function (e) {
+                apWoche = e.target.value; apSel = null; ladeApiWoche();
+            });
+            document.getElementById('apBody').addEventListener('click', function (e) {
+                if (e.target.closest('.detail-row')) return;
+                const tr = e.target.closest('tr[data-apkey]');
+                if (!tr) return;
+                const k = tr.dataset.apkey;
+                apSel = (apSel === k && isMobile()) ? null : k;
+                renderApi();
+            });
+            try {
+                const res = await getSupabase().from('api_abrechnung_wochen').select('*').order('woche', { ascending: false });
+                if (res.error) throw res.error;
+                AP_WOCHEN = res.data || [];
+            } catch (err) {
+                console.warn('api_abrechnung_wochen:', err);
+                apNichtVerfuegbar();
+                return;
+            }
+            if (!AP_WOCHEN.length) {
+                document.getElementById('apWeek').innerHTML = '<option value="">keine Woche</option>';
+                document.getElementById('apBody').innerHTML = '<tr><td colspan="7" class="empty">Noch keine Woche mit API-Daten.</td></tr>';
+                return;
+            }
+            apWoche = AP_WOCHEN[0].woche;
+            document.getElementById('apWeek').innerHTML = AP_WOCHEN.map(function (w) {
+                return '<option value="' + esc(w.woche) + '">' + esc(w.woche) + '</option>';
+            }).join('');
+            document.getElementById('apWeek').value = apWoche;
+            await ladeApiWoche();
+        }
+
+        function apNichtVerfuegbar() {
+            apFehler = true;
+            document.getElementById('apWeek').innerHTML = '<option value="">–</option>';
+            document.getElementById('apSumme').textContent = '–';
+            document.getElementById('apBody').innerHTML = '<tr><td colspan="7" class="empty">Noch nicht verfügbar.</td></tr>';
+            document.getElementById('apPanel').innerHTML = '<div class="placeholder">Noch nicht verfügbar</div>';
+        }
+
+        async function ladeApiWoche() {
+            const w = apWoche;
+            if (!AP_CACHE[w]) {
+                document.getElementById('apBody').innerHTML = '<tr><td colspan="7" class="empty">Lade ...</td></tr>';
+                try {
+                    const res = await getSupabase().from('api_abrechnung').select('*').eq('woche', w);
+                    if (res.error) throw res.error;
+                    AP_CACHE[w] = res.data || [];
+                } catch (err) {
+                    console.warn('api_abrechnung:', err);
+                    apNichtVerfuegbar();
+                    return;
+                }
+            }
+            if (w !== apWoche) return;   // inzwischen andere Woche gewaehlt
+            apFehler = false;
+            AP_ROWS = AP_CACHE[w];
+            renderApi();
+        }
+
+        function apListe() {
+            let rows = AP_ROWS.slice();
+            if (apFilter === 'ohne') rows = rows.filter(function (r) { return r.fahrer_id == null; });
+            else {
+                rows = rows.filter(function (r) { return r.fahrer_id != null; });
+                if (apFilter === 'ab') rows = rows.filter(function (r) { return r.befund === 'weicht ab' || r.befund === 'rundung'; });
+                else if (apFilter === 'nurapi') rows = rows.filter(function (r) { return r.befund === 'nur API'; });
+                else if (apFilter === 'nuralt') rows = rows.filter(function (r) { return r.befund === 'nur alt'; });
+            }
+            if (apSearch) {
+                rows = rows.filter(function (r) {
+                    return [r.fahrer, r.konto, r.alt_fahrer_name, r.notion_fahrer_id].some(function (x) {
+                        return x != null && String(x).toLowerCase().indexOf(apSearch) >= 0;
+                    });
+                });
+            }
+            const wert = {
+                brutto: function (r) { return apNum(r.bruttoumsatz_gesamt); },
+                miete: function (r) { return apNum(r.miete); },
+                prozent: function (r) { return apNum(r.prozent_abzug); },
+                api: function (r) { return apNum(r.du_bekommst); },
+                alt: function (r) { return apNum(r.alt_du_bekommst); },
+                diff: function (r) { const d = apNum(r.diff); return d == null ? null : Math.abs(d); }
+            }[apSort];
+            rows.sort(function (a, b) {
+                if (!wert) return apName(a).localeCompare(apName(b), 'de') * apDir;
+                const x = wert(a), y = wert(b);
+                if (x == null && y == null) return apName(a).localeCompare(apName(b), 'de');
+                if (x == null) return 1;      // fehlende Werte immer ans Ende
+                if (y == null) return -1;
+                return (x - y) * apDir;
+            });
+            return rows;
+        }
+
+        function renderApi() {
+            if (apFehler) return;
+            const w = AP_WOCHEN.find(function (x) { return x.woche === apWoche; }) || null;
+            const mitFahrer = AP_ROWS.filter(function (r) { return r.fahrer_id != null; });
+            const fehlt = apFehlend(w);
+            const unvollst = fehlt.length > 0 || AP_ROWS.some(function (r) { return r.befund === 'unvollständig'; });
+
+            // Kopf
+            const summe = w ? apNum(w.summe_du_bekommst) : null;
+            const alt = w ? apNum(w.summe_alt) : null;
+            const bigEl = document.getElementById('apSumme');
+            bigEl.textContent = fmt(summe);
+            bigEl.parentElement.classList.toggle('err', summe != null && summe < 0);
+            document.getElementById('apFahrer').textContent = w ? w.fahrer : mitFahrer.length;
+            document.getElementById('apKpiAlt').textContent = fmt(alt);
+            const diffEl = document.getElementById('apKpiDiff');
+            const d = (summe != null && alt != null) ? summe - alt : null;
+            diffEl.textContent = d == null ? '–' : (d > 0 ? '+' : '') + fmt(d);
+            diffEl.className = d != null && Math.abs(d) >= 1 ? 'err' : '';
+            const abEl = document.getElementById('apKpiAb');
+            abEl.textContent = w ? w.anzahl_abweichend : '–';
+            abEl.className = w && w.anzahl_abweichend > 0 ? 'err' : '';
+            const q = document.getElementById('apKpiQuelle');
+            q.innerHTML = (w && w.bolt_gesynct ? 'Bolt ✓' : '<span class="ap-warn">Bolt nicht gesynct</span>') + ' · ' +
+                (w && w.uber_gesynct ? 'Uber ✓' : '<span class="ap-warn">Uber nicht gesynct</span>') + ' · myPOS aus CSV';
+            q.title = q.textContent;
+
+            // Hinweisband
+            document.getElementById('apBand').innerHTML =
+                'Nur zur Ansicht. Ausgezahlt wird nach der Abrechnung im Reiter Abrechnungen.' +
+                (unvollst ? '<span class="ap-fehlt">Für diese Woche fehlen API-Daten von ' +
+                    (fehlt.length ? fehlt.join(' und ') : 'einer Plattform') + ' — Vergleich nicht aussagekräftig.</span>' : '');
+
+            // Zaehler
+            const cnt = function (f) { return mitFahrer.filter(f).length; };
+            document.getElementById('apCntAlle').textContent = mitFahrer.length;
+            document.getElementById('apCntAb').textContent = cnt(function (r) { return r.befund === 'weicht ab' || r.befund === 'rundung'; });
+            document.getElementById('apCntNurApi').textContent = cnt(function (r) { return r.befund === 'nur API'; });
+            document.getElementById('apCntNurAlt').textContent = cnt(function (r) { return r.befund === 'nur alt'; });
+            document.getElementById('apCntOhne').textContent = AP_ROWS.length - mitFahrer.length;
+            document.querySelectorAll('[data-apsort]').forEach(function (th) {
+                th.classList.toggle('sorted', th.dataset.apsort === apSort);
+            });
+
+            const rows = apListe();
+            const body = document.getElementById('apBody');
+            const mobil = isMobile();
+            const panel = document.getElementById('apPanel');
+            if (!rows.length) {
+                body.innerHTML = '<tr><td colspan="7" class="empty">Keine Zeilen in diesem Filter.</td></tr>';
+                panel.innerHTML = mobil ? '' : '<div class="placeholder">Fahrer anklicken für Details</div>';
+                return;
+            }
+            body.innerHTML = rows.map(function (r) {
+                const k = apKey(r);
+                const sel = apSel === k;
+                const attr = ' data-apkey="' + esc(k) + '"' + (sel ? ' class="selected"' : '');
+                const name = '<span class="dot ' + apDot(r) + '"></span>' + esc(apName(r));
+                if (mobil) {
+                    return '<tr' + attr + '>' +
+                        '<td>' + name + '<span class="zeile-sub">' + esc(r.befund || '') + '</span></td>' +
+                        '<td>' + fmt(r.du_bekommst) + '<span class="zeile-sub">alt ' + fmt(r.alt_du_bekommst) + '</span></td>' +
+                        '<td>' + apDiffHtml(r) + '</td>' +
+                    '</tr>' +
+                    (sel ? '<tr class="detail-row"><td colspan="3">' + apDetailHtml(r) + '</td></tr>' : '');
+                }
+                return '<tr' + attr + '>' +
+                    '<td title="' + esc(r.befund || '') + '">' + name + '</td>' +
+                    '<td>' + fmt(r.bruttoumsatz_gesamt) + '</td>' +
+                    '<td>' + fmt(r.miete) + '</td>' +
+                    '<td>' + fmt(r.prozent_abzug) + '</td>' +
+                    '<td class="pay">' + fmt(r.du_bekommst) + '</td>' +
+                    '<td>' + fmt(r.alt_du_bekommst) + '</td>' +
+                    '<td>' + apDiffHtml(r) + '</td>' +
+                '</tr>';
+            }).join('');
+
+            if (mobil) { panel.innerHTML = ''; }
+            else {
+                const r = apSel ? AP_ROWS.find(function (x) { return apKey(x) === apSel; }) : null;
+                panel.innerHTML = r ? apDetailHtml(r) : '<div class="placeholder">Fahrer anklicken für Details</div>';
+            }
+        }
+
+        function apDetailHtml(r) {
+            const kv = function (k, v, cls) {
+                return '<div class="detail-kv' + (cls ? ' ' + cls : '') + '"><span>' + k + '</span><span>' + v + '</span></div>';
+            };
+            const ng = '<span class="ap-warn">nicht gesynct</span>';
+            // Betrag, bei Abweichung zur alten Abrechnung mit "alt …" daneben
+            const mitAlt = function (v, a) {
+                const x = apNum(v), y = apNum(a);
+                const alt = (x != null && y != null && Math.abs(x - y) >= 0.01) ? '<small class="ap-alt">alt ' + fmt(y) + '</small>' : '';
+                return fmt(v) + alt;
+            };
+            const csv = function (s) { return s + ' <small class="ap-alt">aus CSV</small>'; };
+            const korr = apNum(r.korrektur) || 0;
+            const lohn = apNum(r.lohn) || 0;
+            const du = apNum(r.du_bekommst);
+            return '<div class="detail">' +
+                '<h4><span class="dot ' + apDot(r) + '"></span>' + esc(apName(r)) + '</h4>' +
+                '<div class="sub">' + (r.notion_fahrer_id != null ? 'Fahrer-ID ' + r.notion_fahrer_id + ' · ' : '') +
+                    'Modell ' + esc(r.mietmodell || '–') + ' · ' + esc(r.befund || '') + '</div>' +
+                '<div class="pay' + (du != null && du < 0 ? ' neg' : '') + '">' + fmt(du) + '</div>' +
+                '<div class="detail-sec">Einnahmen brutto</div>' +
+                kv('Bolt', r.bolt_brutto == null ? ng : mitAlt(r.bolt_brutto, r.alt_bolt_brutto)) +
+                kv('Uber', r.uber_fahrpreis == null ? ng : mitAlt(r.uber_fahrpreis, r.alt_uber_fahrpreis)) +
+                kv(csv('MyPOS'), fmt(r.mypos_summe)) +
+                kv('Gesamt', fmt(r.bruttoumsatz_gesamt), 'strong') +
+                '<div class="detail-sec">Wir bekommen</div>' +
+                kv('Bolt Auszahlung', r.bolt_auszahlung == null ? ng : fmt(r.bolt_auszahlung)) +
+                kv('Uber Auszahlung', r.uber_auszahlung == null ? ng : fmt(r.uber_auszahlung)) +
+                kv(csv('MyPOS'), fmt(r.mypos_summe)) +
+                kv('Summe', fmt(r.wir_bekommen), 'strong') +
+                '<div class="detail-sec">Abzüge</div>' +
+                kv('Pauschale', mitAlt(r.miete, r.alt_miete)) +
+                kv('Prozent', mitAlt(r.prozent_abzug, r.alt_prozent_abzug)) +
+                kv('Abzug gesamt', fmt(r.abzug_gesamt), 'strong') +
+                (korr !== 0 ? '<div class="detail-sec">Korrektur</div>' +
+                    kv(csv(esc(r.korrektur_note || 'Korrektur')), (korr > 0 ? '+' : '') + fmt(korr)) : '') +
+                (lohn > 0 ? '<div class="detail-sec">Lohn</div>' + kv(csv('Lohn bereits überwiesen'), fmt(lohn)) : '') +
+                '<div class="detail-sec">Ergebnis</div>' +
+                kv('Du bekommst', mitAlt(r.du_bekommst, r.alt_du_bekommst), 'strong') +
+                (r.alt_zeilen > 1 ? '<div class="ap-hinweis">In der alten Abrechnung ' + r.alt_zeilen + ' Zeilen: ' + esc(r.alt_fahrer_name || '') + '</div>' : '') +
+            '</div>';
+        }
+
         /* Burger-Menü. Nur auf dem Handy sichtbar; am Schreibtisch bleiben die Reiter. */
         function menueAuf() {
             const m = document.getElementById('menue');
@@ -2854,6 +3205,10 @@
                 document.getElementById('tabFuhrpark').classList.add('active');
                 document.getElementById('contentFuhrpark').classList.add('active');
                 initFuhrpark();
+            } else if (tab === 'api') {
+                document.getElementById('tabApi').classList.add('active');
+                document.getElementById('contentApi').classList.add('active');
+                initApi();
             } else if (tab === 'fahrer') {
                 document.getElementById('tabFahrer').classList.add('active');
                 document.getElementById('contentFahrer').classList.add('active');
@@ -2885,6 +3240,7 @@
         else if (savedTab === 'abrbot') { switchTab('abrbot'); }
         else if (savedTab === 'muessenzahlen') { switchTab('muessenzahlen'); }
         else if (savedTab === 'fahrer') { switchTab('fahrer'); }
+        else if (savedTab === 'api') { switchTab('api'); }
         else if (savedTab === 'fuhrpark') { switchTab('fuhrpark'); }
         else if (savedTab === 'verbindungen') { switchTab('verbindungen'); }
 

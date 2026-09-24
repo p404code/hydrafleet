@@ -83,6 +83,17 @@
         .tab-btn svg { width: 15px; height: 15px; }
         .tab-btn:hover { color: var(--text); }
         .tab-btn.active { background: var(--surface-2); color: var(--text); font-weight: 600; }
+        /* Unterreiter der aktiven Gruppe, rechts neben den Gruppen */
+        .sub-nav { display: flex; align-items: center; gap: 2px; padding-left: 14px; border-left: 1px solid var(--border); min-width: 0; }
+        .sub-nav:empty { display: none; }
+        .sub-btn { border: none; background: transparent; padding: 4px 9px; border-radius: 6px; font-size: 12.5px; font-weight: 500; color: var(--text-mut); cursor: pointer; font-family: inherit; text-decoration: none; white-space: nowrap; }
+        .sub-btn:hover { color: var(--text); background: var(--surface-2); }
+        .sub-btn.active { color: var(--text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); border-radius: 0; }
+        @media (min-width: 769px) and (max-width: 1180px) {
+            .tab-btn svg, #themeText { display: none; }
+            .sub-nav { padding-left: 8px; overflow-x: auto; scrollbar-width: none; }
+            .sub-btn { padding: 4px 6px; }
+        }
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeIn .15s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -578,7 +589,7 @@
         .burger { display: none; }
         .menue { display: none; }
         @media (max-width: 768px) {
-            .tab-nav { display: none; }
+            .tab-nav, .sub-nav { display: none; }
             .container { padding-bottom: calc(env(safe-area-inset-bottom) + 20px); }
             .burger { display: flex; align-items: center; justify-content: center; position: relative;
                       margin-left: auto; background: transparent; border: none; padding: 6px;
@@ -600,6 +611,7 @@
             .menue-liste button.aktiv svg { color: var(--accent); }
             .menue-liste button:active { background: var(--surface-2); }
             .menue-liste .tab-warn { margin-left: auto; }
+            .menue-gruppe { padding: 14px 20px 4px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-mut); }
         }
         /* Auf dem Handy zeigen die beiden neuen Tabellen nur drei Spalten und
            klappen beim Antippen auf - dasselbe Muster wie die Abrechnung.
@@ -625,7 +637,6 @@
         .kpi-item b.warn, .ap-warn, .detail-kv span.ap-warn { color: var(--warn); }
         #contentApi .kpi-item b.quelle { white-space: normal; }
         #apTable th { white-space: normal; line-height: 1.25; vertical-align: bottom; }
-        #tabApi { white-space: nowrap; }
         /* Acht Reiter: zwischen Handy und breitem Schirm etwas enger setzen */
         @media (min-width: 769px) and (max-width: 1280px) {
             .header { gap: 12px; }
@@ -774,39 +785,24 @@
                 <div class="header-text"><h1 id="brandTitle"><span class="hydra">HYDRA</span><span class="link">link</span></h1></div>
             </div>
             <div class="tab-nav">
-                <button class="tab-btn active" onclick="switchTab('abrechnungen')" id="tabAbrechnungen">
+                <button class="tab-btn active" onclick="gruppeWechseln('abrechnung')" data-gruppe="abrechnung">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                     Abrechnung
                 </button>
-                <button class="tab-btn" onclick="switchTab('api')" id="tabApi">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-6"/></svg>
-                    API-Abrechnung
-                </button>
-                <button class="tab-btn" onclick="switchTab('muessenzahlen')" id="tabMuessenZahlen">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-                    Kassieren
-                </button>
-                <button class="tab-btn" onclick="switchTab('fahrer')" id="tabFahrer">
+                <button class="tab-btn" onclick="gruppeWechseln('fahrer')" data-gruppe="fahrer">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg>
-                    Fahrer/App
+                    Fahrer
                 </button>
-                <button class="tab-btn" onclick="switchTab('fuhrpark')" id="tabFuhrpark">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 17h-2v-6l2-5h9l4 5h3a1 1 0 011 1v5h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>
-                    Fuhrpark
-                </button>
-                <button class="tab-btn" onclick="switchTab('verbindungen')" id="tabVerbindungen">
+                <button class="tab-btn" onclick="switchTab('verbindungen')" data-gruppe="verbindungen">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/><path d="M3 12h4M17 12h4"/><circle cx="12" cy="12" r="9"/></svg>
                     Verbindungen<span class="tab-warn" id="vbWarn"></span>
                 </button>
-                <button class="tab-btn" onclick="switchTab('abrbot')" id="tabAbrBot">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    Upload
-                </button>
-                <button class="tab-btn" onclick="switchTab('rechnungen')" id="tabRechnungen">
+                <button class="tab-btn" onclick="switchTab('rechnungen')" data-gruppe="rechnungen">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                     Rechnungen
                 </button>
             </div>
+            <div class="sub-nav" id="subNav"></div>
             <button class="burger" onclick="menueAuf()" aria-label="Menü">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
                 <span class="tab-warn" id="vbWarnBurger"></span>
@@ -1166,15 +1162,18 @@
     </div>
     <div class="menue" id="menue">
         <div class="menue-liste">
+            <div class="menue-gruppe">Abrechnung</div>
             <button onclick="switchTab('abrechnungen')" data-menue="abrechnungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Abrechnung</button>
             <button onclick="switchTab('api')" data-menue="api"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-6"/></svg>API-Abrechnung</button>
+            <button onclick="switchTab('abrbot')" data-menue="abrbot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload</button>
             <button onclick="switchTab('muessenzahlen')" data-menue="muessenzahlen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Kassieren</button>
+            <a href="lohn.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M7 12h.01M17 12h.01"/></svg>Löhne</a>
+            <div class="menue-gruppe">Fahrer</div>
             <button onclick="switchTab('fahrer')" data-menue="fahrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg>Fahrer/App</button>
             <button onclick="switchTab('fuhrpark')" data-menue="fuhrpark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 17h-2v-6l2-5h9l4 5h3a1 1 0 011 1v5h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>Fuhrpark</button>
+            <div class="menue-gruppe">Weitere</div>
             <button onclick="switchTab('verbindungen')" data-menue="verbindungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/><path d="M3 12h4M17 12h4"/><circle cx="12" cy="12" r="9"/></svg>Verbindungen<span class="tab-warn" id="vbWarnMenue"></span></button>
-            <button onclick="switchTab('abrbot')" data-menue="abrbot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload</button>
             <button onclick="switchTab('rechnungen')" data-menue="rechnungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Rechnungen</button>
-            <a href="lohn.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M7 12h.01M17 12h.01"/></svg>Löhne</a>
         </div>
     </div>
     <div class="tab-content" id="contentVerbindungen">
@@ -3327,43 +3326,47 @@
             }).join('');
         }
 
+        /* Reiter-Gruppen: oben die Gruppe, daneben ihre Unterreiter */
+        const GRUPPEN = {
+            abrechnung: [['abrechnungen', 'Übersicht'], ['api', 'API'], ['abrbot', 'Upload'], ['muessenzahlen', 'Kassieren'], ['lohn.html', 'Löhne']],
+            fahrer: [['fahrer', 'App'], ['fuhrpark', 'Fuhrpark']],
+            verbindungen: [['verbindungen']],
+            rechnungen: [['rechnungen']]
+        };
+        function gruppeVon(tab) {
+            for (const g in GRUPPEN) if (GRUPPEN[g].some(function (r) { return r[0] === tab; })) return g;
+            return 'abrechnung';
+        }
+        // Gruppenknopf: zuletzt benutzten Unterreiter der Gruppe oeffnen
+        function gruppeWechseln(g) {
+            let letzter = null;
+            try { letzter = localStorage.getItem('hydralink_tab_' + g); } catch (e) {}
+            const ok = GRUPPEN[g].some(function (r) { return r[0] === letzter && !/\.html$/.test(r[0]); });
+            switchTab(ok ? letzter : GRUPPEN[g][0][0]);
+        }
         function switchTab(tab) {
             menueZu();
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            const inhalt = { abrechnungen: 'contentAbrechnungen', api: 'contentApi', abrbot: 'contentAbrBot', muessenzahlen: 'contentMuessenZahlen',
+                fahrer: 'contentFahrer', fuhrpark: 'contentFuhrpark', verbindungen: 'contentVerbindungen', rechnungen: 'contentRechnungen' };
+            if (!inhalt[tab]) tab = 'abrechnungen';
+            const g = gruppeVon(tab);
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.gruppe === g));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            if (tab === 'rechnungen') {
-                document.getElementById('tabRechnungen').classList.add('active');
-                document.getElementById('contentRechnungen').classList.add('active');
-                if (!reInitialized) { initInvoiceForm(); reInitialized = true; }
-            } else if (tab === 'abrbot') {
-                document.getElementById('tabAbrBot').classList.add('active');
-                document.getElementById('contentAbrBot').classList.add('active');
-                initAbrBot();
-            } else if (tab === 'verbindungen') {
-                document.getElementById('tabVerbindungen').classList.add('active');
-                document.getElementById('contentVerbindungen').classList.add('active');
-                initVerbindungen();
-            } else if (tab === 'fuhrpark') {
-                document.getElementById('tabFuhrpark').classList.add('active');
-                document.getElementById('contentFuhrpark').classList.add('active');
-                initFuhrpark();
-            } else if (tab === 'api') {
-                document.getElementById('tabApi').classList.add('active');
-                document.getElementById('contentApi').classList.add('active');
-                initApi();
-            } else if (tab === 'fahrer') {
-                document.getElementById('tabFahrer').classList.add('active');
-                document.getElementById('contentFahrer').classList.add('active');
-                initFahrer();
-            } else if (tab === 'muessenzahlen') {
-                document.getElementById('tabMuessenZahlen').classList.add('active');
-                document.getElementById('contentMuessenZahlen').classList.add('active');
-                initMuessenZahlen();
-            } else {
-                document.getElementById('tabAbrechnungen').classList.add('active');
-                document.getElementById('contentAbrechnungen').classList.add('active');
-            }
+            document.getElementById(inhalt[tab]).classList.add('active');
+            const sub = document.getElementById('subNav');
+            sub.innerHTML = GRUPPEN[g].length < 2 ? '' : GRUPPEN[g].map(function (r) {
+                return /\.html$/.test(r[0]) ? '<a class="sub-btn" href="' + r[0] + '">' + r[1] + '</a>'
+                    : '<button class="sub-btn' + (r[0] === tab ? ' active' : '') + '" onclick="switchTab(\'' + r[0] + '\')">' + r[1] + '</button>';
+            }).join('');
+            if (tab === 'rechnungen') { if (!reInitialized) { initInvoiceForm(); reInitialized = true; } }
+            else if (tab === 'abrbot') initAbrBot();
+            else if (tab === 'verbindungen') initVerbindungen();
+            else if (tab === 'fuhrpark') initFuhrpark();
+            else if (tab === 'api') initApi();
+            else if (tab === 'fahrer') initFahrer();
+            else if (tab === 'muessenzahlen') initMuessenZahlen();
             localStorage.setItem('hydralink_tab', tab);
+            try { localStorage.setItem('hydralink_tab_' + g, tab); } catch (e) {}
         }
         /* === INVOICE FORM LOGIC === */
         let rePositionCount = 0;
@@ -3378,13 +3381,7 @@
 
         /* Restore last tab (MUST be after all let/const declarations above) */
         const savedTab = localStorage.getItem('hydralink_tab');
-        if (savedTab === 'rechnungen') { switchTab('rechnungen'); }
-        else if (savedTab === 'abrbot') { switchTab('abrbot'); }
-        else if (savedTab === 'muessenzahlen') { switchTab('muessenzahlen'); }
-        else if (savedTab === 'fahrer') { switchTab('fahrer'); }
-        else if (savedTab === 'api') { switchTab('api'); }
-        else if (savedTab === 'fuhrpark') { switchTab('fuhrpark'); }
-        else if (savedTab === 'verbindungen') { switchTab('verbindungen'); }
+        switchTab(savedTab || 'abrechnungen');
 
         function switchReSubTab(sub) {
             document.querySelectorAll('.re-sub-tab').forEach(b => b.classList.remove('active'));

@@ -110,6 +110,15 @@
         .hinweis { font-size: 12px; color: var(--text-mut); padding: 8px 0; }
         .toast { position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 80px); opacity: 0; transition: all .25s; background: var(--text); color: var(--bg); padding: 9px 14px; border-radius: 8px; font-size: 12.5px; z-index: 99; max-width: calc(100vw - 32px); }
         .toast.show { transform: translate(-50%, 0); opacity: 1; }
+        dialog.wahl { margin: auto; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); color: var(--text); padding: 14px 16px; width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 64px); }
+        dialog.wahl::backdrop { background: rgba(0,0,0,.35); }
+        dialog.wahl h3 { font-size: 14px; margin: 0 0 8px; }
+        dialog.wahl .wliste { max-height: 55vh; overflow-y: auto; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 6px 0 10px; }
+        dialog.wahl label { display: flex; gap: 8px; align-items: baseline; padding: 5px 2px; font-size: 12.5px; cursor: pointer; border-bottom: 1px solid var(--border); }
+        dialog.wahl label:last-child { border-bottom: 0; }
+        dialog.wahl label small { color: var(--text-mut); font-size: 11px; }
+        dialog.wahl .wfuss { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+        dialog.wahl .wfuss .sp { flex: 1; font-size: 12px; color: var(--text-mut); }
         @media (max-width: 768px) {
             .header { padding: 0 12px; gap: 8px; }
             main { padding: 10px 12px 32px; }
@@ -786,20 +795,48 @@
             } catch (e) { alert((loesen ? 'Lösen' : 'Zuordnen') + ' fehlgeschlagen: ' + lohnFehlerText(e)); }
             finally { busy = false; await ladeAlles(); }
         }
+        // Auswahldialog: alle vorausgewaehlt, einzelne abwaehlbar; liefert die gewaehlten Personen oder null
+        function vorschlagAuswahl(personen) {
+            return new Promise(function (fertig) {
+                const d = document.createElement('dialog');
+                d.className = 'wahl';
+                d.innerHTML = '<h3>Vorschläge zuordnen</h3>' +
+                    '<label><input type="checkbox" data-alle checked> <b>Alle auswählen</b></label>' +
+                    '<div class="wliste">' + personen.map(function (z, i) {
+                        return '<label><input type="checkbox" data-i="' + i + '" checked><span>' + esc(z.name) + ' <small>' + esc(z.firma_name || z.firma_nr) + ' · Ma-Nr ' + z.ma_nr + '</small></span>' +
+                            '<span style="margin-left:auto">→ ' + esc(fahrerName(z.vorschlag_fahrer_id)) + '</span></label>';
+                    }).join('') + '</div>' +
+                    '<div class="wfuss"><span class="sp"></span><button class="btn" data-ab>Abbrechen</button><button class="btn primary" data-ok></button></div>';
+                const boxen = Array.prototype.slice.call(d.querySelectorAll('[data-i]')), alle = d.querySelector('[data-alle]'), ok = d.querySelector('[data-ok]');
+                function zaehlen() {
+                    const n = boxen.filter(function (b) { return b.checked; }).length;
+                    ok.textContent = n + ' zuordnen'; ok.disabled = !n;
+                    d.querySelector('.sp').textContent = n + ' von ' + boxen.length + ' ausgewählt';
+                    alle.checked = n === boxen.length; alle.indeterminate = n > 0 && n < boxen.length;
+                }
+                alle.addEventListener('change', function () { boxen.forEach(function (b) { b.checked = alle.checked; }); zaehlen(); });
+                boxen.forEach(function (b) { b.addEventListener('change', zaehlen); });
+                let ergebnis = null;
+                ok.addEventListener('click', function () { ergebnis = personen.filter(function (_, i) { return boxen[i].checked; }); d.close(); });
+                d.querySelector('[data-ab]').addEventListener('click', function () { d.close(); });
+                d.addEventListener('close', function () { d.remove(); fertig(ergebnis); });
+                document.body.appendChild(d); zaehlen(); d.showModal();
+            });
+        }
         // Alle Vorschlaege einer Liste; gleiche Firma + Ma-Nr nur einmal
         async function alleVorschlaege(quelle) {
             if (busy) return;
             const rows = quelle === 'ohne' ? (OHNE || []).filter(passt) : ((ZETTEL[quelle] && ZETTEL[quelle].rows) || []);
             const mit = rows.filter(function (z) { return z.fahrer_id == null && z.vorschlag_fahrer_id != null; });
             if (!mit.length) return;
-            const personen = [], gesehen = {};
+            let personen = []; const gesehen = {};
             mit.forEach(function (z) {
                 const k = z.firma_nr + '|' + z.ma_nr;
                 if (gesehen[k]) return;
                 gesehen[k] = 1; personen.push(z);
             });
-            const liste = personen.map(function (z) { return z.name + ' (' + (z.firma_name || z.firma_nr) + ') → ' + fahrerName(z.vorschlag_fahrer_id); });
-            if (!confirm(mit.length + ' Zettel, ' + personen.length + ' Person' + (personen.length === 1 ? '' : 'en') + ' zuordnen?\n\n' + liste.join('\n'))) return;
+            personen = await vorschlagAuswahl(personen);
+            if (!personen || !personen.length) return;
             busy = true; renderLaeufe();
             let ok = 0; const fehler = [];
             for (let i = 0; i < personen.length; i++) {

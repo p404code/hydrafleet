@@ -128,6 +128,17 @@
             .t tr.det > td { padding: 8px; }
             .zbox { justify-content: flex-start; }
         }
+        /* PDF-Ansicht im Fenster statt neuem Tab */
+        dialog.pdfv { margin: auto; padding: 0; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); color: var(--text); width: min(1000px, calc(100vw - 32px)); height: calc(100vh - 48px); max-height: none; max-width: none; overflow: hidden; }
+        dialog.pdfv[open] { display: flex; flex-direction: column; }
+        dialog.pdfv::backdrop { background: rgba(0,0,0,.45); }
+        .pdfv-kopf { display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .pdfv-kopf b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+        .pdfv-kopf a, .pdfv-kopf button { height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: 500 12px inherit; font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; text-decoration: none; }
+        .pdfv-kopf a:hover, .pdfv-kopf button:hover { background: var(--surface-2); }
+        .pdfv-body { flex: 1; min-height: 0; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-mut); }
+        .pdfv-body iframe { width: 100%; height: 100%; border: 0; background: #fff; }
+        @media (max-width: 700px) { dialog.pdfv { width: 100vw; height: 100dvh; border-radius: 0; border: 0; } }
     </style>
 </head>
 <body>
@@ -447,17 +458,36 @@
         }
         function tagMonat(ts) { const d = new Date(ts); return isNaN(d) ? '?' : ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + '.'; }
         // Signed URL (60 s). Fenster sofort oeffnen, sonst blockt iOS das Popup nach dem await.
-        async function lohnPdfOeffnen(pfad) {
-            const w = window.open('', '_blank');
+        // PDF im Fenster anzeigen statt neuem Tab: Datei aus dem privaten Bucket laden, als Blob einbetten
+        async function pdfAnsicht(bucket, pfad, titel) {
+            const d = document.createElement('dialog');
+            d.className = 'pdfv';
+            const dateiname = (titel || 'Dokument').replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf';
+            d.innerHTML = '<div class="pdfv-kopf"><b></b><a data-tab target="_blank" rel="noopener" hidden>Neuer Tab</a><a data-dl hidden>Herunterladen</a><button data-zu aria-label="Schließen">✕</button></div><div class="pdfv-body">Lade …</div>';
+            d.querySelector('b').textContent = titel || 'Dokument';
+            let url = null;
+            d.querySelector('[data-zu]').addEventListener('click', function () { d.close(); });
+            d.addEventListener('click', function (e) { if (e.target === d) d.close(); });
+            d.addEventListener('close', function () { d.remove(); if (url) setTimeout(function () { URL.revokeObjectURL(url); }, 60000); });
+            document.body.appendChild(d); d.showModal();
             try {
-                const { data, error } = await getSupabase().storage.from('lohnzettel').createSignedUrl(pfad, 60);
+                const { data, error } = await getSupabase().storage.from(bucket).download(pfad);
                 if (error) throw error;
-                if (w) w.location.href = data.signedUrl; else window.location.href = data.signedUrl;
+                if (!d.open) return;
+                url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
+                const body = d.querySelector('.pdfv-body');
+                body.textContent = '';
+                const f = document.createElement('iframe');
+                f.title = titel || 'PDF'; f.src = url;
+                body.appendChild(f);
+                const tab = d.querySelector('[data-tab]'), dl = d.querySelector('[data-dl]');
+                tab.href = url; tab.hidden = false;
+                dl.href = url; dl.download = dateiname; dl.hidden = false;
             } catch (e) {
-                if (w) w.close();
-                alert('PDF konnte nicht geöffnet werden: ' + lohnFehlerText(e));
+                d.querySelector('.pdfv-body').textContent = 'PDF konnte nicht geladen werden: ' + ((e && e.message) || e);
             }
         }
+        function lohnPdfOeffnen(pfad, titel) { return pdfAnsicht('lohnzettel', pfad, titel); }
 
         /* === Zustand === */
         let DATEIEN = [];          // {id, name, size, status:'lese'|'ok'|'fehler', art, p, bytes, fehler}
@@ -714,7 +744,7 @@
                   '<th style="width:60px">Ma-Nr</th><th class="l">Name</th><th style="width:100px">Betrag</th><th style="width:' + (mitLauf ? 30 : 38) + '%">Fahrer</th>') +
                 '</tr></thead><tbody>';
             rows.forEach(function (z) {
-                const name = '<button class="lnk" data-pdf="' + esc(z.pfad) + '" title="PDF öffnen">' + esc(z.name) + '</button>' + (z.seiten > 1 ? ' <small>(' + z.seiten + ' S.)</small>' : '');
+                const name = '<button class="lnk" data-pdf="' + esc(z.pfad) + '" data-titel="' + esc('Lohnzettel ' + lohnMonatText(String(z.monat)) + ' · ' + z.name) + '" title="PDF öffnen">' + esc(z.name) + '</button>' + (z.seiten > 1 ? ' <small>(' + z.seiten + ' S.)</small>' : '');
                 if (m) {
                     h += '<tr class="klick' + (Z_OFFEN[z.id] ? ' offen' : '') + '" data-zoffen="' + esc(z.id) + '"><td class="l"><span class="zwei">' + name + '</span>' +
                         (mitLauf ? '<small>' + esc(z.firma_name) + ' · ' + lohnMonatText(String(z.monat)) + '</small>' : '') + '</td>' +
@@ -758,7 +788,7 @@
             rows.forEach(function (l) {
                 const offen = !!LAUF_OFFEN[l.id], abg = lohnAbgaben(l);
                 const ohne = l.ohne_fahrer ? '<span class="warn">' + l.ohne_fahrer + '</span>' : '<span class="ok">✓</span>';
-                const journal = '<button class="lnk" data-pdf="' + esc(l.aj_pfad) + '">Journal</button>';
+                const journal = '<button class="lnk" data-pdf="' + esc(l.aj_pfad) + '" data-titel="' + esc('Auszahlungsjournal ' + lohnMonatText(String(l.monat)) + ' · ' + l.firma_name) + '">Journal</button>';
                 h += '<tr class="klick' + (offen ? ' offen' : '') + '" data-lauf="' + esc(l.id) + '">' + (m
                     ? '<td class="l"><span class="zwei">' + esc(l.firma_name) + '</span><small>' + lohnMonatText(String(l.monat)) + ' · ' + (l.anzahl_dienstnehmer || 0) + ' Pers.</small></td>' +
                       '<td>' + betrag(l.summe_dienstnehmer) + '</td><td>' + ohne + '</td>'
@@ -857,7 +887,7 @@
         function klick(e) {
             const t = e.target;
             let b;
-            if ((b = t.closest('[data-pdf]'))) { e.stopPropagation(); lohnPdfOeffnen(b.dataset.pdf); return; }
+            if ((b = t.closest('[data-pdf]'))) { e.stopPropagation(); lohnPdfOeffnen(b.dataset.pdf, b.dataset.titel || b.textContent); return; }
             if ((b = t.closest('[data-weg]'))) {
                 if (speichertGerade) return;
                 const key = b.dataset.weg;

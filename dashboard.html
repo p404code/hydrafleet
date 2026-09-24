@@ -754,6 +754,17 @@
         .lz-hints { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
         .lz-hint { padding: 3px 8px; border-radius: 999px; border: 1px solid var(--accent-line); background: var(--accent-faint); color: var(--text); font-family: var(--mono); font-size: 11px; cursor: pointer; white-space: nowrap; }
         .lz-hint:hover { border-color: var(--accent); }
+        /* PDF-Ansicht im Fenster statt neuem Tab */
+        dialog.pdfv { margin: auto; padding: 0; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); color: var(--text); width: min(1000px, calc(100vw - 32px)); height: calc(100vh - 48px); max-height: none; max-width: none; overflow: hidden; }
+        dialog.pdfv[open] { display: flex; flex-direction: column; }
+        dialog.pdfv::backdrop { background: rgba(0,0,0,.45); }
+        .pdfv-kopf { display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .pdfv-kopf b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+        .pdfv-kopf a, .pdfv-kopf button { height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: 500 12px inherit; font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; text-decoration: none; }
+        .pdfv-kopf a:hover, .pdfv-kopf button:hover { background: var(--surface-2); }
+        .pdfv-body { flex: 1; min-height: 0; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-mut); }
+        .pdfv-body iframe { width: 100%; height: 100%; border: 0; background: #fff; }
+        @media (max-width: 700px) { dialog.pdfv { width: 100vw; height: 100dvh; border-radius: 0; border: 0; } }
     </style>
 </head>
 <body>
@@ -1683,11 +1694,7 @@
             const a = e.target.closest('a[data-pdf-path]');
             if (!a) return;
             e.preventDefault();
-            try {
-                const { data, error } = await getSupabase().storage.from('rechnungen').createSignedUrl(a.dataset.pdfPath, 300);
-                if (error) throw error;
-                window.open(data.signedUrl, '_blank');
-            } catch (err) { alert('PDF konnte nicht geladen werden: ' + (err.message || err)); }
+            pdfAnsicht('rechnungen', a.dataset.pdfPath, a.dataset.titel || 'Rechnung');
         });
         /* Event delegation for table actions */
             function detailActions(e) {
@@ -2594,19 +2601,44 @@
         }
         // lohn_letzte hat keinen Pfad: den Zettel ueber Fahrer + Firma + Monat nachschlagen
         async function fzLohnPdf(btn) {
-            const w = window.open('', '_blank');
             try {
-                const sb = getSupabase();
-                const r = await sb.from('lohn_zettel_uebersicht').select('pfad').eq('fahrer_id', parseInt(btn.dataset.fahrer, 10))
+                const r = await getSupabase().from('lohn_zettel_uebersicht').select('pfad, name').eq('fahrer_id', parseInt(btn.dataset.fahrer, 10))
                     .eq('firma_nr', btn.dataset.firma).eq('monat', btn.dataset.monat).limit(1);
                 if (r.error) throw r.error;
                 if (!r.data || !r.data.length) throw new Error('Zettel nicht gefunden');
-                const s = await sb.storage.from('lohnzettel').createSignedUrl(r.data[0].pfad, 60);
-                if (s.error) throw s.error;
-                if (w) w.location.href = s.data.signedUrl; else window.location.href = s.data.signedUrl;
+                pdfAnsicht('lohnzettel', r.data[0].pfad, 'Lohnzettel ' + lohnMonatText(btn.dataset.monat) + ' · ' + (r.data[0].name || ''));
             } catch (e) {
-                if (w) w.close();
                 alert('PDF konnte nicht geöffnet werden: ' + lohnFehlerText(e));
+            }
+        }
+
+        // PDF im Fenster anzeigen statt neuem Tab: Datei aus dem privaten Bucket laden, als Blob einbetten
+        async function pdfAnsicht(bucket, pfad, titel) {
+            const d = document.createElement('dialog');
+            d.className = 'pdfv';
+            const dateiname = (titel || 'Dokument').replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf';
+            d.innerHTML = '<div class="pdfv-kopf"><b></b><a data-tab target="_blank" rel="noopener" hidden>Neuer Tab</a><a data-dl hidden>Herunterladen</a><button data-zu aria-label="Schließen">✕</button></div><div class="pdfv-body">Lade …</div>';
+            d.querySelector('b').textContent = titel || 'Dokument';
+            let url = null;
+            d.querySelector('[data-zu]').addEventListener('click', function () { d.close(); });
+            d.addEventListener('click', function (e) { if (e.target === d) d.close(); });
+            d.addEventListener('close', function () { d.remove(); if (url) setTimeout(function () { URL.revokeObjectURL(url); }, 60000); });
+            document.body.appendChild(d); d.showModal();
+            try {
+                const { data, error } = await getSupabase().storage.from(bucket).download(pfad);
+                if (error) throw error;
+                if (!d.open) return;
+                url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
+                const body = d.querySelector('.pdfv-body');
+                body.textContent = '';
+                const f = document.createElement('iframe');
+                f.title = titel || 'PDF'; f.src = url;
+                body.appendChild(f);
+                const tab = d.querySelector('[data-tab]'), dl = d.querySelector('[data-dl]');
+                tab.href = url; tab.hidden = false;
+                dl.href = url; dl.download = dateiname; dl.hidden = false;
+            } catch (e) {
+                d.querySelector('.pdfv-body').textContent = 'PDF konnte nicht geladen werden: ' + ((e && e.message) || e);
             }
         }
 
@@ -3396,7 +3428,7 @@
                 const statusClass = r.status === 'storniert' ? 'storniert' : 'erstellt';
                 const statusText = r.status === 'storniert' ? 'Storniert' : 'Erstellt';
                 const pdfPath = r.pdf_url ? r.pdf_url.split('/rechnungen/').slice(1).join('/rechnungen/') : '';
-                const pdf = pdfPath ? '<a href="#" data-pdf-path="'+esc(decodeURIComponent(pdfPath))+'" class="re-pdf-btn">PDF</a>' : '<span class="re-no-pdf">–</span>';
+                const pdf = pdfPath ? '<a href="#" data-pdf-path="'+esc(decodeURIComponent(pdfPath))+'" data-titel="'+esc('Rechnung ' + (r.re_nummer || ''))+'" class="re-pdf-btn">PDF</a>' : '<span class="re-no-pdf">–</span>';
                 return '<tr>' +
                     '<td class="re-nr">' + esc(r.re_nummer || '-') + '</td>' +
                     '<td>' + datum + '</td>' +

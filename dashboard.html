@@ -120,6 +120,7 @@
         .chip { flex: none; height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: 11.5px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; white-space: nowrap; }
         .chip:hover { background: var(--surface-2); }
         .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+        .chip-link { text-decoration: none; color: var(--text-mut); }
         .chip.lohn.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
         .chip.excluded.active { background: var(--err); border-color: var(--err); color: #fff; }
         .chip .cnt { opacity: .7; }
@@ -150,7 +151,9 @@
         .fahrer-korr.neg { color: var(--err); }
         /* Detail: Zeile (Handy) oder Panel (Desktop) */
         .detail-row td { white-space: normal; font-family: var(--sans); text-align: left; background: var(--surface-2); padding: 10px 20px 14px; cursor: default; }
-        .side-panel { width: var(--panel-w); flex: none; position: sticky; top: calc(var(--nav-h) + 49px); border-left: 1px solid var(--border); background: var(--surface); padding: 16px 18px; min-height: 300px; }
+        .side-panel { width: var(--panel-w); flex: none; position: sticky; top: calc(var(--nav-h) + 49px); border-left: 1px solid var(--border); background: var(--surface); padding: 16px 18px; min-height: 300px;
+            /* Eigenes Scrollen: sonst ist das Ende eines langen Details erst sichtbar, wenn die ganze Seite unten ist */
+            box-sizing: border-box; max-height: calc(100vh - var(--nav-h) - 49px); overflow-y: auto; overscroll-behavior: contain; }
         .side-panel .placeholder { color: var(--text-mut); font-size: 12.5px; padding-top: 40px; text-align: center; }
         .detail h4 { margin: 0; font-size: 16px; }
         .detail .sub { color: var(--text-mut); font-size: 11.5px; margin-bottom: 10px; }
@@ -587,11 +590,12 @@
                            top: var(--nav-h); bottom: 0; z-index: 70; background: var(--bg);
                            overflow-y: auto; animation: fadeIn .12s ease; }
             .menue-liste { padding: 8px 0 calc(env(safe-area-inset-bottom) + 20px); }
-            .menue-liste button { display: flex; align-items: center; gap: 14px; width: 100%;
+            .menue-liste button, .menue-liste a { display: flex; align-items: center; gap: 14px; width: 100%;
                 background: transparent; border: none; border-bottom: 1px solid var(--border);
                 padding: 16px 20px; font-size: 16px; font-family: inherit; color: var(--text);
                 text-align: left; }
-            .menue-liste button svg { width: 20px; height: 20px; flex: none; color: var(--text-mut); }
+            .menue-liste a { text-decoration: none; }
+            .menue-liste button svg, .menue-liste a svg { width: 20px; height: 20px; flex: none; color: var(--text-mut); }
             .menue-liste button.aktiv { font-weight: 700; }
             .menue-liste button.aktiv svg { color: var(--accent); }
             .menue-liste button:active { background: var(--surface-2); }
@@ -745,28 +749,7 @@
             .pk-karte { margin: 14px 12px 20px; }
             .pk-liste { grid-template-columns: 1fr; }
         }
-        /* Lohn: Upload AJ + LZ, Laeufe, Zuordnung (Reiter Fahrer/App) */
-        .lohn-drop { display: block; border: 1px dashed var(--border-strong); border-radius: 10px; padding: 14px 12px; text-align: center; color: var(--text-mut); font-size: 12px; margin-bottom: 10px; cursor: pointer; }
-        .lohn-drop.over { border-color: var(--accent); background: var(--accent-faint); color: var(--text); }
-        .lohn-drop u { color: var(--text); }
-        .lohn-box { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; padding: 11px 13px; margin-bottom: 12px; font-size: 12px; min-width: 0; }
-        .lohn-pruef { list-style: none; margin: 10px 0 8px; padding: 0; }
-        .lohn-pruef li { display: flex; gap: 8px; padding: 2px 0; min-width: 0; }
-        .lohn-pruef li > span:last-child { min-width: 0; overflow-wrap: anywhere; }
-        .lohn-pruef .ok { color: var(--accent); font-weight: 700; }
-        .lohn-pruef .err { color: var(--err); font-weight: 700; }
-        .lohn-pruef small { color: var(--text-mut); font-size: 11px; }
-        .lohn-vliste { max-height: 280px; overflow-y: auto; margin-top: 6px; }
-        .lohn-vliste .lohn-fz { flex: none; max-width: 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .lohn-warn { color: var(--warn); font-size: 11.5px; margin-top: 4px; }
-        .lohn-err { color: var(--err); font-size: 12px; margin-top: 8px; overflow-wrap: anywhere; }
-        .lohn-fortschritt { color: var(--info); font-size: 12px; margin-top: 8px; }
-        .lohn-ohne { color: var(--warn); font-weight: 600; }
-        .lohn-lauf { cursor: pointer; }
-        .pk-card.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-        #lohnListe { margin-bottom: 14px; }
-        .lohn-detail-kopf { margin-top: 4px; }
-        .lohn-name { flex: 1; min-width: 0; background: none; border: none; padding: 0; margin: 0; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--info); text-decoration: underline; text-align: left; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* Lohn: Hinweis beim Lohn-Feld (Abrechnungen); Upload/Zuordnung liegen in lohn.html */
         .detail-lohn { flex-wrap: wrap; }
         .lz-hints { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
         .lz-hint { padding: 3px 8px; border-radius: 999px; border: 1px solid var(--accent-line); background: var(--accent-faint); color: var(--text); font-family: var(--mono); font-size: 11px; cursor: pointer; white-space: nowrap; }
@@ -1102,6 +1085,7 @@
             <button class="chip" data-fz="ohneapp">ohne App <span class="cnt" id="fzCntOhneApp"></span></button>
             <button class="chip" data-fz="archiv">Archiviert <span class="cnt" id="fzCntArchiv"></span></button>
             <div class="sp"></div>
+            <a class="chip chip-link" href="lohn.html">Löhne →</a>
             <span class="badge" id="fzShown"></span>
         </div>
         <div class="split">
@@ -1124,18 +1108,6 @@
                         <button class="chip" data-pk="alle">alle <span class="cnt" id="pkCntAlle"></span></button>
                     </div>
                     <div class="pk-liste" id="pkListe"><div class="pk-leer">Lade ...</div></div>
-                </section>
-                <section class="pk-karte" id="lohnKarte">
-                    <div class="pk-kopf">
-                        <h4>Lohn</h4>
-                        <span class="chip" title="Personen ohne Fahrer, alle Läufe">ohne Fahrer <span class="cnt" id="lohnCntOhne"></span></span>
-                        <label class="chip" for="lohnDatei">PDFs wählen</label>
-                    </div>
-                    <input type="file" id="lohnDatei" accept=".pdf,application/pdf" multiple hidden>
-                    <label class="lohn-drop" id="lohnDrop" for="lohnDatei">Auszahlungsjournal + Lohnzettel (zwei PDFs) hierher ziehen oder <u>auswählen</u></label>
-                    <div id="lohnVorschau"></div>
-                    <div class="pk-liste" id="lohnListe"><div class="pk-leer">Lade ...</div></div>
-                    <div id="lohnDetail"></div>
                 </section>
             </div>
             <div class="side-panel" id="fzPanel"><div class="placeholder">Fahrer auswählen</div></div>
@@ -1191,6 +1163,7 @@
             <button onclick="switchTab('verbindungen')" data-menue="verbindungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/><path d="M3 12h4M17 12h4"/><circle cx="12" cy="12" r="9"/></svg>Verbindungen<span class="tab-warn" id="vbWarnMenue"></span></button>
             <button onclick="switchTab('abrbot')" data-menue="abrbot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload</button>
             <button onclick="switchTab('rechnungen')" data-menue="rechnungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Rechnungen</button>
+            <a href="lohn.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M7 12h.01M17 12h.01"/></svg>Löhne</a>
         </div>
     </div>
     <div class="tab-content" id="contentVerbindungen">
@@ -2213,7 +2186,6 @@
             });
             document.getElementById('pkListe').addEventListener('click', pkKlick);
             await ladeFahrer();
-            initLohn();
         }
 
         /* Laedt Fahrerliste und Plattformkonten (neu). Wird nach jeder
@@ -2601,558 +2573,14 @@
             }
         }
 
-        /* === LOHN: Auszahlungsjournal (AJ) + Lohnzettel (LZ) je Firma und Monat ===
-           Spec: docs/superpowers/specs/2026-09-23-lohnzettel-design.md (2, 4, 5).
-           Der Browser liest beide PDFs (pdf.js), prueft sie gegeneinander, schneidet
-           das LZ in ein PDF je Ma-Nr (pdf-lib) und speichert ueber lohn_lauf_speichern.
-           Die Parser sind reine Funktionen (Text je Seite rein, Objekt raus). */
-        /* LOHN-PARSER START */
-        const LOHN_MONATE = { 'jänner': 1, 'januar': 1, 'februar': 2, 'feber': 2, 'märz': 3, 'april': 4, 'mai': 5, 'juni': 6,
-            'juli': 7, 'august': 8, 'september': 9, 'oktober': 10, 'november': 11, 'dezember': 12 };
-        const LOHN_BETRAG_RE = '-?\\d{1,3}(?:\\.\\d{3})*,\\d{2}';
-        function lohnBetrag(s) { return parseFloat(String(s).replace(/\./g, '').replace(',', '.')); }
+        /* === LOHN: Upload, Uebersicht und Zuordnung liegen in lohn.html.
+           Hier bleiben nur der Hinweis beim Lohn-Feld (Abrechnungen) und die
+           Lohnzettel-Zeile im Fahrer-Detail (beide aus lohn_letzte). */
+        let LOHN_LETZTE = [];
         function lohnRund(n) { return Math.round((parseFloat(n) || 0) * 100) / 100; }
-        // "August 2026" -> "2026-08-01"
-        function lohnMonat(txt) {
-            const m = /(Jänner|Januar|Februar|Feber|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\s+(\d{4})/i.exec(txt || '');
-            if (!m) return null;
-            const mm = LOHN_MONATE[m[1].toLowerCase()];
-            return m[2] + '-' + (mm < 10 ? '0' : '') + mm + '-01';
-        }
-        // pdf.js-Textitems einer Seite -> Zeilen (gleiche y-Position = eine Zeile, links nach rechts)
-        function lohnZeilen(items) {
-            const rows = [];
-            (items || []).forEach(function (it) {
-                if (!it || !it.str || !it.str.trim()) return;
-                const x = it.transform[4], y = it.transform[5];
-                let r = null;
-                for (let i = 0; i < rows.length; i++) { if (Math.abs(rows[i].y - y) < 2.5) { r = rows[i]; break; } }
-                if (!r) { r = { y: y, parts: [] }; rows.push(r); }
-                r.parts.push({ x: x, s: it.str });
-            });
-            rows.sort(function (a, b) { return b.y - a.y; });
-            return rows.map(function (r) {
-                return r.parts.sort(function (a, b) { return a.x - b.x; })
-                    .map(function (p) { return p.s.trim(); }).join(' ').replace(/\s+/g, ' ').trim();
-            });
-        }
-        // 'AJ' | 'LZ' | null - am Inhalt, nicht am Dateinamen
-        function lohnArt(textSeiten) {
-            const t = (textSeiten || []).map(function (z) { return z.join('\n'); }).join('\n');
-            if (/Auszahlungsjournal/.test(t)) return 'AJ';
-            if (/Lohn\s*\/\s*Gehaltsabrechnung/.test(t)) return 'LZ';
-            return null;
-        }
-        function lohnFirma(zeilen) {
-            for (let i = 0; i < zeilen.length; i++) {
-                const m = /^Firma\s*:\s*(\d+)\s+(.+)$/.exec(zeilen[i]);
-                if (m) return { nr: m[1], name: m[2].trim() };
-            }
-            return null;
-        }
-        function parseJournal(textSeiten) {
-            const r = { art: 'AJ', firma_nr: null, firma_name: null, monat: null, journal_datum: null, personen: [],
-                anzahl: null, summe: null, koerperschaften: [], gesamt_summe: null, fehler: [] };
-            const seiten = textSeiten || [];
-            const alle = [].concat.apply([], seiten);
-            const text = alle.join('\n');
-            const f = lohnFirma(alle);
-            if (f) { r.firma_nr = f.nr; r.firma_name = f.name; } else r.fehler.push('Journal: Firma nicht gefunden');
-            seiten.forEach(function (z, i) {
-                const fs = lohnFirma(z);
-                if (f && fs && fs.nr !== f.nr) r.fehler.push('Journal Seite ' + (i + 1) + ': andere Firma ' + fs.nr);
-            });
-            r.monat = lohnMonat(text);
-            if (!r.monat) r.fehler.push('Journal: Monat nicht gefunden');
-            for (let i = 0; i < alle.length; i++) {
-                const d = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(alle[i]);
-                if (d) { r.journal_datum = d[3] + '-' + d[2] + '-' + d[1]; break; }
-            }
-            let m = /Anzahl Dienstnehmer\s+(\d+)/.exec(text);
-            if (m) r.anzahl = parseInt(m[1], 10); else r.fehler.push('Journal: „Anzahl Dienstnehmer“ fehlt');
-            m = new RegExp('Summe Dienstnehmer\\s+(' + LOHN_BETRAG_RE + ')').exec(text);
-            if (m) r.summe = lohnBetrag(m[1]); else r.fehler.push('Journal: „Summe Dienstnehmer“ fehlt');
-            m = new RegExp('Gesamt-Summe\\s+(' + LOHN_BETRAG_RE + ')').exec(text);
-            if (m) r.gesamt_summe = lohnBetrag(m[1]);
-
-            const dnRe = new RegExp('^(\\d+)\\s+(.+?)\\s+(' + LOHN_BETRAG_RE + ')$');
-            const endRe = new RegExp('^(.+?)\\s+(' + LOHN_BETRAG_RE + ')$');
-            const postenRe = new RegExp('^([A-Za-zÄÖÜäöü]+)\\s*:\\s*(' + LOHN_BETRAG_RE + ')$');
-            // Zahlungsart beginnt beim ersten Token nach dem Komma, das Barzahlung, BIC oder IBAN ist
-            function nameOhneZahlung(mitte) {
-                const tok = mitte.split(' ');
-                let komma = -1;
-                for (let i = 0; i < tok.length; i++) { if (tok[i].indexOf(',') >= 0) { komma = i; break; } }
-                for (let i = komma + 1; i < tok.length; i++) {
-                    if (i === 0) continue;
-                    if (/^Barzahlung$/i.test(tok[i]) || /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(tok[i]) || /^[A-Z]{2}\d{2}/.test(tok[i])) {
-                        return { name: tok.slice(0, i).join(' '), zahlungsart: tok.slice(i).join(' ') };
-                    }
-                }
-                return { name: mitte, zahlungsart: '' };
-            }
-            let teil = '';
-            alle.forEach(function (z) {
-                if (/^Dienstnehmer$/.test(z)) { teil = 'dn'; return; }
-                if (/^Körperschaften$/.test(z)) { teil = 'ks'; return; }
-                if (/^Anzahl Dienstnehmer/.test(z)) { teil = ''; return; }
-                if (/^(Summe |Gesamt-Summe)/.test(z)) return;
-                if (teil === 'dn') {
-                    const x = dnRe.exec(z);
-                    if (!x) return;
-                    const nz = nameOhneZahlung(x[2]);
-                    r.personen.push({ ma_nr: parseInt(x[1], 10), name: nz.name, zahlungsart: nz.zahlungsart, betrag: lohnBetrag(x[3]) });
-                } else if (teil === 'ks') {
-                    const p = postenRe.exec(z);
-                    if (p) {
-                        const last = r.koerperschaften[r.koerperschaften.length - 1];
-                        if (last) last.posten[p[1]] = lohnBetrag(p[2]);
-                        return;
-                    }
-                    const k = endRe.exec(z);
-                    if (k && !/^Bezeichnung\b/.test(z)) r.koerperschaften.push({ bezeichnung: k[1].trim(), betrag: lohnBetrag(k[2]), posten: {} });
-                }
-            });
-            if (!r.personen.length) r.fehler.push('Journal: keine Dienstnehmer-Zeilen erkannt');
-            return r;
-        }
-        function parseLohnzettel(textSeiten) {
-            const r = { art: 'LZ', firma_nr: null, firma_name: null, monat: null, seiten: [], personen: [], fehler: [] };
-            const betragNurRe = new RegExp('^(' + LOHN_BETRAG_RE + ')$');
-            function wert(zeilen, wort) {
-                const re = new RegExp('^' + wort + '(?:\\s+(' + LOHN_BETRAG_RE + '))?$');
-                for (let i = 0; i < zeilen.length; i++) {
-                    const m = re.exec(zeilen[i]);
-                    if (!m) continue;
-                    if (m[1]) return lohnBetrag(m[1]);
-                    const n = betragNurRe.exec(zeilen[i + 1] || '');   // Betrag in der Folgezeile
-                    if (n) return lohnBetrag(n[1]);
-                }
-                return null;
-            }
-            (textSeiten || []).forEach(function (z, i) {
-                const nr = i + 1;
-                const f = lohnFirma(z);
-                const monat = lohnMonat((z.filter(function (l) { return /Gehaltsabrechnung/.test(l); })[0]) || '');
-                let pers = null;
-                for (let j = 0; j < z.length; j++) {
-                    const m = /^Person\s*:\s*(\d+)\s*\(\s*(\d+)\s*\)\s*(.+?)(?:\s+SV-Nr\..*)?$/.exec(z[j]);
-                    if (m) { pers = { ma_nr: parseInt(m[1], 10), dv: parseInt(m[2], 10), name: m[3].trim() }; break; }
-                }
-                if (!pers) { r.fehler.push('Lohnzettel Seite ' + nr + ': keine Person erkannt'); return; }
-                if (f) {
-                    if (!r.firma_nr) { r.firma_nr = f.nr; r.firma_name = f.name; }
-                    else if (f.nr !== r.firma_nr) r.fehler.push('Lohnzettel Seite ' + nr + ': andere Firma ' + f.nr);
-                } else r.fehler.push('Lohnzettel Seite ' + nr + ': Firma fehlt');
-                if (monat) {
-                    if (!r.monat) r.monat = monat;
-                    else if (monat !== r.monat) r.fehler.push('Lohnzettel Seite ' + nr + ': anderer Monat');
-                } else r.fehler.push('Lohnzettel Seite ' + nr + ': Monat fehlt');
-                const s = { index: i, ma_nr: pers.ma_nr, dv: pers.dv, name: pers.name,
-                    brutto: wert(z, 'Brutto'), netto: wert(z, 'Netto'), auszahlung: wert(z, 'Auszahlung') };
-                if (s.auszahlung == null) r.fehler.push('Lohnzettel Seite ' + nr + ' (Ma-Nr ' + pers.ma_nr + '): Auszahlung fehlt');
-                r.seiten.push(s);
-            });
-            const map = {};
-            r.seiten.forEach(function (s) {
-                let p = map[s.ma_nr];
-                if (!p) { p = map[s.ma_nr] = { ma_nr: s.ma_nr, name: s.name, seiten: [], brutto: 0, netto: 0, auszahlung: 0 }; r.personen.push(p); }
-                p.seiten.push(s.index);
-                p.brutto = lohnRund(p.brutto + (s.brutto || 0));
-                p.netto = lohnRund(p.netto + (s.netto || 0));
-                p.auszahlung = lohnRund(p.auszahlung + (s.auszahlung || 0));
-            });
-            if (!r.personen.length) r.fehler.push('Lohnzettel: keine Seite erkannt');
-            return r;
-        }
-        // Alle Pruefungen aus Spec 2.3; jede muss ok sein, sonst kein Speichern
-        function lohnPruefen(aj, lz) {
-            const out = [];
-            const ajMap = {};
-            aj.personen.forEach(function (p) { ajMap[p.ma_nr] = lohnRund((ajMap[p.ma_nr] || 0) + p.betrag); });
-            const lzMap = {};
-            lz.personen.forEach(function (p) { lzMap[p.ma_nr] = p.auszahlung; });
-            const ajNr = Object.keys(ajMap), lzNr = Object.keys(lzMap);
-            const fehlt = function (a, b) { return a.filter(function (k) { return !Object.prototype.hasOwnProperty.call(b, k); }); };
-            const nurLz = fehlt(lzNr, ajMap), nurAj = fehlt(ajNr, lzMap);
-            const lzSumme = lohnRund(lz.personen.reduce(function (s, p) { return s + p.auszahlung; }, 0));
-            const abw = lzNr.filter(function (k) { return ajMap[k] != null && Math.abs(ajMap[k] - lzMap[k]) > 0.05; });
-            const fehler = aj.fehler.concat(lz.fehler);
-            out.push({ text: 'Beide Dateien vollständig gelesen', ok: !fehler.length, detail: fehler.slice(0, 5).join(' · ') + (fehler.length > 5 ? ' …' : '') });
-            out.push({ text: 'Gleiche Firma', ok: !!aj.firma_nr && aj.firma_nr === lz.firma_nr,
-                detail: 'AJ ' + (aj.firma_nr || '?') + ' · LZ ' + (lz.firma_nr || '?') });
-            out.push({ text: 'Gleicher Monat', ok: !!aj.monat && aj.monat === lz.monat,
-                detail: 'AJ ' + (aj.monat ? lohnMonatText(aj.monat) : '?') + ' · LZ ' + (lz.monat ? lohnMonatText(lz.monat) : '?') });
-            out.push({ text: 'Ma-Nr gleich in AJ und LZ', ok: lzNr.length > 0 && !nurLz.length && !nurAj.length,
-                detail: (nurLz.length ? 'nur im LZ: ' + nurLz.join(', ') : '') + (nurLz.length && nurAj.length ? ' · ' : '') + (nurAj.length ? 'nur im AJ: ' + nurAj.join(', ') : '') });
-            out.push({ text: 'Beträge je Ma-Nr (LZ = AJ)', ok: lzNr.length > 0 && !abw.length,
-                detail: abw.map(function (k) { return 'Nr. ' + k + ': LZ ' + fmt(lzMap[k]) + ' / AJ ' + fmt(ajMap[k]); }).join(' · ') });
-            out.push({ text: 'Summe Auszahlung = Summe Dienstnehmer', ok: aj.summe != null && Math.abs(lzSumme - aj.summe) <= 0.05,
-                detail: 'LZ ' + fmt(lzSumme) + ' · AJ ' + fmt(aj.summe) });
-            out.push({ text: 'Anzahl Dienstnehmer', ok: aj.anzahl != null && aj.anzahl === lzNr.length && aj.anzahl === ajNr.length,
-                detail: 'AJ ' + (aj.anzahl == null ? '?' : aj.anzahl) + ' · LZ ' + lzNr.length + ' Ma-Nr (' + lz.seiten.length + ' Seiten)' });
-            return out;
-        }
         function lohnMonatText(monat) { return monat ? monat.slice(5, 7) + '/' + monat.slice(0, 4) : '–'; }
         function lohnMonatKurz(monat) { return monat ? monat.slice(5, 7) + '/' + monat.slice(2, 4) : '–'; }
-        // Nutzlast fuer lohn_lauf_speichern (Kontrakt in der Migration)
-        function lohnLaufDaten(aj, lz) {
-            const ym = aj.monat.slice(0, 7), basis = aj.firma_nr + '/' + ym + '/';
-            const ajMap = {};
-            aj.personen.forEach(function (p) { ajMap[p.ma_nr] = lohnRund((ajMap[p.ma_nr] || 0) + p.betrag); });
-            return {
-                firma_nr: aj.firma_nr, firma_name: aj.firma_name, monat: aj.monat, journal_datum: aj.journal_datum,
-                anzahl_dienstnehmer: aj.anzahl, summe_dienstnehmer: aj.summe, koerperschaften: aj.koerperschaften,
-                gesamt_summe: aj.gesamt_summe, aj_pfad: basis + 'journal.pdf',
-                zettel: lz.personen.map(function (p) {
-                    return { ma_nr: p.ma_nr, name: p.name, seiten: p.seiten.length, brutto: p.brutto, netto: p.netto,
-                        auszahlung: p.auszahlung, journal_betrag: ajMap[p.ma_nr] == null ? null : ajMap[p.ma_nr], pfad: basis + p.ma_nr + '.pdf' };
-                })
-            };
-        }
-        // LZ in ein PDF je Ma-Nr schneiden (alle DV-Seiten einer Person) -> [{ma_nr, bytes}]
-        async function lohnSchneiden(PDFLib, lzBytes, personen) {
-            const src = await PDFLib.PDFDocument.load(lzBytes);
-            const out = [];
-            for (let i = 0; i < personen.length; i++) {
-                const doc = await PDFLib.PDFDocument.create();
-                const pages = await doc.copyPages(src, personen[i].seiten);
-                pages.forEach(function (p) { doc.addPage(p); });
-                out.push({ ma_nr: personen[i].ma_nr, bytes: await doc.save() });
-            }
-            return out;
-        }
-        /* LOHN-PARSER END */
-        let LOHN_LAEUFE = [], LOHN_FEHLER = '', LOHN_ZETTEL = [], LOHN_ZETTEL_FEHLER = '', LOHN_LETZTE = [];
-        let lohnOffen = null, lohnNurOhne = false, lohnBusy = false, lohnInitDone = false;
-        let LOHN_NEU = null;   // {status:'lese'|'bereit'|'fehler', aj, lz, ajBytes, lzBytes, pruef, bekannt, meldung, fortschritt}
-        let LOHN_LIBS = null;
-        const LOHN_PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/legacy/build/';
-        // pdf.js + pdf-lib erst laden, wenn der Bereich benutzt wird
-        function lohnLibs() {
-            if (!LOHN_LIBS) {
-                LOHN_LIBS = Promise.all([
-                    import(LOHN_PDFJS + 'pdf.min.mjs').then(function (m) { m.GlobalWorkerOptions.workerSrc = LOHN_PDFJS + 'pdf.worker.min.mjs'; return m; }),
-                    new Promise(function (res, rej) {
-                        if (window.PDFLib) { res(window.PDFLib); return; }
-                        const s = document.createElement('script');
-                        s.src = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';
-                        s.onload = function () { res(window.PDFLib); };
-                        s.onerror = function () { rej(new Error('pdf-lib konnte nicht geladen werden')); };
-                        document.head.appendChild(s);
-                    })
-                ]).then(function (x) { return { pdfjs: x[0], PDFLib: x[1] }; })
-                  .catch(function (e) { LOHN_LIBS = null; throw e; });
-            }
-            return LOHN_LIBS;
-        }
-        async function lohnTextSeiten(pdfjs, bytes) {
-            const doc = await pdfjs.getDocument({ data: bytes.slice(), verbosity: 0 }).promise;
-            const out = [];
-            for (let i = 1; i <= doc.numPages; i++) {
-                const p = await doc.getPage(i);
-                out.push(lohnZeilen((await p.getTextContent()).items));
-            }
-            try { doc.destroy(); } catch (e) {}
-            return out;
-        }
         function lohnFehlerText(e) { return (e && (e.message || e.error_description || e.error)) || String(e); }
-        function lohnAbgaben(l) {
-            const ks = Array.isArray(l.koerperschaften) ? l.koerperschaften : [];
-            if (ks.length) return ks.reduce(function (s, k) { return s + (parseFloat(k.betrag) || 0); }, 0);
-            if (l.gesamt_summe != null) return (parseFloat(l.gesamt_summe) || 0) - (parseFloat(l.summe_dienstnehmer) || 0);
-            return null;
-        }
-        function lohnDatum(ts) { if (!ts) return '–'; const d = new Date(ts); return isNaN(d) ? '–' : d.toLocaleDateString('de-AT') + ' ' + d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' }); }
-        // Signed URL (60 s). Fenster sofort oeffnen, sonst blockt iOS das Popup nach dem await.
-        async function lohnPdfOeffnen(pfad) {
-            const w = window.open('', '_blank');
-            try {
-                const { data, error } = await getSupabase().storage.from('lohnzettel').createSignedUrl(pfad, 60);
-                if (error) throw error;
-                if (w) w.location.href = data.signedUrl; else window.location.href = data.signedUrl;
-            } catch (e) {
-                if (w) w.close();
-                alert('PDF konnte nicht geöffnet werden: ' + lohnFehlerText(e));
-            }
-        }
-
-        function initLohn() {
-            if (lohnInitDone) return;
-            lohnInitDone = true;
-            const inp = document.getElementById('lohnDatei');
-            inp.addEventListener('change', function () { const f = Array.prototype.slice.call(inp.files || []); inp.value = ''; if (f.length) lohnDateien(f); });
-            const drop = document.getElementById('lohnDrop');
-            ['dragenter', 'dragover'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); }); });
-            ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); }); });
-            drop.addEventListener('drop', function (e) {
-                const f = Array.prototype.slice.call((e.dataTransfer && e.dataTransfer.files) || []);
-                if (f.length) lohnDateien(f);
-            });
-            document.getElementById('lohnKarte').addEventListener('click', lohnKlick);
-            ladeLohn();
-        }
-        async function ladeLohn() {
-            const sb = getSupabase();
-            const res = await sb.from('lohn_laeufe_uebersicht').select('*').order('monat', { ascending: false }).order('firma_name')
-                .then(function (r) { return r; }, function (e) { return { error: e }; });
-            LOHN_FEHLER = res.error ? lohnFehlerText(res.error) : '';
-            LOHN_LAEUFE = res.error ? [] : (res.data || []);
-            if (lohnOffen && !LOHN_LAEUFE.some(function (l) { return l.id === lohnOffen; })) lohnOffen = null;
-            renderLohn();
-            if (lohnOffen) await ladeLohnZettel();
-        }
-        async function ladeLohnZettel() {
-            if (!lohnOffen) { LOHN_ZETTEL = []; renderLohn(); return; }
-            const res = await getSupabase().from('lohn_zettel_uebersicht').select('*').eq('lauf_id', lohnOffen).order('name')
-                .then(function (r) { return r; }, function (e) { return { error: e }; });
-            LOHN_ZETTEL_FEHLER = res.error ? lohnFehlerText(res.error) : '';
-            LOHN_ZETTEL = res.error ? [] : (res.data || []);
-            renderLohn();
-        }
-        async function ladeLohnLetzte() {
-            const r = await getSupabase().from('lohn_letzte').select('*')
-                .then(function (x) { return x; }, function (e) { return { error: e }; });
-            if (r.error) { console.warn('lohn_letzte load error:', r.error); return; }
-            LOHN_LETZTE = r.data || [];
-        }
-
-        async function lohnDateien(files) {
-            if (lohnBusy) return;
-            LOHN_NEU = { status: 'lese', meldung: 'Lese ' + files.length + ' Datei' + (files.length === 1 ? '' : 'en') + ' …' };
-            renderLohn();
-            try {
-                const libs = await lohnLibs();
-                let aj = null, lz = null, ajBytes = null, lzBytes = null;
-                const unbekannt = [];
-                for (let i = 0; i < files.length; i++) {
-                    const bytes = new Uint8Array(await files[i].arrayBuffer());
-                    const seiten = await lohnTextSeiten(libs.pdfjs, bytes);
-                    const art = lohnArt(seiten);
-                    if (art === 'AJ') {
-                        if (aj) throw new Error('Zwei Auszahlungsjournale gewählt – bitte genau ein Paar (AJ + LZ).');
-                        aj = parseJournal(seiten); ajBytes = bytes;
-                    } else if (art === 'LZ') {
-                        if (lz) throw new Error('Zwei Lohnzettel-Dateien gewählt – bitte genau ein Paar (AJ + LZ).');
-                        lz = parseLohnzettel(seiten); lzBytes = bytes;
-                    } else unbekannt.push(files[i].name);
-                }
-                if (unbekannt.length) throw new Error('Nicht erkannt (weder Auszahlungsjournal noch Lohnzettel): ' + unbekannt.join(', '));
-                if (!aj || !lz) throw new Error(!aj ? 'Das Auszahlungsjournal (AJ) fehlt noch.' : 'Die Lohnzettel (LZ) fehlen noch.');
-                LOHN_NEU = { status: 'bereit', aj: aj, lz: lz, ajBytes: ajBytes, lzBytes: lzBytes, pruef: lohnPruefen(aj, lz), bekannt: {} };
-                renderLohn();
-                // Bekannte Zuordnungen dieser Firma fuer die Vorschau (Fehler egal)
-                if (aj.firma_nr) {
-                    const r = await getSupabase().from('lohn_zettel_uebersicht').select('ma_nr,fahrer_name')
-                        .eq('firma_nr', aj.firma_nr).not('fahrer_id', 'is', null)
-                        .then(function (x) { return x; }, function (e) { return { error: e }; });
-                    if (!r.error && LOHN_NEU && LOHN_NEU.aj === aj) {
-                        (r.data || []).forEach(function (z) { LOHN_NEU.bekannt[z.ma_nr] = z.fahrer_name; });
-                        renderLohn();
-                    }
-                }
-            } catch (e) {
-                LOHN_NEU = { status: 'fehler', meldung: lohnFehlerText(e) };
-                renderLohn();
-            }
-        }
-        async function lohnSpeichern() {
-            const n = LOHN_NEU;
-            if (!n || n.status !== 'bereit' || lohnBusy || !n.pruef.every(function (p) { return p.ok; })) return;
-            lohnBusy = true;
-            const sb = getSupabase();
-            const lauf = lohnLaufDaten(n.aj, n.lz);
-            const schritt = function (t) { n.fortschritt = t; renderLohn(); };
-            try {
-                const libs = await lohnLibs();
-                schritt('Schneide Lohnzettel …');
-                const teile = await lohnSchneiden(libs.PDFLib, n.lzBytes, n.lz.personen);
-                const uploads = [{ pfad: lauf.aj_pfad, bytes: n.ajBytes }].concat(teile.map(function (t) {
-                    return { pfad: lauf.zettel.filter(function (z) { return z.ma_nr === t.ma_nr; })[0].pfad, bytes: t.bytes };
-                }));
-                for (let i = 0; i < uploads.length; i++) {
-                    schritt('Lade hoch ' + (i + 1) + ' / ' + uploads.length + ' …');
-                    const blob = new Blob([uploads[i].bytes], { type: 'application/pdf' });
-                    const { error } = await sb.storage.from('lohnzettel').upload(uploads[i].pfad, blob, { upsert: true, contentType: 'application/pdf' });
-                    if (error) throw new Error('Hochladen fehlgeschlagen (' + uploads[i].pfad.split('/').pop() + '): ' + lohnFehlerText(error) + ' – nichts gespeichert.');
-                }
-                schritt('Speichere Lauf …');
-                const { data, error } = await sb.rpc('lohn_lauf_speichern', { p_lauf: lauf });
-                if (error) throw new Error('Speichern fehlgeschlagen: ' + lohnFehlerText(error));
-                const alt = (data && data.alte_pfade) || [];
-                let hinweis = '';
-                if (alt.length) {
-                    schritt('Räume ' + alt.length + ' alte Datei' + (alt.length === 1 ? '' : 'en') + ' auf …');
-                    const rm = await sb.storage.from('lohnzettel').remove(alt);
-                    if (rm.error) hinweis = ' (alte Dateien nicht gelöscht: ' + lohnFehlerText(rm.error) + ')';
-                }
-                LOHN_NEU = null;
-                lohnOffen = data && data.lauf_id ? data.lauf_id : null;
-                showReToast('Lohn ' + lohnMonatText(lauf.monat) + ' gespeichert: ' + lauf.zettel.length + ' Zettel' + hinweis, hinweis ? 'error' : 'success');
-            } catch (e) {
-                n.fortschritt = '';
-                n.speicherFehler = lohnFehlerText(e);
-            } finally {
-                lohnBusy = false;
-                await ladeLohn();
-                await ladeLohnLetzte();
-            }
-        }
-
-        function lohnKlick(e) {
-            const t = e.target;
-            let b;
-            if ((b = t.closest('[data-lohnpdf]'))) { e.stopPropagation(); lohnPdfOeffnen(b.dataset.lohnpdf); return; }
-            if (t.closest('[data-lohnspeichern]')) { lohnSpeichern(); return; }
-            if (t.closest('[data-lohnverwerfen]')) { if (!lohnBusy) { LOHN_NEU = null; renderLohn(); } return; }
-            if ((b = t.closest('[data-lohnfilter]'))) { lohnNurOhne = b.dataset.lohnfilter === 'ohne'; renderLohn(); return; }
-            if (t.closest('[data-lohnzu]')) { lohnOffen = null; LOHN_ZETTEL = []; renderLohn(); return; }
-            if ((b = t.closest('[data-lohnzuordnen]'))) { lohnZuordnen(b, false); return; }
-            if ((b = t.closest('[data-lohnloesen]'))) { lohnZuordnen(b, true); return; }
-            if (t.closest('select, button, a, label, input')) return;
-            if ((b = t.closest('[data-lohnlauf]'))) {
-                const id = b.dataset.lohnlauf;
-                lohnOffen = lohnOffen === id ? null : id;
-                LOHN_ZETTEL = []; LOHN_ZETTEL_FEHLER = ''; lohnNurOhne = false;
-                renderLohn();
-                if (lohnOffen) ladeLohnZettel().then(function () {
-                    const d = document.getElementById('lohnDetail');
-                    if (d && d.scrollIntoView) d.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                });
-            }
-        }
-        async function lohnZuordnen(btn, loesen) {
-            if (lohnBusy) return;
-            let fid = null;
-            if (!loesen) {
-                const sel = btn.closest('.pk-card').querySelector('[data-lohnsel]');
-                fid = sel ? parseInt(sel.value, 10) : NaN;
-                if (!fid) { alert('Bitte einen Fahrer wählen.'); return; }
-            } else if (!confirm('Zuordnung von Ma-Nr ' + btn.dataset.manr + ' lösen?')) return;
-            lohnBusy = true; renderLohn();
-            try {
-                const { error } = await getSupabase().rpc('lohn_person_zuordnen',
-                    { p_firma_nr: btn.dataset.firma, p_ma_nr: parseInt(btn.dataset.manr, 10), p_fahrer_id: fid });
-                if (error) throw error;
-                const f = fid ? FZ.filter(function (x) { return x.fahrer_id === fid; })[0] : null;
-                showReToast(loesen ? 'Zuordnung gelöst' : 'Zugeordnet: ' + (f ? f.name : 'Fahrer ' + fid), 'success');
-            } catch (err) {
-                alert((loesen ? 'Lösen' : 'Zuordnen') + ' fehlgeschlagen: ' + (typeof fgFehler === 'function' ? fgFehler(err) : lohnFehlerText(err)));
-            } finally {
-                lohnBusy = false;
-                await ladeLohn();
-                await ladeLohnLetzte();
-                renderFahrer();
-            }
-        }
-
-        function renderLohn() {
-            const vor = document.getElementById('lohnVorschau');
-            const liste = document.getElementById('lohnListe');
-            const det = document.getElementById('lohnDetail');
-            if (!vor || !liste || !det) return;
-            const dis = lohnBusy ? ' disabled' : '';
-            const ohneGes = LOHN_LAEUFE.reduce(function (s, l) { return s + (l.ohne_fahrer || 0); }, 0);
-            document.getElementById('lohnCntOhne').textContent = LOHN_FEHLER ? '' : ohneGes;
-
-            // --- Vorschau eines neuen Paars ---
-            const n = LOHN_NEU;
-            if (!n) vor.innerHTML = '';
-            else if (n.status === 'lese') vor.innerHTML = '<div class="lohn-box"><div class="pk-leer">' + esc(n.meldung) + '</div></div>';
-            else if (n.status === 'fehler') vor.innerHTML = '<div class="lohn-box"><div class="lohn-err">' + esc(n.meldung) + '</div>' +
-                '<div class="detail-acts"><button class="btn-ghost" data-lohnverwerfen="1">Schließen</button></div></div>';
-            else {
-                const aj = n.aj, alleOk = n.pruef.every(function (p) { return p.ok; });
-                const alt = LOHN_LAEUFE.filter(function (l) { return l.firma_nr === aj.firma_nr && String(l.monat).slice(0, 10) === aj.monat; })[0];
-                const ajMap = {};
-                aj.personen.forEach(function (p) { ajMap[p.ma_nr] = (ajMap[p.ma_nr] || 0) + p.betrag; });
-                vor.innerHTML = '<div class="lohn-box">' +
-                    '<div class="pk-card-top"><b>' + esc(aj.firma_name || '?') + '</b><span class="num">' + lohnMonatText(aj.monat) + '</span></div>' +
-                    '<div class="pk-meta">Firma ' + esc(aj.firma_nr || '?') + ' · ' + (aj.anzahl == null ? '?' : aj.anzahl) + ' Dienstnehmer · ' +
-                        n.lz.seiten.length + ' Seiten · Summe ' + fmt(aj.summe) + '</div>' +
-                    (alt ? '<div class="lohn-warn">Firma und Monat gibt es schon – ersetzt den Stand vom ' + esc(lohnDatum(alt.hochgeladen_am)) + '.</div>' : '') +
-                    '<ul class="lohn-pruef">' + n.pruef.map(function (p) {
-                        return '<li><span class="' + (p.ok ? 'ok' : 'err') + '">' + (p.ok ? '✓' : '✗') + '</span><span>' + esc(p.text) +
-                            (p.detail ? ' <small>' + esc(p.detail) + '</small>' : '') + '</span></li>';
-                    }).join('') + '</ul>' +
-                    '<div class="lohn-vliste">' + n.lz.personen.map(function (p) {
-                        const fz = n.bekannt[p.ma_nr];
-                        return '<div class="pk-zeile"><span class="fz-id">' + p.ma_nr + '</span><span class="pk-name">' + esc(p.name) +
-                            (p.seiten.length > 1 ? ' <small>(' + p.seiten.length + ' Seiten)</small>' : '') + '</span>' +
-                            '<small class="lohn-fz">' + (fz ? esc(fz) : 'neu — bitte zuordnen') + '</small>' +
-                            '<span class="num">' + fmt(p.auszahlung) + '</span></div>';
-                    }).join('') + '</div>' +
-                    (n.fortschritt ? '<div class="lohn-fortschritt">' + esc(n.fortschritt) + '</div>' : '') +
-                    (n.speicherFehler ? '<div class="lohn-err">' + esc(n.speicherFehler) + '</div>' : '') +
-                    (!alleOk ? '<div class="lohn-err">Nicht alle Prüfungen bestanden – es wird nichts gespeichert.</div>' : '') +
-                    '<div class="detail-acts">' +
-                        (alleOk ? '<button class="btn-primary ok" data-lohnspeichern="1"' + dis + '>Speichern</button>' : '') +
-                        '<button class="btn-ghost" data-lohnverwerfen="1"' + dis + '>Verwerfen</button></div>' +
-                '</div>';
-            }
-
-            // --- Liste der Laeufe ---
-            if (LOHN_FEHLER) {
-                liste.innerHTML = '<div class="pk-leer">Noch nicht verfügbar: ' + esc(LOHN_FEHLER) + '</div>';
-                det.innerHTML = '';
-                return;
-            }
-            liste.innerHTML = !LOHN_LAEUFE.length ? '<div class="pk-leer">Noch keine Lohnläufe hochgeladen.</div>' :
-                LOHN_LAEUFE.map(function (l) {
-                    const abg = lohnAbgaben(l);
-                    return '<div class="pk-card lohn-lauf' + (lohnOffen === l.id ? ' sel' : '') + '" data-lohnlauf="' + esc(l.id) + '">' +
-                        '<div class="pk-card-top"><b title="' + esc(l.firma_name) + '">' + esc(l.firma_name) + '</b>' +
-                            '<span class="num">' + lohnMonatText(String(l.monat)) + '</span></div>' +
-                        '<div class="pk-meta">' + (l.anzahl_dienstnehmer || 0) + ' Dienstnehmer · Summe ' + fmt(l.summe_dienstnehmer) +
-                            ' · Abgaben ' + (abg == null ? '–' : fmt(abg)) + '</div>' +
-                        '<div class="pk-meta">' + (l.ohne_fahrer ? '<span class="lohn-ohne">ohne Fahrer ' + l.ohne_fahrer + '</span>' : 'alle zugeordnet') +
-                            ' · hochgeladen ' + esc(lohnDatum(l.hochgeladen_am)) + '</div>' +
-                        (!l.firma_adresse ? '<div class="lohn-warn">Adresse fehlt – Firma unter Rechnungen anlegen</div>' : '') +
-                        '<div class="detail-acts"><button class="btn-ghost" data-lohnpdf="' + esc(l.aj_pfad) + '">Journal öffnen</button></div>' +
-                    '</div>';
-                }).join('');
-
-            // --- Personen eines Laufs ---
-            const lauf = lohnOffen ? LOHN_LAEUFE.filter(function (l) { return l.id === lohnOffen; })[0] : null;
-            if (!lauf) { det.innerHTML = ''; return; }
-            const ohne = LOHN_ZETTEL.filter(function (z) { return z.fahrer_id == null; });
-            const rows = lohnNurOhne ? ohne : LOHN_ZETTEL;
-            const aktive = FZ.filter(function (f) { return f.aktiv; })
-                .sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'de'); });
-            let html = '<div class="pk-kopf lohn-detail-kopf"><h4>' + esc(lauf.firma_name) + ' · ' + lohnMonatText(String(lauf.monat)) + '</h4>' +
-                '<button class="chip' + (lohnNurOhne ? '' : ' active') + '" data-lohnfilter="alle">alle <span class="cnt">' + LOHN_ZETTEL.length + '</span></button>' +
-                '<button class="chip' + (lohnNurOhne ? ' active' : '') + '" data-lohnfilter="ohne">ohne Fahrer <span class="cnt">' + ohne.length + '</span></button>' +
-                '<button class="chip" data-lohnzu="1" aria-label="Schließen">✕</button></div>';
-            if (LOHN_ZETTEL_FEHLER) html += '<div class="pk-leer">Noch nicht verfügbar: ' + esc(LOHN_ZETTEL_FEHLER) + '</div>';
-            else if (!LOHN_ZETTEL.length) html += '<div class="pk-leer">Lade ...</div>';
-            else if (!rows.length) html += '<div class="pk-leer">Alle Personen sind einem Fahrer zugeordnet.</div>';
-            else html += '<div class="pk-liste">' + rows.map(function (z) {
-                const kopf = '<div class="pk-card-top"><span class="fz-id">' + z.ma_nr + '</span>' +
-                    '<button class="lohn-name" data-lohnpdf="' + esc(z.pfad) + '" title="PDF öffnen">' + esc(z.name) + '</button>' +
-                    '<span class="num">' + fmt(z.auszahlung) + '</span></div>' +
-                    '<div class="pk-meta">' + (z.seiten > 1 ? z.seiten + ' Seiten · ' : '') + 'Brutto ' + fmt(z.brutto) +
-                        (z.journal_betrag != null && Math.abs(z.journal_betrag - z.auszahlung) > 0.05 ? ' · Journal ' + fmt(z.journal_betrag) : '') + '</div>';
-                const knopf = ' data-firma="' + esc(z.firma_nr) + '" data-manr="' + z.ma_nr + '"';
-                if (z.fahrer_id != null) {
-                    return '<div class="pk-card">' + kopf +
-                        '<div class="pk-vorschlag">Fahrer: ' + esc(z.fahrer_name || ('Fahrer ' + z.fahrer_id)) +
-                            (z.notion_fahrer_id != null ? ' (Nr. ' + z.notion_fahrer_id + ')' : '') + '</div>' +
-                        '<div class="detail-acts"><button class="btn-ghost" data-lohnloesen="1"' + knopf + dis + '>Lösen</button></div></div>';
-                }
-                // Vorschlag nur vorauswaehlen, wenn waehlbar (aktiv, mit Notion-Nr.), sonst Platzhalter
-                const vorWaehlbar = aktive.some(function (f) { return f.fahrer_id === z.vorschlag_fahrer_id && f.notion_fahrer_id != null; });
-                return '<div class="pk-card">' + kopf +
-                    '<select data-lohnsel="1" aria-label="Fahrer wählen">' +
-                        (!vorWaehlbar ? '<option value="">Fahrer wählen …</option>' : '') +
-                        aktive.map(function (f) {
-                            const ohneNr = f.notion_fahrer_id == null;
-                            return '<option value="' + f.fahrer_id + '"' + (vorWaehlbar && f.fahrer_id === z.vorschlag_fahrer_id ? ' selected' : '') +
-                                (ohneNr ? ' disabled' : '') + '>' + esc(f.name) + (ohneNr ? ' (ohne Fahrer-ID)' : ' · Nr. ' + f.notion_fahrer_id) + '</option>';
-                        }).join('') + '</select>' +
-                    '<div class="detail-acts"><button class="btn-primary ok" data-lohnzuordnen="1"' + knopf + dis + '>Zuordnen</button></div></div>';
-            }).join('') + '</div>';
-            det.innerHTML = html;
-        }
 
         // Neueste Lohnzettel eines Fahrers (lohn_letzte), fuer das Fahrer-Detail
         function fzLohnHtml(f) {

@@ -1,8 +1,9 @@
-const CACHE_NAME = 'hydralink-v11';
+const CACHE_NAME = 'hydralink-v12';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
   '/dashboard.html',
+  '/lohn.html',
   '/manifest.json',
   '/fahrer/',
   '/fahrer/manifest.json',

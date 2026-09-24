@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Hydralink - Löhne</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <meta name="theme-color" content="#FBFBFC">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Hydralink">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"></noscript>
+    <script>try { if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}</script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* Tokens wie dashboard.html (hell / [data-theme="dark"], localStorage 'theme') */
+        :root {
+            --bg:#FBFBFC; --surface:#FFFFFF; --surface-2:#F1F3F5; --surface-3:#E6E8EB;
+            --border:#E6E8EB; --border-strong:#CFD4DA;
+            --text:#101418; --text-mut:#6B7280; --text-dim:#B0B6BF;
+            --accent:#0B6B4F; --accent-ink:#FFFFFF;
+            --accent-faint:rgba(11,107,79,.08); --accent-line:rgba(11,107,79,.35);
+            --warn:#B45309; --err:#B42318; --info:#1D4ED8;
+            --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+            --sans:-apple-system,"Inter","Segoe UI",system-ui,sans-serif;
+            --nav-h:46px;
+        }
+        [data-theme="dark"] {
+            --bg:#0F1115; --surface:#15181D; --surface-2:#1A1E24; --surface-3:#20252C;
+            --border:#23272F; --border-strong:#323843;
+            --text:#EDEEF0; --text-mut:#989FA7; --text-dim:#5F666E;
+            --accent:#3ECF8E; --accent-ink:#062D1C;
+            --accent-faint:rgba(62,207,142,.08); --accent-line:rgba(62,207,142,.35);
+            --warn:#E5B454; --err:#F0555D; --info:#7AA2F7;
+        }
+        html, body { overflow-x: hidden; max-width: 100vw; }
+        body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; font-size: 13px; line-height: 1.4; }
+        .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+        .header { position: sticky; top: 0; z-index: 50; height: var(--nav-h); display: flex; align-items: center; gap: 12px; padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--border); }
+        .header h1 { font-size: 14px; font-weight: 800; letter-spacing: -.3px; white-space: nowrap; }
+        .header h1 .link { font-weight: 400; color: var(--text-mut); }
+        .header h1 .titel { font-weight: 600; }
+        .header .sp { flex: 1; }
+        .hbtn { background: var(--surface); border: 1px solid var(--border); border-radius: 7px; height: 28px; padding: 0 10px; font-size: 12px; color: var(--text-mut); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; text-decoration: none; white-space: nowrap; }
+        .hbtn:hover { background: var(--surface-2); color: var(--text); }
+        .hbtn svg { width: 14px; height: 14px; }
+        main { max-width: 1320px; margin: 0 auto; padding: 12px 20px 40px; }
+        /* Upload-Leiste */
+        .drop { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border: 1px dashed var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--text-mut); font-size: 12.5px; cursor: pointer; min-width: 0; }
+        .drop.over { border-color: var(--accent); background: var(--accent-faint); color: var(--text); }
+        .drop b { color: var(--text); font-weight: 600; }
+        .drop .info { margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-mut); font-weight: 600; margin: 18px 0 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        h2 .sp { flex: 1; }
+        /* Filter */
+        .toolbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 18px 0 6px; }
+        .toolbar h2 { margin: 0 6px 0 0; }
+        .toolbar .sp { flex: 1; }
+        select, .chip, .btn { height: 28px; border-radius: 7px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: 12px; font-family: inherit; }
+        select { padding: 0 6px; max-width: 100%; min-width: 0; }
+        .chip, .btn { padding: 0 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-weight: 500; }
+        .chip:hover, .btn:hover { background: var(--surface-2); }
+        .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+        .chip .cnt { font-family: var(--mono); font-size: 11px; opacity: .8; }
+        .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+        .btn:disabled { opacity: .45; cursor: default; }
+        /* Tabellen */
+        table.t { width: 100%; border-collapse: collapse; table-layout: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+        .t th { text-align: right; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-mut); font-weight: 600; padding: 7px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; }
+        .t td { height: 36px; padding: 4px 8px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 12.5px; color: var(--text); }
+        .t th.l, .t td.l { text-align: left; font-family: var(--sans); }
+        .t th:first-child, .t td:first-child { padding-left: 12px; }
+        .t th:last-child, .t td:last-child { padding-right: 12px; }
+        .t tr:last-child > td { border-bottom: none; }
+        .t tr.klick { cursor: pointer; }
+        .t tr.klick:hover > td { background: var(--surface-2); }
+        .t tr.offen > td { background: var(--surface-2); }
+        .t td small, .sub { color: var(--text-mut); font-size: 11px; font-family: var(--sans); }
+        .t td.mut { color: var(--text-mut); }
+        .t td.leer { text-align: center; color: var(--text-mut); font-family: var(--sans); height: 44px; }
+        .t tr.det > td { white-space: normal; text-align: left; font-family: var(--sans); background: var(--surface-2); padding: 8px 12px 12px; height: auto; }
+        .t .t { background: var(--surface); }
+        .zwei { display: block; overflow: hidden; text-overflow: ellipsis; line-height: 1.25; }
+        .ok { color: var(--accent); font-weight: 700; }
+        .err { color: var(--err); font-weight: 600; }
+        .warn { color: var(--warn); }
+        .info { color: var(--info); }
+        .lnk { background: none; border: none; padding: 0; font: inherit; color: var(--info); cursor: pointer; text-decoration: underline; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lnk.mut { color: var(--text-mut); }
+        .lnk.ok, .lnk.err { text-decoration: none; }
+        .st { font-family: var(--sans); font-size: 11.5px; }
+        #fFirma { max-width: 220px; }
+        .x { background: none; border: none; color: var(--text-mut); cursor: pointer; font-size: 14px; width: 24px; height: 24px; border-radius: 6px; }
+        .x:hover { background: var(--surface-3); color: var(--err); }
+        .pruef { list-style: none; font-size: 12px; }
+        .pruef li { display: flex; gap: 8px; padding: 1px 0; min-width: 0; }
+        .pruef li > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+        .pruef small { color: var(--text-mut); font-size: 11px; }
+        .zbox { display: flex; gap: 6px; align-items: center; justify-content: flex-end; min-width: 0; }
+        .zbox select { flex: 1 1 auto; min-width: 0; height: 26px; font-size: 12px; }
+        .zbox .btn { height: 26px; }
+        .kv { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--text-mut); margin-bottom: 8px; }
+        .kv b { color: var(--text); font-weight: 600; font-family: var(--mono); }
+        .leiste { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; font-size: 12px; }
+        .hinweis { font-size: 12px; color: var(--text-mut); padding: 8px 0; }
+        .toast { position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 80px); opacity: 0; transition: all .25s; background: var(--text); color: var(--bg); padding: 9px 14px; border-radius: 8px; font-size: 12.5px; z-index: 99; max-width: calc(100vw - 32px); }
+        .toast.show { transform: translate(-50%, 0); opacity: 1; }
+        @media (max-width: 768px) {
+            .header { padding: 0 12px; gap: 8px; }
+            main { padding: 10px 12px 32px; }
+            .drop .info { display: none; }
+            .t th:first-child, .t td:first-child { padding-left: 8px; }
+            .t th:last-child, .t td:last-child { padding-right: 8px; }
+            .t tr.det > td { padding: 8px; }
+            .zbox { justify-content: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1><span>HYDRA</span><span class="link">link</span> <span class="link">·</span> <span class="titel">Löhne</span></h1>
+        <div class="sp"></div>
+        <button class="hbtn" id="themeBtn" title="Hell / Dunkel" aria-label="Hell / Dunkel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+        <a class="hbtn" href="dashboard.html">← Dashboard</a>
+    </header>
+    <main id="main">
+        <input type="file" id="datei" accept=".pdf,application/pdf" multiple hidden>
+        <label class="drop" id="drop" for="datei"><span><b>PDFs hierher ziehen oder wählen</b> · Auszahlungsjournal + Lohnzettel, beliebig viele</span><span class="info" id="dropInfo"></span></label>
+
+        <section id="neuBox" hidden>
+            <h2>Zum Speichern <span class="sp"></span><button class="btn primary" id="alleSpeichern" disabled>Alle speichern (0)</button></h2>
+            <table class="t" id="neuTab"></table>
+        </section>
+
+        <div class="toolbar">
+            <h2>Läufe</h2>
+            <select id="fFirma" aria-label="Firma"><option value="">Alle Firmen</option></select>
+            <select id="fMonat" aria-label="Monat"><option value="">Alle Monate</option></select>
+            <button class="chip" id="fOhne">ohne Fahrer <span class="cnt" id="cntOhne"></span></button>
+        </div>
+        <div id="ohneLeiste"></div>
+        <table class="t" id="laufTab"><tbody><tr><td class="leer">Lade …</td></tr></tbody></table>
+    </main>
+    <div class="toast" id="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script>
+        /* Session-Guard wie dashboard.html */
+        (function () {
+            try {
+                const session = JSON.parse(localStorage.getItem('hydralink_session') || 'null');
+                if (!session || !session.timestamp || Date.now() - session.timestamp > 30 * 24 * 60 * 60 * 1000) {
+                    localStorage.removeItem('hydralink_session');
+                    window.location.replace('index.html');
+                    return;
+                }
+                session.timestamp = Date.now();
+                localStorage.setItem('hydralink_session', JSON.stringify(session));
+            } catch (e) { localStorage.removeItem('hydralink_session'); window.location.replace('index.html'); }
+        })();
+        function forceLogout() { localStorage.removeItem('hydralink_session'); window.location.replace('index.html'); }
+
+        const SUPABASE_URL = 'https://pkxcwfkfaaorwnbdmylg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBreGN3ZmtmYWFvcnduYmRteWxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3NTE1ODUsImV4cCI6MjA3OTMyNzU4NX0.xBDHKKXA9DFFwcTO18aDH_VHJr9BZyI__lv-L4Apryo';
+        let supabaseClient = null;
+        function getSupabase() { if (!supabaseClient) { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } return supabaseClient; }
+
+        function fmt(v) { if (v == null) return '-'; const n = parseFloat(v); if (isNaN(n)) return '-'; return (n < 0 ? '-' : '') + Math.abs(n).toLocaleString('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
+        function betrag(v) { return fmt(v).replace(/\s€$/, ''); }
+        function esc(s) { if (s == null) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+        const MOBIL = window.matchMedia('(max-width: 768px)');
+        function toast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg; t.classList.add('show');
+            clearTimeout(toast.h); toast.h = setTimeout(function () { t.classList.remove('show'); }, 4000);
+        }
+
+        /* Parser unveraendert aus dashboard.html uebernommen (Stand 2026-09-23). */
+        /* LOHN-PARSER START */
+        const LOHN_MONATE = { 'jänner': 1, 'januar': 1, 'februar': 2, 'feber': 2, 'märz': 3, 'april': 4, 'mai': 5, 'juni': 6,
+            'juli': 7, 'august': 8, 'september': 9, 'oktober': 10, 'november': 11, 'dezember': 12 };
+        const LOHN_BETRAG_RE = '-?\\d{1,3}(?:\\.\\d{3})*,\\d{2}';
+        function lohnBetrag(s) { return parseFloat(String(s).replace(/\./g, '').replace(',', '.')); }
+        function lohnRund(n) { return Math.round((parseFloat(n) || 0) * 100) / 100; }
+        // "August 2026" -> "2026-08-01"
+        function lohnMonat(txt) {
+            const m = /(Jänner|Januar|Februar|Feber|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\s+(\d{4})/i.exec(txt || '');
+            if (!m) return null;
+            const mm = LOHN_MONATE[m[1].toLowerCase()];
+            return m[2] + '-' + (mm < 10 ? '0' : '') + mm + '-01';
+        }
+        // pdf.js-Textitems einer Seite -> Zeilen (gleiche y-Position = eine Zeile, links nach rechts)
+        function lohnZeilen(items) {
+            const rows = [];
+            (items || []).forEach(function (it) {
+                if (!it || !it.str || !it.str.trim()) return;
+                const x = it.transform[4], y = it.transform[5];
+                let r = null;
+                for (let i = 0; i < rows.length; i++) { if (Math.abs(rows[i].y - y) < 2.5) { r = rows[i]; break; } }
+                if (!r) { r = { y: y, parts: [] }; rows.push(r); }
+                r.parts.push({ x: x, s: it.str });
+            });
+            rows.sort(function (a, b) { return b.y - a.y; });
+            return rows.map(function (r) {
+                return r.parts.sort(function (a, b) { return a.x - b.x; })
+                    .map(function (p) { return p.s.trim(); }).join(' ').replace(/\s+/g, ' ').trim();
+            });
+        }
+        // 'AJ' | 'LZ' | null - am Inhalt, nicht am Dateinamen
+        function lohnArt(textSeiten) {
+            const t = (textSeiten || []).map(function (z) { return z.join('\n'); }).join('\n');
+            if (/Auszahlungsjournal/.test(t)) return 'AJ';
+            if (/Lohn\s*\/\s*Gehaltsabrechnung/.test(t)) return 'LZ';
+            return null;
+        }
+        function lohnFirma(zeilen) {
+            for (let i = 0; i < zeilen.length; i++) {
+                const m = /^Firma\s*:\s*(\d+)\s+(.+)$/.exec(zeilen[i]);
+                if (m) return { nr: m[1], name: m[2].trim() };
+            }
+            return null;
+        }
+        function parseJournal(textSeiten) {
+            const r = { art: 'AJ', firma_nr: null, firma_name: null, monat: null, journal_datum: null, personen: [],
+                anzahl: null, summe: null, koerperschaften: [], gesamt_summe: null, fehler: [] };
+            const seiten = textSeiten || [];
+            const alle = [].concat.apply([], seiten);
+            const text = alle.join('\n');
+            const f = lohnFirma(alle);
+            if (f) { r.firma_nr = f.nr; r.firma_name = f.name; } else r.fehler.push('Journal: Firma nicht gefunden');
+            seiten.forEach(function (z, i) {
+                const fs = lohnFirma(z);
+                if (f && fs && fs.nr !== f.nr) r.fehler.push('Journal Seite ' + (i + 1) + ': andere Firma ' + fs.nr);
+            });
+            r.monat = lohnMonat(text);
+            if (!r.monat) r.fehler.push('Journal: Monat nicht gefunden');
+            for (let i = 0; i < alle.length; i++) {
+                const d = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(alle[i]);
+                if (d) { r.journal_datum = d[3] + '-' + d[2] + '-' + d[1]; break; }
+            }
+            let m = /Anzahl Dienstnehmer\s+(\d+)/.exec(text);
+            if (m) r.anzahl = parseInt(m[1], 10); else r.fehler.push('Journal: „Anzahl Dienstnehmer“ fehlt');
+            m = new RegExp('Summe Dienstnehmer\\s+(' + LOHN_BETRAG_RE + ')').exec(text);
+            if (m) r.summe = lohnBetrag(m[1]); else r.fehler.push('Journal: „Summe Dienstnehmer“ fehlt');
+            m = new RegExp('Gesamt-Summe\\s+(' + LOHN_BETRAG_RE + ')').exec(text);
+            if (m) r.gesamt_summe = lohnBetrag(m[1]);
+
+            const dnRe = new RegExp('^(\\d+)\\s+(.+?)\\s+(' + LOHN_BETRAG_RE + ')$');
+            const endRe = new RegExp('^(.+?)\\s+(' + LOHN_BETRAG_RE + ')$');
+            const postenRe = new RegExp('^([A-Za-zÄÖÜäöü]+)\\s*:\\s*(' + LOHN_BETRAG_RE + ')$');
+            // Zahlungsart beginnt beim ersten Token nach dem Komma, das Barzahlung, BIC oder IBAN ist
+            function nameOhneZahlung(mitte) {
+                const tok = mitte.split(' ');
+                let komma = -1;
+                for (let i = 0; i < tok.length; i++) { if (tok[i].indexOf(',') >= 0) { komma = i; break; } }
+                for (let i = komma + 1; i < tok.length; i++) {
+                    if (i === 0) continue;
+                    if (/^Barzahlung$/i.test(tok[i]) || /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(tok[i]) || /^[A-Z]{2}\d{2}/.test(tok[i])) {
+                        return { name: tok.slice(0, i).join(' '), zahlungsart: tok.slice(i).join(' ') };
+                    }
+                }
+                return { name: mitte, zahlungsart: '' };
+            }
+            let teil = '';
+            alle.forEach(function (z) {
+                if (/^Dienstnehmer$/.test(z)) { teil = 'dn'; return; }
+                if (/^Körperschaften$/.test(z)) { teil = 'ks'; return; }
+                if (/^Anzahl Dienstnehmer/.test(z)) { teil = ''; return; }
+                if (/^(Summe |Gesamt-Summe)/.test(z)) return;
+                if (teil === 'dn') {
+                    const x = dnRe.exec(z);
+                    if (!x) return;
+                    const nz = nameOhneZahlung(x[2]);
+                    r.personen.push({ ma_nr: parseInt(x[1], 10), name: nz.name, zahlungsart: nz.zahlungsart, betrag: lohnBetrag(x[3]) });
+                } else if (teil === 'ks') {
+                    const p = postenRe.exec(z);
+                    if (p) {
+                        const last = r.koerperschaften[r.koerperschaften.length - 1];
+                        if (last) last.posten[p[1]] = lohnBetrag(p[2]);
+                        return;
+                    }
+                    const k = endRe.exec(z);
+                    if (k && !/^Bezeichnung\b/.test(z)) r.koerperschaften.push({ bezeichnung: k[1].trim(), betrag: lohnBetrag(k[2]), posten: {} });
+                }
+            });
+            if (!r.personen.length) r.fehler.push('Journal: keine Dienstnehmer-Zeilen erkannt');
+            return r;
+        }
+        function parseLohnzettel(textSeiten) {
+            const r = { art: 'LZ', firma_nr: null, firma_name: null, monat: null, seiten: [], personen: [], fehler: [] };
+            const betragNurRe = new RegExp('^(' + LOHN_BETRAG_RE + ')$');
+            function wert(zeilen, wort) {
+                const re = new RegExp('^' + wort + '(?:\\s+(' + LOHN_BETRAG_RE + '))?$');
+                for (let i = 0; i < zeilen.length; i++) {
+                    const m = re.exec(zeilen[i]);
+                    if (!m) continue;
+                    if (m[1]) return lohnBetrag(m[1]);
+                    const n = betragNurRe.exec(zeilen[i + 1] || '');   // Betrag in der Folgezeile
+                    if (n) return lohnBetrag(n[1]);
+                }
+                return null;
+            }
+            (textSeiten || []).forEach(function (z, i) {
+                const nr = i + 1;
+                const f = lohnFirma(z);
+                const monat = lohnMonat((z.filter(function (l) { return /Gehaltsabrechnung/.test(l); })[0]) || '');
+                let pers = null;
+                for (let j = 0; j < z.length; j++) {
+                    const m = /^Person\s*:\s*(\d+)\s*\(\s*(\d+)\s*\)\s*(.+?)(?:\s+SV-Nr\..*)?$/.exec(z[j]);
+                    if (m) { pers = { ma_nr: parseInt(m[1], 10), dv: parseInt(m[2], 10), name: m[3].trim() }; break; }
+                }
+                if (!pers) { r.fehler.push('Lohnzettel Seite ' + nr + ': keine Person erkannt'); return; }
+                if (f) {
+                    if (!r.firma_nr) { r.firma_nr = f.nr; r.firma_name = f.name; }
+                    else if (f.nr !== r.firma_nr) r.fehler.push('Lohnzettel Seite ' + nr + ': andere Firma ' + f.nr);
+                } else r.fehler.push('Lohnzettel Seite ' + nr + ': Firma fehlt');
+                if (monat) {
+                    if (!r.monat) r.monat = monat;
+                    else if (monat !== r.monat) r.fehler.push('Lohnzettel Seite ' + nr + ': anderer Monat');
+                } else r.fehler.push('Lohnzettel Seite ' + nr + ': Monat fehlt');
+                const s = { index: i, ma_nr: pers.ma_nr, dv: pers.dv, name: pers.name,
+                    brutto: wert(z, 'Brutto'), netto: wert(z, 'Netto'), auszahlung: wert(z, 'Auszahlung') };
+                if (s.auszahlung == null) r.fehler.push('Lohnzettel Seite ' + nr + ' (Ma-Nr ' + pers.ma_nr + '): Auszahlung fehlt');
+                r.seiten.push(s);
+            });
+            const map = {};
+            r.seiten.forEach(function (s) {
+                let p = map[s.ma_nr];
+                if (!p) { p = map[s.ma_nr] = { ma_nr: s.ma_nr, name: s.name, seiten: [], brutto: 0, netto: 0, auszahlung: 0 }; r.personen.push(p); }
+                p.seiten.push(s.index);
+                p.brutto = lohnRund(p.brutto + (s.brutto || 0));
+                p.netto = lohnRund(p.netto + (s.netto || 0));
+                p.auszahlung = lohnRund(p.auszahlung + (s.auszahlung || 0));
+            });
+            if (!r.personen.length) r.fehler.push('Lohnzettel: keine Seite erkannt');
+            return r;
+        }
+        // Alle Pruefungen aus Spec 2.3; jede muss ok sein, sonst kein Speichern
+        function lohnPruefen(aj, lz) {
+            const out = [];
+            const ajMap = {};
+            aj.personen.forEach(function (p) { ajMap[p.ma_nr] = lohnRund((ajMap[p.ma_nr] || 0) + p.betrag); });
+            const lzMap = {};
+            lz.personen.forEach(function (p) { lzMap[p.ma_nr] = p.auszahlung; });
+            const ajNr = Object.keys(ajMap), lzNr = Object.keys(lzMap);
+            const fehlt = function (a, b) { return a.filter(function (k) { return !Object.prototype.hasOwnProperty.call(b, k); }); };
+            const nurLz = fehlt(lzNr, ajMap), nurAj = fehlt(ajNr, lzMap);
+            const lzSumme = lohnRund(lz.personen.reduce(function (s, p) { return s + p.auszahlung; }, 0));
+            const abw = lzNr.filter(function (k) { return ajMap[k] != null && Math.abs(ajMap[k] - lzMap[k]) > 0.05; });
+            const fehler = aj.fehler.concat(lz.fehler);
+            out.push({ text: 'Beide Dateien vollständig gelesen', ok: !fehler.length, detail: fehler.slice(0, 5).join(' · ') + (fehler.length > 5 ? ' …' : '') });
+            out.push({ text: 'Gleiche Firma', ok: !!aj.firma_nr && aj.firma_nr === lz.firma_nr,
+                detail: 'AJ ' + (aj.firma_nr || '?') + ' · LZ ' + (lz.firma_nr || '?') });
+            out.push({ text: 'Gleicher Monat', ok: !!aj.monat && aj.monat === lz.monat,
+                detail: 'AJ ' + (aj.monat ? lohnMonatText(aj.monat) : '?') + ' · LZ ' + (lz.monat ? lohnMonatText(lz.monat) : '?') });
+            out.push({ text: 'Ma-Nr gleich in AJ und LZ', ok: lzNr.length > 0 && !nurLz.length && !nurAj.length,
+                detail: (nurLz.length ? 'nur im LZ: ' + nurLz.join(', ') : '') + (nurLz.length && nurAj.length ? ' · ' : '') + (nurAj.length ? 'nur im AJ: ' + nurAj.join(', ') : '') });
+            out.push({ text: 'Beträge je Ma-Nr (LZ = AJ)', ok: lzNr.length > 0 && !abw.length,
+                detail: abw.map(function (k) { return 'Nr. ' + k + ': LZ ' + fmt(lzMap[k]) + ' / AJ ' + fmt(ajMap[k]); }).join(' · ') });
+            out.push({ text: 'Summe Auszahlung = Summe Dienstnehmer', ok: aj.summe != null && Math.abs(lzSumme - aj.summe) <= 0.05,
+                detail: 'LZ ' + fmt(lzSumme) + ' · AJ ' + fmt(aj.summe) });
+            out.push({ text: 'Anzahl Dienstnehmer', ok: aj.anzahl != null && aj.anzahl === lzNr.length && aj.anzahl === ajNr.length,
+                detail: 'AJ ' + (aj.anzahl == null ? '?' : aj.anzahl) + ' · LZ ' + lzNr.length + ' Ma-Nr (' + lz.seiten.length + ' Seiten)' });
+            return out;
+        }
+        function lohnMonatText(monat) { return monat ? monat.slice(5, 7) + '/' + monat.slice(0, 4) : '–'; }
+        function lohnMonatKurz(monat) { return monat ? monat.slice(5, 7) + '/' + monat.slice(2, 4) : '–'; }
+        // Nutzlast fuer lohn_lauf_speichern (Kontrakt in der Migration)
+        function lohnLaufDaten(aj, lz) {
+            const ym = aj.monat.slice(0, 7), basis = aj.firma_nr + '/' + ym + '/';
+            const ajMap = {};
+            aj.personen.forEach(function (p) { ajMap[p.ma_nr] = lohnRund((ajMap[p.ma_nr] || 0) + p.betrag); });
+            return {
+                firma_nr: aj.firma_nr, firma_name: aj.firma_name, monat: aj.monat, journal_datum: aj.journal_datum,
+                anzahl_dienstnehmer: aj.anzahl, summe_dienstnehmer: aj.summe, koerperschaften: aj.koerperschaften,
+                gesamt_summe: aj.gesamt_summe, aj_pfad: basis + 'journal.pdf',
+                zettel: lz.personen.map(function (p) {
+                    return { ma_nr: p.ma_nr, name: p.name, seiten: p.seiten.length, brutto: p.brutto, netto: p.netto,
+                        auszahlung: p.auszahlung, journal_betrag: ajMap[p.ma_nr] == null ? null : ajMap[p.ma_nr], pfad: basis + p.ma_nr + '.pdf' };
+                })
+            };
+        }
+        // LZ in ein PDF je Ma-Nr schneiden (alle DV-Seiten einer Person) -> [{ma_nr, bytes}]
+        async function lohnSchneiden(PDFLib, lzBytes, personen) {
+            const src = await PDFLib.PDFDocument.load(lzBytes);
+            const out = [];
+            for (let i = 0; i < personen.length; i++) {
+                const doc = await PDFLib.PDFDocument.create();
+                const pages = await doc.copyPages(src, personen[i].seiten);
+                pages.forEach(function (p) { doc.addPage(p); });
+                out.push({ ma_nr: personen[i].ma_nr, bytes: await doc.save() });
+            }
+            return out;
+        }
+        /* LOHN-PARSER END */
+
+        let LOHN_LIBS = null;
+        const LOHN_PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/legacy/build/';
+        // pdf.js + pdf-lib erst laden, wenn eine Datei kommt
+        function lohnLibs() {
+            if (!LOHN_LIBS) {
+                LOHN_LIBS = Promise.all([
+                    import(LOHN_PDFJS + 'pdf.min.mjs').then(function (m) { m.GlobalWorkerOptions.workerSrc = LOHN_PDFJS + 'pdf.worker.min.mjs'; return m; }),
+                    new Promise(function (res, rej) {
+                        if (window.PDFLib) { res(window.PDFLib); return; }
+                        const s = document.createElement('script');
+                        s.src = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+                        s.onload = function () { res(window.PDFLib); };
+                        s.onerror = function () { rej(new Error('pdf-lib konnte nicht geladen werden')); };
+                        document.head.appendChild(s);
+                    })
+                ]).then(function (x) { return { pdfjs: x[0], PDFLib: x[1] }; })
+                  .catch(function (e) { LOHN_LIBS = null; throw e; });
+            }
+            return LOHN_LIBS;
+        }
+        async function lohnTextSeiten(pdfjs, bytes) {
+            const doc = await pdfjs.getDocument({ data: bytes.slice(), verbosity: 0 }).promise;
+            const out = [];
+            for (let i = 1; i <= doc.numPages; i++) {
+                const p = await doc.getPage(i);
+                out.push(lohnZeilen((await p.getTextContent()).items));
+            }
+            try { doc.destroy(); } catch (e) {}
+            return out;
+        }
+        function lohnFehlerText(e) { return (e && (e.message || e.error_description || e.error)) || String(e); }
+        function lohnAbgaben(l) {
+            const ks = Array.isArray(l.koerperschaften) ? l.koerperschaften : [];
+            if (ks.length) return ks.reduce(function (s, k) { return s + (parseFloat(k.betrag) || 0); }, 0);
+            if (l.gesamt_summe != null) return (parseFloat(l.gesamt_summe) || 0) - (parseFloat(l.summe_dienstnehmer) || 0);
+            return null;
+        }
+        function tagMonat(ts) { const d = new Date(ts); return isNaN(d) ? '?' : ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + '.'; }
+        // Signed URL (60 s). Fenster sofort oeffnen, sonst blockt iOS das Popup nach dem await.
+        async function lohnPdfOeffnen(pfad) {
+            const w = window.open('', '_blank');
+            try {
+                const { data, error } = await getSupabase().storage.from('lohnzettel').createSignedUrl(pfad, 60);
+                if (error) throw error;
+                if (w) w.location.href = data.signedUrl; else window.location.href = data.signedUrl;
+            } catch (e) {
+                if (w) w.close();
+                alert('PDF konnte nicht geöffnet werden: ' + lohnFehlerText(e));
+            }
+        }
+
+        /* === Zustand === */
+        let DATEIEN = [];          // {id, name, size, status:'lese'|'ok'|'fehler', art, p, bytes, fehler}
+        let dateiNr = 0, leseLaeuft = false;
+        const SPEICHER = {};       // key -> {st:'lauf'|'ok'|'err', text}
+        const NEU_OFFEN = {};      // key -> true (Pruefungen aufgeklappt)
+        let speichertGerade = false;
+        let LAEUFE = [], LAEUFE_FEHLER = '';
+        let FAHRER = [];           // aktive Fahrer {fahrer_id, name, notion_fahrer_id}
+        const ZETTEL = {};         // lauf_id -> {rows, fehler} | 'lade'
+        const LAUF_OFFEN = {};     // lauf_id -> true
+        const Z_OFFEN = {};        // zettel id -> true (nur Handy)
+        let OHNE = null, OHNE_FEHLER = '';
+        let filter = { firma: '', monat: '', ohne: false };
+        let busy = false;
+
+        /* === Upload: Dateien sammeln, lesen, zu Paaren gruppieren === */
+        function dateienHinzu(files) {
+            files.forEach(function (f) {
+                if (DATEIEN.some(function (d) { return d.name === f.name && d.size === f.size; })) return;
+                DATEIEN.push({ id: ++dateiNr, name: f.name, size: f.size, status: 'lese', file: f });
+            });
+            renderNeu();
+            leseAlle();
+        }
+        async function leseAlle() {
+            if (leseLaeuft) return;
+            leseLaeuft = true;
+            try {
+                let d;
+                while ((d = DATEIEN.filter(function (x) { return x.status === 'lese'; })[0])) {
+                    try {
+                        const libs = await lohnLibs();
+                        const bytes = new Uint8Array(await d.file.arrayBuffer());
+                        const seiten = await lohnTextSeiten(libs.pdfjs, bytes);
+                        const art = lohnArt(seiten);
+                        if (!art) throw new Error('weder Auszahlungsjournal noch Lohnzettel');
+                        d.art = art; d.bytes = bytes;
+                        d.p = art === 'AJ' ? parseJournal(seiten) : parseLohnzettel(seiten);
+                        d.status = 'ok';
+                    } catch (e) { d.status = 'fehler'; d.fehler = lohnFehlerText(e); }
+                    delete d.file;
+                    renderNeu();
+                }
+            } finally { leseLaeuft = false; }
+        }
+        // Gelesene Dateien -> Paare je Firma + Monat (reine Funktion)
+        function lohnPaare(dateien) {
+            const map = {}, paare = [], lose = [];
+            dateien.forEach(function (d) {
+                if (d.status !== 'ok') { lose.push(d); return; }
+                const key = (d.p.firma_nr || '?') + '|' + (d.p.monat || '?');
+                let g = map[key];
+                if (!g) { g = map[key] = { key: key, firma_nr: d.p.firma_nr, firma_name: d.p.firma_name, monat: d.p.monat, aj: [], lz: [] }; paare.push(g); }
+                if (!g.firma_name && d.p.firma_name) g.firma_name = d.p.firma_name;
+                g[d.art === 'AJ' ? 'aj' : 'lz'].push(d);
+            });
+            paare.forEach(function (g) {
+                g.fehlt = !g.aj.length ? 'AJ fehlt' : !g.lz.length ? 'LZ fehlt'
+                    : g.aj.length > 1 ? g.aj.length + ' AJ – eins entfernen' : g.lz.length > 1 ? g.lz.length + ' LZ – eins entfernen' : '';
+                g.pruef = g.fehlt ? [] : lohnPruefen(g.aj[0].p, g.lz[0].p);
+                g.nFehler = g.pruef.filter(function (p) { return !p.ok; }).length;
+                g.ok = !g.fehlt && !g.nFehler && !!g.firma_nr && !!g.monat;
+                g.personen = g.lz.length ? g.lz[0].p.personen.length : (g.aj.length ? g.aj[0].p.personen.length : 0);
+                g.summe = g.aj.length ? g.aj[0].p.summe : null;
+            });
+            paare.sort(function (a, b) { return String(a.firma_nr).localeCompare(String(b.firma_nr)) || String(a.monat).localeCompare(String(b.monat)); });
+            return { paare: paare, lose: lose };
+        }
+        function speicherbar(g) { return g.ok && !(SPEICHER[g.key] && SPEICHER[g.key].st === 'ok'); }
+
+        function renderNeu() {
+            const box = document.getElementById('neuBox');
+            const info = document.getElementById('dropInfo');
+            const lesend = DATEIEN.filter(function (d) { return d.status === 'lese'; }).length;
+            info.textContent = !DATEIEN.length ? '' : DATEIEN.length + ' Datei' + (DATEIEN.length === 1 ? '' : 'en') + (lesend ? ' · lese ' + lesend + ' …' : '');
+            box.hidden = !DATEIEN.length;
+            if (!DATEIEN.length) return;
+            const m = MOBIL.matches, sp = m ? 3 : 7;
+            const r = lohnPaare(DATEIEN);
+            const n = r.paare.filter(speicherbar).length;
+            const btn = document.getElementById('alleSpeichern');
+            btn.textContent = 'Alle speichern (' + n + ')';
+            btn.disabled = !n || speichertGerade || lesend > 0;
+            let h = '<thead><tr>' + (m
+                ? '<th class="l">Firma · Monat</th><th style="width:96px">Summe</th><th style="width:96px">Prüfung</th>'
+                : '<th class="l">Firma</th><th style="width:84px">Monat</th><th style="width:80px">Personen</th><th style="width:110px">Summe</th>' +
+                  '<th style="width:80px">Prüfung</th><th class="l" style="width:34%">Hinweis</th><th style="width:48px"></th>') + '</tr></thead><tbody>';
+            r.paare.forEach(function (g) {
+                const sv = SPEICHER[g.key];
+                const alt = LAEUFE.filter(function (l) { return l.firma_nr === g.firma_nr && String(l.monat).slice(0, 10) === g.monat; })[0];
+                const pr = g.fehlt ? '<span class="err st">' + esc(g.fehlt) + '</span>'
+                    : '<button class="lnk ' + (g.nFehler ? 'err' : 'ok') + '" data-pruef="' + esc(g.key) + '">' + (g.nFehler ? '✗ ' + g.nFehler : '✓') + '</button>';
+                let hin = alt ? '<span class="warn">ersetzt Stand vom ' + tagMonat(alt.hochgeladen_am) + '</span>' : '<span class="sub">neu</span>';
+                if (sv) hin = sv.st === 'ok' ? '<span class="ok">' + esc(sv.text) + '</span>' : sv.st === 'err' ? '<span class="err" title="' + esc(sv.text) + '">' + esc(sv.text) + '</span>' : '<span class="info">' + esc(sv.text) + '</span>';
+                const firma = esc(g.firma_nr || '?') + (g.firma_name ? ' <small>' + esc(g.firma_name) + '</small>' : '');
+                const x = '<button class="x" data-weg="' + esc(g.key) + '" title="Entfernen" aria-label="Entfernen">✕</button>';
+                if (m) {
+                    h += '<tr class="klick' + (NEU_OFFEN[g.key] ? ' offen' : '') + '" data-neu="' + esc(g.key) + '"><td class="l"><span class="zwei">' + firma + '</span><small>' + lohnMonatText(g.monat) + '</small></td>' +
+                        '<td>' + (g.summe == null ? '–' : betrag(g.summe)) + '</td><td>' + (sv && sv.st !== 'lauf' ? hin : pr) + '</td></tr>';
+                } else {
+                    h += '<tr' + (NEU_OFFEN[g.key] ? ' class="offen"' : '') + '><td class="l">' + firma + '</td><td>' + lohnMonatText(g.monat) + '</td><td>' + (g.personen || '–') + '</td>' +
+                        '<td>' + (g.summe == null ? '–' : betrag(g.summe)) + '</td><td>' + pr + '</td><td class="l">' + hin + '</td><td>' + x + '</td></tr>';
+                }
+                if (NEU_OFFEN[g.key]) {
+                    h += '<tr class="det"><td colspan="' + sp + '">' +
+                        (m ? '<div class="kv"><span>Personen <b>' + (g.personen || '–') + '</b></span><span>' + hin + '</span></div>' : '') +
+                        (g.fehlt ? '<div class="hinweis">' + esc(g.fehlt) + ' – Datei dazu wählen.</div>' :
+                        '<ul class="pruef">' + g.pruef.map(function (p) {
+                            return '<li><span class="' + (p.ok ? 'ok' : 'err') + '">' + (p.ok ? '✓' : '✗') + '</span><span>' + esc(p.text) +
+                                (p.detail ? ' <small>' + esc(p.detail) + '</small>' : '') + '</span></li>';
+                        }).join('') + '</ul>') +
+                        '<div class="sub" style="margin-top:6px">' + g.aj.concat(g.lz).map(function (d) { return esc(d.art + ': ' + d.name); }).join(' · ') + '</div>' +
+                        (m ? '<div style="margin-top:8px"><button class="btn" data-weg="' + esc(g.key) + '">Entfernen</button></div>' : '') +
+                    '</td></tr>';
+                }
+            });
+            r.lose.forEach(function (d) {
+                const txt = d.status === 'lese' ? '<span class="info">lese …</span>' : '<span class="err">' + esc(d.fehler || 'Fehler') + '</span>';
+                const x = '<button class="x" data-wegdatei="' + d.id + '" title="Entfernen" aria-label="Entfernen">✕</button>';
+                h += m ? '<tr><td class="l" colspan="2"><span class="zwei">' + esc(d.name) + '</span><small class="zwei">' + txt + '</small></td><td>' + x + '</td></tr>'
+                       : '<tr><td class="l" colspan="5">' + esc(d.name) + '</td><td class="l">' + txt + '</td><td>' + x + '</td></tr>';
+            });
+            document.getElementById('neuTab').innerHTML = h + '</tbody>';
+        }
+
+        async function paarSpeichern(g, libs) {
+            const sb = getSupabase();
+            const aj = g.aj[0], lz = g.lz[0];
+            const lauf = lohnLaufDaten(aj.p, lz.p);
+            const st = function (s, t) { SPEICHER[g.key] = { st: s, text: t }; renderNeu(); };
+            try {
+                st('lauf', 'schneide …');
+                const teile = await lohnSchneiden(libs.PDFLib, lz.bytes, lz.p.personen);
+                const uploads = [{ pfad: lauf.aj_pfad, bytes: aj.bytes }].concat(teile.map(function (t) {
+                    return { pfad: lauf.zettel.filter(function (z) { return z.ma_nr === t.ma_nr; })[0].pfad, bytes: t.bytes };
+                }));
+                for (let i = 0; i < uploads.length; i++) {
+                    st('lauf', 'lade hoch ' + (i + 1) + '/' + uploads.length + ' …');
+                    const blob = new Blob([uploads[i].bytes], { type: 'application/pdf' });
+                    const { error } = await sb.storage.from('lohnzettel').upload(uploads[i].pfad, blob, { upsert: true, contentType: 'application/pdf' });
+                    if (error) throw new Error('Hochladen fehlgeschlagen (' + uploads[i].pfad.split('/').pop() + '): ' + lohnFehlerText(error) + ' – nicht gespeichert');
+                }
+                st('lauf', 'speichere …');
+                const { data, error } = await sb.rpc('lohn_lauf_speichern', { p_lauf: lauf });
+                if (error) throw new Error('Speichern fehlgeschlagen: ' + lohnFehlerText(error));
+                const alt = (data && data.alte_pfade) || [];
+                let hinweis = '';
+                if (alt.length) {
+                    st('lauf', 'räume ' + alt.length + ' alte Datei' + (alt.length === 1 ? '' : 'en') + ' auf …');
+                    const rm = await sb.storage.from('lohnzettel').remove(alt);
+                    if (rm.error) hinweis = ' (alte Dateien nicht gelöscht: ' + lohnFehlerText(rm.error) + ')';
+                }
+                st('ok', '✓ gespeichert' + hinweis);
+                return true;
+            } catch (e) { st('err', lohnFehlerText(e)); return false; }
+        }
+        async function alleSpeichern() {
+            if (speichertGerade) return;
+            const paare = lohnPaare(DATEIEN).paare.filter(speicherbar);
+            if (!paare.length) return;
+            speichertGerade = true; renderNeu();
+            let ok = 0;
+            try {
+                const libs = await lohnLibs();
+                for (let i = 0; i < paare.length; i++) { if (await paarSpeichern(paare[i], libs)) ok++; }
+            } catch (e) { alert('Bibliotheken nicht geladen: ' + lohnFehlerText(e)); }
+            finally {
+                speichertGerade = false;
+                toast(ok + ' von ' + paare.length + ' gespeichert');
+                await ladeAlles();
+                renderNeu();
+            }
+        }
+
+        /* === Uebersicht === */
+        async function ladeLaeufe() {
+            const res = await getSupabase().from('lohn_laeufe_uebersicht').select('*').order('monat', { ascending: false }).order('firma_name')
+                .then(function (r) { return r; }, function (e) { return { error: e }; });
+            LAEUFE_FEHLER = res.error ? lohnFehlerText(res.error) : '';
+            LAEUFE = res.error ? [] : (res.data || []);
+        }
+        async function ladeFahrerListe() {
+            const res = await getSupabase().from('fahrer_uebersicht').select('fahrer_id,name,aktiv,notion_fahrer_id').eq('aktiv', true)
+                .then(function (r) { return r; }, function (e) { return { error: e }; });
+            FAHRER = res.error ? [] : (res.data || []).slice().sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'de'); });
+        }
+        async function ladeZettel(laufId) {
+            const res = await getSupabase().from('lohn_zettel_uebersicht').select('*').eq('lauf_id', laufId).order('name')
+                .then(function (r) { return r; }, function (e) { return { error: e }; });
+            ZETTEL[laufId] = { rows: res.error ? [] : (res.data || []), fehler: res.error ? lohnFehlerText(res.error) : '' };
+        }
+        async function ladeOhne() {
+            const res = await getSupabase().from('lohn_zettel_uebersicht').select('*').is('fahrer_id', null)
+                .order('monat', { ascending: false }).order('firma_name').order('name')
+                .then(function (r) { return r; }, function (e) { return { error: e }; });
+            OHNE_FEHLER = res.error ? lohnFehlerText(res.error) : '';
+            OHNE = res.error ? [] : (res.data || []);
+        }
+        // Nach jeder Aenderung: Laeufe, offene Laeufe und ggf. "ohne Fahrer" neu
+        async function ladeAlles() {
+            await ladeLaeufe();
+            const offen = Object.keys(LAUF_OFFEN).filter(function (id) { return LAEUFE.some(function (l) { return l.id === id; }); });
+            Object.keys(LAUF_OFFEN).forEach(function (id) { if (offen.indexOf(id) < 0) delete LAUF_OFFEN[id]; });
+            await Promise.all(offen.map(ladeZettel).concat(filter.ohne ? [ladeOhne()] : []));
+            renderFilter(); renderLaeufe();
+        }
+
+        function fahrerName(id) { const f = FAHRER.filter(function (x) { return x.fahrer_id === id; })[0]; return f ? f.name : 'Fahrer ' + id; }
+        function passt(x) { return (!filter.firma || x.firma_nr === filter.firma) && (!filter.monat || String(x.monat).slice(0, 7) === filter.monat); }
+
+        function renderFilter() {
+            const fs = document.getElementById('fFirma'), ms = document.getElementById('fMonat');
+            const firmen = {}, monate = {};
+            LAEUFE.forEach(function (l) { firmen[l.firma_nr] = l.firma_name; monate[String(l.monat).slice(0, 7)] = 1; });
+            if (filter.firma && !firmen[filter.firma]) filter.firma = '';
+            if (filter.monat && !monate[filter.monat]) filter.monat = '';
+            fs.innerHTML = '<option value="">Alle Firmen</option>' + Object.keys(firmen).sort().map(function (k) {
+                return '<option value="' + esc(k) + '"' + (k === filter.firma ? ' selected' : '') + '>' + esc(k + ' ' + (firmen[k] || '')) + '</option>';
+            }).join('');
+            ms.innerHTML = '<option value="">Alle Monate</option>' + Object.keys(monate).sort().reverse().map(function (k) {
+                return '<option value="' + k + '"' + (k === filter.monat ? ' selected' : '') + '>' + lohnMonatText(k + '-01') + '</option>';
+            }).join('');
+            const ohne = LAEUFE.filter(passt).reduce(function (s, l) { return s + (l.ohne_fahrer || 0); }, 0);
+            document.getElementById('cntOhne').textContent = LAEUFE_FEHLER ? '' : ohne;
+            document.getElementById('fOhne').classList.toggle('active', filter.ohne);
+        }
+
+        // Fahrer-Zelle: Name + "lösen" oder Auswahl mit Vorschlag + "zuordnen"
+        function fahrerHtml(z) {
+            const d = ' data-firma="' + esc(z.firma_nr) + '" data-manr="' + z.ma_nr + '"', dis = busy ? ' disabled' : '';
+            if (z.fahrer_id != null) {
+                return '<div class="zbox"><span class="zwei" style="font-family:var(--sans)">' + esc(z.fahrer_name || fahrerName(z.fahrer_id)) + '</span>' +
+                    '<button class="lnk mut" data-loesen="1"' + d + dis + '>lösen</button></div>';
+            }
+            const vorOk = FAHRER.some(function (f) { return f.fahrer_id === z.vorschlag_fahrer_id && f.notion_fahrer_id != null; });
+            return '<div class="zbox"><select data-fsel="1" aria-label="Fahrer wählen">' + (!vorOk ? '<option value="">Fahrer wählen …</option>' : '') +
+                FAHRER.map(function (f) {
+                    const ohneNr = f.notion_fahrer_id == null;
+                    return '<option value="' + f.fahrer_id + '"' + (vorOk && f.fahrer_id === z.vorschlag_fahrer_id ? ' selected' : '') + (ohneNr ? ' disabled' : '') + '>' +
+                        esc(f.name) + (ohneNr ? ' (ohne Fahrer-ID)' : '') + '</option>';
+                }).join('') + '</select><button class="btn" data-zuordnen="1"' + d + dis + '>zuordnen</button></div>';
+        }
+        function statusHtml(z) {
+            if (z.fahrer_id != null) return '<span class="ok">✓</span>';
+            return z.vorschlag_fahrer_id != null ? '<span class="info st">Vorschlag</span>' : '<span class="warn st">offen</span>';
+        }
+        // Personen-Tabelle (Lauf aufgeklappt oder "ohne Fahrer")
+        function zettelTabelle(rows, mitLauf) {
+            const m = MOBIL.matches;
+            let h = '<table class="t"><thead><tr>' + (m
+                ? '<th class="l">Name</th><th style="width:88px">Betrag</th><th style="width:78px">Fahrer</th>'
+                : (mitLauf ? '<th class="l" style="width:22%">Firma</th><th style="width:76px">Monat</th>' : '') +
+                  '<th style="width:60px">Ma-Nr</th><th class="l">Name</th><th style="width:100px">Betrag</th><th style="width:' + (mitLauf ? 30 : 38) + '%">Fahrer</th>') +
+                '</tr></thead><tbody>';
+            rows.forEach(function (z) {
+                const name = '<button class="lnk" data-pdf="' + esc(z.pfad) + '" title="PDF öffnen">' + esc(z.name) + '</button>' + (z.seiten > 1 ? ' <small>(' + z.seiten + ' S.)</small>' : '');
+                if (m) {
+                    h += '<tr class="klick' + (Z_OFFEN[z.id] ? ' offen' : '') + '" data-zoffen="' + esc(z.id) + '"><td class="l"><span class="zwei">' + name + '</span>' +
+                        (mitLauf ? '<small>' + esc(z.firma_name) + ' · ' + lohnMonatText(String(z.monat)) + '</small>' : '') + '</td>' +
+                        '<td>' + betrag(z.auszahlung) + '</td><td>' + statusHtml(z) + '</td></tr>';
+                    if (Z_OFFEN[z.id]) h += '<tr class="det"><td colspan="3"><div class="kv"><span>Ma-Nr <b>' + z.ma_nr + '</b></span>' +
+                        (mitLauf ? '' : '<span>Brutto <b>' + betrag(z.brutto) + '</b></span>') + '</div>' + fahrerHtml(z) + '</td></tr>';
+                } else {
+                    h += '<tr>' + (mitLauf ? '<td class="l">' + esc(z.firma_name) + '</td><td>' + lohnMonatText(String(z.monat)) + '</td>' : '') +
+                        '<td class="mut">' + z.ma_nr + '</td><td class="l">' + name + '</td><td>' + betrag(z.auszahlung) + '</td><td>' + fahrerHtml(z) + '</td></tr>';
+                }
+            });
+            return h + '</tbody></table>';
+        }
+        function vorschlagKnopf(rows, quelle) {
+            // Personen zaehlen (Firma + Ma-Nr), nicht Zettel - wie im Bestaetigungsdialog
+            const n = new Set(rows.filter(function (z) { return z.fahrer_id == null && z.vorschlag_fahrer_id != null; })
+                .map(function (z) { return z.firma_nr + '|' + z.ma_nr; })).size;
+            return '<button class="btn" data-alle="' + esc(quelle) + '"' + (!n || busy ? ' disabled' : '') + '>Alle Vorschläge zuordnen (' + n + ')</button>';
+        }
+
+        function renderLaeufe() {
+            const tab = document.getElementById('laufTab'), leiste = document.getElementById('ohneLeiste');
+            const m = MOBIL.matches, sp = m ? 3 : 7;
+            if (filter.ohne) {
+                const rows = (OHNE || []).filter(passt);
+                leiste.innerHTML = '<div class="leiste">' + vorschlagKnopf(rows, 'ohne') + '<span class="sub">' + rows.length + ' Zettel ohne Fahrer</span></div>';
+                tab.innerHTML = OHNE == null ? '<tbody><tr><td class="leer">Lade …</td></tr></tbody>'
+                    : OHNE_FEHLER ? '<tbody><tr><td class="leer">Fehler: ' + esc(OHNE_FEHLER) + '</td></tr></tbody>'
+                    : !rows.length ? '<tbody><tr><td class="leer">Alle Zettel sind einem Fahrer zugeordnet.</td></tr></tbody>'
+                    : zettelTabelle(rows, true).replace(/^<table class="t">|<\/table>$/g, '');
+                return;
+            }
+            leiste.innerHTML = '';
+            if (LAEUFE_FEHLER) { tab.innerHTML = '<tbody><tr><td class="leer">Noch nicht verfügbar: ' + esc(LAEUFE_FEHLER) + '</td></tr></tbody>'; return; }
+            const rows = LAEUFE.filter(passt);
+            let h = '<thead><tr>' + (m
+                ? '<th class="l">Firma · Monat</th><th style="width:96px">Auszahlung</th><th style="width:78px">Fahrer</th>'
+                : '<th class="l">Firma</th><th style="width:84px">Monat</th><th style="width:80px">Personen</th><th style="width:120px">Auszahlung</th>' +
+                  '<th style="width:110px">Abgaben</th><th style="width:100px">ohne Fahrer</th><th style="width:80px"></th>') + '</tr></thead><tbody>';
+            if (!rows.length) h += '<tr><td class="leer" colspan="' + sp + '">' + (LAEUFE.length ? 'Keine Läufe für diesen Filter.' : 'Noch keine Lohnläufe hochgeladen.') + '</td></tr>';
+            rows.forEach(function (l) {
+                const offen = !!LAUF_OFFEN[l.id], abg = lohnAbgaben(l);
+                const ohne = l.ohne_fahrer ? '<span class="warn">' + l.ohne_fahrer + '</span>' : '<span class="ok">✓</span>';
+                const journal = '<button class="lnk" data-pdf="' + esc(l.aj_pfad) + '">Journal</button>';
+                h += '<tr class="klick' + (offen ? ' offen' : '') + '" data-lauf="' + esc(l.id) + '">' + (m
+                    ? '<td class="l"><span class="zwei">' + esc(l.firma_name) + '</span><small>' + lohnMonatText(String(l.monat)) + ' · ' + (l.anzahl_dienstnehmer || 0) + ' Pers.</small></td>' +
+                      '<td>' + betrag(l.summe_dienstnehmer) + '</td><td>' + ohne + '</td>'
+                    : '<td class="l">' + esc(l.firma_nr) + ' <small>' + esc(l.firma_name) + '</small></td><td>' + lohnMonatText(String(l.monat)) + '</td>' +
+                      '<td>' + (l.anzahl_dienstnehmer || 0) + '</td><td>' + betrag(l.summe_dienstnehmer) + '</td><td>' + (abg == null ? '–' : betrag(abg)) + '</td>' +
+                      '<td>' + ohne + '</td><td>' + journal + '</td>') + '</tr>';
+                if (!offen) return;
+                const z = ZETTEL[l.id];
+                h += '<tr class="det"><td colspan="' + sp + '">' +
+                    (m ? '<div class="kv"><span>Firma <b>' + esc(l.firma_nr) + '</b></span><span>Abgaben <b>' + (abg == null ? '–' : betrag(abg)) + '</b></span>' + journal + '</div>' : '') +
+                    (!l.firma_adresse ? '<div class="leiste warn">Adresse fehlt – Firma unter Rechnungen anlegen</div>' : '') +
+                    (!z || z === 'lade' ? '<div class="hinweis">Lade …</div>'
+                        : z.fehler ? '<div class="hinweis err">' + esc(z.fehler) + '</div>'
+                        : '<div class="leiste">' + vorschlagKnopf(z.rows, l.id) + '<span class="sub">hochgeladen ' + tagMonat(l.hochgeladen_am) + ' von ' + esc(l.hochgeladen_von || '?') + '</span></div>' + zettelTabelle(z.rows, false)) +
+                    '</td></tr>';
+            });
+            tab.innerHTML = h + '</tbody>';
+        }
+
+        /* === Zuordnen === */
+        async function zuordnen(btn, loesen) {
+            if (busy) return;
+            let fid = null;
+            if (!loesen) {
+                const sel = btn.closest('.zbox').querySelector('[data-fsel]');
+                fid = sel ? parseInt(sel.value, 10) : NaN;
+                if (!fid) { alert('Bitte einen Fahrer wählen.'); return; }
+            } else if (!confirm('Zuordnung von Ma-Nr ' + btn.dataset.manr + ' lösen?')) return;
+            busy = true; renderLaeufe();
+            try {
+                const { error } = await getSupabase().rpc('lohn_person_zuordnen', { p_firma_nr: btn.dataset.firma, p_ma_nr: parseInt(btn.dataset.manr, 10), p_fahrer_id: fid });
+                if (error) throw error;
+                toast(loesen ? 'Zuordnung gelöst' : 'Zugeordnet: ' + fahrerName(fid));
+            } catch (e) { alert((loesen ? 'Lösen' : 'Zuordnen') + ' fehlgeschlagen: ' + lohnFehlerText(e)); }
+            finally { busy = false; await ladeAlles(); }
+        }
+        // Alle Vorschlaege einer Liste; gleiche Firma + Ma-Nr nur einmal
+        async function alleVorschlaege(quelle) {
+            if (busy) return;
+            const rows = quelle === 'ohne' ? (OHNE || []).filter(passt) : ((ZETTEL[quelle] && ZETTEL[quelle].rows) || []);
+            const mit = rows.filter(function (z) { return z.fahrer_id == null && z.vorschlag_fahrer_id != null; });
+            if (!mit.length) return;
+            const personen = [], gesehen = {};
+            mit.forEach(function (z) {
+                const k = z.firma_nr + '|' + z.ma_nr;
+                if (gesehen[k]) return;
+                gesehen[k] = 1; personen.push(z);
+            });
+            const liste = personen.map(function (z) { return z.name + ' (' + (z.firma_name || z.firma_nr) + ') → ' + fahrerName(z.vorschlag_fahrer_id); });
+            if (!confirm(mit.length + ' Zettel, ' + personen.length + ' Person' + (personen.length === 1 ? '' : 'en') + ' zuordnen?\n\n' + liste.join('\n'))) return;
+            busy = true; renderLaeufe();
+            let ok = 0; const fehler = [];
+            for (let i = 0; i < personen.length; i++) {
+                const z = personen[i];
+                try {
+                    const { error } = await getSupabase().rpc('lohn_person_zuordnen', { p_firma_nr: z.firma_nr, p_ma_nr: z.ma_nr, p_fahrer_id: z.vorschlag_fahrer_id });
+                    if (error) throw error;
+                    ok++;
+                } catch (e) { fehler.push(z.name + ': ' + lohnFehlerText(e)); }
+            }
+            busy = false;
+            const text = ok + ' zugeordnet' + (fehler.length ? ', ' + fehler.length + ' Fehler' : '');
+            if (fehler.length) alert(text + ':\n\n' + fehler.join('\n')); else toast(text);
+            await ladeAlles();
+        }
+
+        /* === Ereignisse === */
+        function klick(e) {
+            const t = e.target;
+            let b;
+            if ((b = t.closest('[data-pdf]'))) { e.stopPropagation(); lohnPdfOeffnen(b.dataset.pdf); return; }
+            if ((b = t.closest('[data-weg]'))) {
+                if (speichertGerade) return;
+                const key = b.dataset.weg;
+                DATEIEN = DATEIEN.filter(function (d) { return d.status !== 'ok' || ((d.p.firma_nr || '?') + '|' + (d.p.monat || '?')) !== key; });
+                delete SPEICHER[key]; delete NEU_OFFEN[key]; renderNeu(); return;
+            }
+            if ((b = t.closest('[data-wegdatei]'))) { const id = parseInt(b.dataset.wegdatei, 10); DATEIEN = DATEIEN.filter(function (d) { return d.id !== id; }); renderNeu(); return; }
+            if ((b = t.closest('[data-pruef]'))) { e.stopPropagation(); NEU_OFFEN[b.dataset.pruef] = !NEU_OFFEN[b.dataset.pruef]; renderNeu(); return; }
+            if ((b = t.closest('[data-alle]'))) { alleVorschlaege(b.dataset.alle); return; }
+            if ((b = t.closest('[data-zuordnen]'))) { zuordnen(b, false); return; }
+            if ((b = t.closest('[data-loesen]'))) { zuordnen(b, true); return; }
+            if (t.closest('select, button, a, input, label')) return;
+            if ((b = t.closest('[data-neu]'))) { NEU_OFFEN[b.dataset.neu] = !NEU_OFFEN[b.dataset.neu]; renderNeu(); return; }
+            if ((b = t.closest('[data-zoffen]'))) { Z_OFFEN[b.dataset.zoffen] = !Z_OFFEN[b.dataset.zoffen]; renderLaeufe(); return; }
+            if ((b = t.closest('[data-lauf]'))) {
+                const id = b.dataset.lauf;
+                if (LAUF_OFFEN[id]) { delete LAUF_OFFEN[id]; renderLaeufe(); return; }
+                LAUF_OFFEN[id] = true; ZETTEL[id] = 'lade'; renderLaeufe();
+                ladeZettel(id).then(renderLaeufe);
+            }
+        }
+        function initSeite() {
+            const inp = document.getElementById('datei');
+            inp.addEventListener('change', function () { const f = Array.prototype.slice.call(inp.files || []); inp.value = ''; if (f.length) dateienHinzu(f); });
+            const drop = document.getElementById('drop');
+            ['dragenter', 'dragover'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); }); });
+            ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); }); });
+            drop.addEventListener('drop', function (e) { const f = Array.prototype.slice.call((e.dataTransfer && e.dataTransfer.files) || []); if (f.length) dateienHinzu(f); });
+            document.getElementById('main').addEventListener('click', klick);
+            document.getElementById('alleSpeichern').addEventListener('click', alleSpeichern);
+            document.getElementById('fFirma').addEventListener('change', function (e) { filter.firma = e.target.value; renderFilter(); renderLaeufe(); });
+            document.getElementById('fMonat').addEventListener('change', function (e) { filter.monat = e.target.value; renderFilter(); renderLaeufe(); });
+            document.getElementById('fOhne').addEventListener('click', function () {
+                filter.ohne = !filter.ohne; renderFilter(); renderLaeufe();
+                if (filter.ohne) ladeOhne().then(renderLaeufe);
+            });
+            document.getElementById('themeBtn').addEventListener('click', function () {
+                const html = document.documentElement, dunkel = html.getAttribute('data-theme') !== 'dark';
+                if (dunkel) html.setAttribute('data-theme', 'dark'); else html.removeAttribute('data-theme');
+                try { localStorage.setItem('theme', dunkel ? 'dark' : 'light'); } catch (e) {}
+            });
+            const neu = function () { renderNeu(); renderLaeufe(); };
+            if (MOBIL.addEventListener) MOBIL.addEventListener('change', neu); else MOBIL.addListener(neu);
+            Promise.all([ladeFahrerListe(), ladeLaeufe()]).then(function () { renderFilter(); renderLaeufe(); renderNeu(); });
+        }
+
+        /* Auth-Guard wie dashboard.html: nur mit app_metadata.app_role */
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                const client = getSupabase();
+                const { data } = await client.auth.getSession();
+                if (!data || !data.session) { forceLogout(); return; }
+                const am = (data.session.user && data.session.user.app_metadata) || {};
+                if (am.app_role !== 'admin' && am.app_role !== 'user') {
+                    if (am.fahrer_nr != null && am.fahrer_nr !== '') { window.location.replace('/fahrer/'); return; }
+                    try { await client.auth.signOut(); } catch (e2) {}
+                    forceLogout(); return;
+                }
+                client.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT') forceLogout(); });
+            } catch (e) { forceLogout(); return; }
+            initSeite();
+        });
+    </script>
+</body>
+</html>

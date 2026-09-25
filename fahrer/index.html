@@ -625,6 +625,7 @@
             if (!dg.length) return '';
             return '<div class="sec-h"><span>Dienstgeber</span></div><div class="list">'
                 + dg.map(d => '<div class="dg"><b>' + esc(d.firma_name) + '</b>'
+                    + (d.geschaeftsfuehrer ? '<span>Geschäftsführer: ' + esc(d.geschaeftsfuehrer) + '</span>' : '')
                     + (d.adresse && String(d.adresse).trim() ? '<span>' + esc(String(d.adresse).trim()).replace(/\r?\n/g, '<br>') + '</span>' : '')
                     + '</div>').join('') + '</div>';
         }

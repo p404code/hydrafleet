@@ -285,9 +285,13 @@
         function lohnOf(s) { return parseFloat(s && s.lohn) || 0; }
         function netAuszahlung(s) { return (parseFloat(s.auszahlung) || 0) - lohnOf(s); }
         function duBekommst(s) { return s.du_bekommst != null ? num(s.du_bekommst) : netAuszahlung(s); }
-        function kw(woche) { const m = /^(\d{4})-W(\d{2})(k?)$/.exec(woche || ''); return m ? 'KW ' + parseInt(m[2], 10) + m[3] : String(woche || ''); }
+        // Sonderwoche: 2026-W37k enthaelt die Umsaetze von KW36 (Datenpruefung 23.09.) - nur Anzeige und Sortierung, Daten bleiben
+        const WOCHE_ANZEIGE = { '2026-W37k': '2026-W36' };
+        function wAnz(woche) { return WOCHE_ANZEIGE[woche] || woche; }
+        function nachWocheAb(a, b) { const x = wAnz(a.woche), y = wAnz(b.woche); return x < y ? 1 : x > y ? -1 : 0; }
+        function kw(woche) { const m = /^(\d{4})-W(\d{2})(k?)$/.exec(wAnz(woche) || ''); return m ? 'KW ' + parseInt(m[2], 10) + m[3] : String(woche || ''); }
         function weekRangeNumeric(woche) {
-            const m = /^(\d{4})-W(\d{2})$/.exec(woche || '');
+            const m = /^(\d{4})-W(\d{2})$/.exec(wAnz(woche) || '');
             if (!m) return '';
             const year = parseInt(m[1], 10), wk = parseInt(m[2], 10);
             const jan4 = new Date(Date.UTC(year, 0, 4));
@@ -435,8 +439,8 @@
             const err = res.map(r => r.error).find(Boolean);
             if (err) throw err;
             S.profil = (res[0].data || [])[0] || null;
-            S.abr = (res[1].data || []).slice().sort((a, b) => (a.woche < b.woche ? 1 : a.woche > b.woche ? -1 : 0));
-            S.offen = (res[2].data || []).slice().sort((a, b) => (a.woche < b.woche ? 1 : a.woche > b.woche ? -1 : 0));
+            S.abr = (res[1].data || []).slice().sort(nachWocheAb);
+            S.offen = (res[2].data || []).slice().sort(nachWocheAb);
             S.loadedAt = Date.now();
         }
 

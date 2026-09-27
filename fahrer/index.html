@@ -164,7 +164,20 @@
         /* Mehr / Kontakt */
         .profile { padding: 14px 12px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; }
         .profile b { font-size: 16px; font-weight: 700; }
-        .fz-kz { font-size: 26px; font-weight: 700; letter-spacing: .5px; }
+        /* Oesterreichische Kennzeichentafel wie im Dashboard (kzHtml dort), hier gross:
+           blauer EU-Balken, Bezirkskuerzel, rot-weiss-rotes Feld statt Wappen.
+           Farben bewusst fest - die Tafel sieht in beiden Designs gleich aus. */
+        .kz { display: inline-flex; align-items: center; height: 44px; border-radius: 5px; align-self: flex-start;
+              overflow: hidden; border: 2px solid #c8102e; background: #fbfbfc; margin: 4px 0 2px; }
+        .kz .eu { align-self: stretch; width: 20px; background: #039; color: #fff;
+                  font-size: 12px; font-weight: 700; display: flex; align-items: flex-end;
+                  justify-content: center; padding-bottom: 3px; }
+        .profile .kz b { padding: 0 12px 0 9px; color: #16181d; font-size: 27px; font-weight: 700;
+                letter-spacing: .04em; line-height: 44px; white-space: nowrap; }
+        .kz i { display: inline-block; width: 7px; height: 22px; margin: 0 9px; vertical-align: -2px;
+                background: linear-gradient(#ed2939 0 33%, #fff 33% 67%, #ed2939 67% 100%);
+                border: 1px solid rgba(0,0,0,.22); border-radius: 1px; }
+        [data-theme="dark"] .kz { background: #d9dade; border-color: #a5253a; }
         .fz-vin { font-size: 14px; font-weight: 700; letter-spacing: .5px; overflow-wrap: anywhere; }
         .profile span { font-size: 12px; color: var(--text-mut); }
         .group { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-top: 12px; }
@@ -733,12 +746,19 @@
 
         /* Fahrzeug – v1: Kennzeichen und Fahrgestellnummer aus Notion (fuhrpark).
            Pickerl & Co. folgen, sobald die Daten in Notion gepflegt sind. */
+        function kzHtml(k) {
+            const rein = String(k || '').split('(')[0].trim().toUpperCase();
+            if (!rein) return '–';
+            const m = rein.match(/^([A-ZÄÖÜ]{1,2})[\s-]*(.+)$/);
+            const inhalt = m ? esc(m[1]) + '<i></i>' + esc(m[2].replace(/\s+/g, ' ')) : esc(rein);
+            return '<span class="kz"><span class="eu">A</span><b>' + inhalt + '</b></span>';
+        }
         function viewFahrzeug() {
             const p = S.profil;
             if (!p.kennzeichen) {
                 return { html: '<div class="empty"><b>Dir ist derzeit kein Fahrzeug zugeordnet.</b><span>Bitte im Büro melden.</span></div>' };
             }
-            const html = '<section class="profile"><span>Kennzeichen</span><b class="fz-kz num">' + esc(p.kennzeichen) + '</b>'
+            const html = '<section class="profile"><span>Kennzeichen</span>' + kzHtml(p.kennzeichen)
                 + (p.fahrzeug_modell ? '<span>' + esc(p.fahrzeug_modell) + '</span>' : '') + '</section>'
                 + '<div class="group"><div class="item" style="cursor:default"><div class="grow"><div style="font-size:11px;color:var(--text-mut)">Fahrgestellnummer</div>'
                 + '<div class="fz-vin num">' + esc(p.fahrzeug_vin || '–') + '</div></div></div></div>'

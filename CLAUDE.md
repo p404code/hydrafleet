@@ -61,6 +61,12 @@ Geld entscheidet weiterhin das alte System.
 
 Jeder Lauf schreibt eine Zeile nach `sync_runs`.
 
+**Aufrufschutz (seit 2026-09-28):** Die drei Syncs nehmen nur den service_role-Key
+(Zeitplan) oder Buero-User (`app_metadata.app_role` admin/user) an, sonst 403 —
+der anon-Key steht im Frontend und ist ein gueltiges JWT. Die Rolle wird aus dem
+Token gelesen, die Signatur prueft das Gateway: `verify_jwt` NIE abschalten.
+`uber-probe` ist stillgelegt (410) und kann im Supabase-Dashboard geloescht werden.
+
 ### Zeitplan (`pg_cron`)
 
 ```

@@ -164,6 +164,8 @@
         /* Mehr / Kontakt */
         .profile { padding: 14px 12px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; }
         .profile b { font-size: 16px; font-weight: 700; }
+        .fz-kz { font-size: 26px; font-weight: 700; letter-spacing: .5px; }
+        .fz-vin { font-size: 14px; font-weight: 700; letter-spacing: .5px; overflow-wrap: anywhere; }
         .profile span { font-size: 12px; color: var(--text-mut); }
         .group { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-top: 12px; }
         .item { display: flex; align-items: center; gap: 10px; padding: 0 12px; min-height: 50px; border-bottom: 1px solid var(--border); text-decoration: none; color: var(--text); background: none; border-left: 0; border-right: 0; border-top: 0; width: 100%; font-size: 13.5px; font-weight: 500; text-align: left; cursor: pointer; }
@@ -246,7 +248,7 @@
             <a class="tab" href="#start" data-tab="start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg><span class="tab-label">Start</span></a>
             <a class="tab" href="#abrechnung" data-tab="abrechnung"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"></rect><path d="M9 8h6"></path><path d="M9 12h6"></path><path d="M9 16h3"></path></svg><span class="tab-label">Abrechnung</span></a>
             <span class="tab off" aria-disabled="true" title="Kommt bald"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg><span class="tab-label">Nachrichten</span><span class="soon">bald</span></span>
-            <span class="tab off" aria-disabled="true" title="Kommt bald"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 16h14v-4l-2-5H7l-2 5z"></path><circle cx="8" cy="16.5" r="1.5"></circle><circle cx="16" cy="16.5" r="1.5"></circle><path d="M5 12h14"></path></svg><span class="tab-label">Fahrzeug</span><span class="soon">bald</span></span>
+            <a class="tab" href="#fahrzeug" data-tab="fahrzeug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 16h14v-4l-2-5H7l-2 5z"></path><circle cx="8" cy="16.5" r="1.5"></circle><circle cx="16" cy="16.5" r="1.5"></circle><path d="M5 12h14"></path></svg><span class="tab-label">Fahrzeug</span></a>
             <a class="tab" href="#mehr" data-tab="mehr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg><span class="tab-label">Mehr</span></a>
         </nav>
     </div>
@@ -516,16 +518,16 @@
         function route() {
             const h = decodeURIComponent((location.hash || '').replace(/^#/, ''));
             const parts = h.split('/');
-            const name = ['start', 'abrechnung', 'offen', 'kontakt', 'mehr', 'lohnzettel'].indexOf(parts[0]) >= 0 ? parts[0] : 'start';
+            const name = ['start', 'abrechnung', 'offen', 'kontakt', 'mehr', 'lohnzettel', 'fahrzeug'].indexOf(parts[0]) >= 0 ? parts[0] : 'start';
             return { name: name, arg: parts.slice(1).join('/') };
         }
-        const TAB_FOR = { start: 'start', abrechnung: 'abrechnung', offen: 'mehr', kontakt: 'mehr', mehr: 'mehr', lohnzettel: 'mehr' };
+        const TAB_FOR = { start: 'start', abrechnung: 'abrechnung', offen: 'mehr', kontakt: 'mehr', mehr: 'mehr', lohnzettel: 'mehr', fahrzeug: 'fahrzeug' };
 
         function render() {
             if (!S.profil || document.getElementById('shell').hidden) return;
             const r = route();
             if ((r.name === 'start' || r.name === 'lohnzettel') && lzAlt() && !S.lz.loading) ladenLohn();
-            const out = ({ start: viewStart, abrechnung: viewAbrechnung, offen: viewOffen, kontakt: viewKontakt, mehr: viewMehr, lohnzettel: viewLohnzettel })[r.name](r.arg);
+            const out = ({ start: viewStart, abrechnung: viewAbrechnung, offen: viewOffen, kontakt: viewKontakt, mehr: viewMehr, lohnzettel: viewLohnzettel, fahrzeug: viewFahrzeug })[r.name](r.arg);
             document.getElementById('topbar').className = 'topbar' + (out.back ? ' sub' : '');
             document.getElementById('topbar').innerHTML = out.back
                 ? '<a class="back" href="' + out.back + '" aria-label="Zurück">' + ICON_BACK + '</a><div class="title">' + esc(out.title) + '</div><div class="who">' + esc(out.right || '') + '</div>'
@@ -727,6 +729,22 @@
                 + '<div class="list"><div class="item" style="cursor:default"><div class="grow"><div>Euro-Notruf</div><div class="num" style="font-size:11px;color:var(--text-mut)">112</div></div>'
                 + '<a class="icon-btn" href="tel:112" aria-label="112 anrufen">' + ICON_TEL + '</a></div></div>';
             return { back: '#mehr', title: 'Kontakt', right: '', html: html };
+        }
+
+        /* Fahrzeug – v1: Kennzeichen und Fahrgestellnummer aus Notion (fuhrpark).
+           Pickerl & Co. folgen, sobald die Daten in Notion gepflegt sind. */
+        function viewFahrzeug() {
+            const p = S.profil;
+            if (!p.kennzeichen) {
+                return { html: '<div class="empty"><b>Dir ist derzeit kein Fahrzeug zugeordnet.</b><span>Bitte im Büro melden.</span></div>' };
+            }
+            const html = '<section class="profile"><span>Kennzeichen</span><b class="fz-kz num">' + esc(p.kennzeichen) + '</b>'
+                + (p.fahrzeug_modell ? '<span>' + esc(p.fahrzeug_modell) + '</span>' : '') + '</section>'
+                + '<div class="group"><div class="item" style="cursor:default"><div class="grow"><div style="font-size:11px;color:var(--text-mut)">Fahrgestellnummer</div>'
+                + '<div class="fz-vin num">' + esc(p.fahrzeug_vin || '–') + '</div></div></div></div>'
+                + '<div class="group"><button type="button" class="item" disabled aria-disabled="true" style="cursor:default;color:var(--text-dim)"><span class="grow">Schaden / Problem melden</span><span class="soon" style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.04em">bald</span></button></div>'
+                + '<div class="note" style="text-align:center;margin-top:8px">Stimmt etwas nicht? Bitte im Büro melden.</div>';
+            return { html: html };
         }
 
         /* Mehr */

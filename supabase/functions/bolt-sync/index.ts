@@ -288,7 +288,26 @@ async function syncVerbindung(v: any, von: string, bis: string, woche: string) {
   }
 }
 
+// Wer darf einen Abruf starten? Nur der Zeitplan (service_role-Key aus dem
+// Vault) und Buero-Benutzer (app_metadata.app_role admin/user). Fahrer-Logins
+// und der oeffentliche anon-Key bekommen 403. Die Signatur des Tokens prueft
+// schon das Gateway (verify_jwt = true) - hier wird nur noch die Rolle gelesen.
+// verify_jwt deshalb NIE abschalten.
+function aufruferErlaubt(req: Request): boolean {
+  const tok = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (!tok) return false;
+  if (tok === SERVICE_KEY) return true;
+  try {
+    const teil = tok.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const p = JSON.parse(atob(teil.padEnd(Math.ceil(teil.length / 4) * 4, "=")));
+    return p.role === "service_role" || ["admin", "user"].includes(p.app_metadata?.app_role);
+  } catch { return false; }
+}
+const verboten = () => new Response(JSON.stringify({ fehler: "nicht_berechtigt" }),
+  { status: 403, headers: { "Content-Type": "application/json" } });
+
 Deno.serve(async (req) => {
+  if (!aufruferErlaubt(req)) return verboten();
   try {
     const body = req.headers.get("content-length") === "0" ? {} : await req.json().catch(() => ({}));
 

@@ -89,7 +89,11 @@ nie im Frontend. `verbindungen` speichert nur Metadaten (Anbieter, Firma,
   den Vault — die Cookies landen nie auf der Platte)
 - Notion-Token setzen: `node scripts/notion-token-speichern.js`
 
-**Die Uber-Sitzung läuft ab** (Stand 2026-09-22: gültig bis 2026-10-06). Danach
+**Zwei Uber-Verbindungen** seit 2026-09-28: `eh_limousinenservice_kg` (Org `08fc2f53-…`)
+und `ee_taxi_kg` (E&E Taxi KG, Org `c566f3b3-…`, eigener Login, Browser-Profil
+`~/.hydrafleet-uber-profile-ee`). Die Fahrer sind am 25.09. von EH zu E&E gewechselt.
+
+**Die Uber-Sitzungen laufen ab** (EH: gültig bis 2026-10-06; E&E: gesetzt 2026-09-28). Danach
 schreibt `uber-sync` `sitzung_abgelaufen:` in `verbindungen.letzter_fehler`, der
 Verbindungen-Tab zeigt es an. Erneuern mit dem Skript oben.
 
@@ -142,7 +146,11 @@ aktiviert ist — aktuell zwei.
 - **PostgREST antwortet bei `return=minimal` mit 201 und leerem Body**, nicht 204.
   Immer erst `await r.text()`, dann nur parsen wenn nicht leer.
 - **Ubers Abrechnungswoche beginnt Montag ~04:00 Wien**, nicht Mitternacht UTC.
-  Das Fenster wird bei Uber erfragt (`GetReportingTimeWindows`), nie gerechnet.
+  Ubers Fenster (`GetReportingTimeWindows`) sind **Auszahlungszeiträume, keine Wochen**:
+  eine Auszahlung mitten in der Woche teilt sie (KW39: EH 14.09.–25.09. 10:48). Ihre
+  Grenzen liefern nur die genaue Uhrzeit des Montagswechsels (±12 h), sonst wird
+  Montag 04:00 Wien gerechnet. Kontrolle: `node scripts/uber-sync-aufrufen.js <JJJJ-Wnn> test`
+  zeigt Fenster und Ubers Rohfenster, ohne Daten zu schreiben.
 - **CSV braucht einen echten RFC-4180-Parser.** Ein Fahrername wie "Ahmed Safa, Beng"
   hat am 14.09. einen ganzen Import zerlegt.
 - **Notion-Feld `"Pauschale "` hat ein Leerzeichen am Ende.** Nicht wegkürzen.

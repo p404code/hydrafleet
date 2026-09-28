@@ -108,21 +108,35 @@ const aufStunde = (ms: number) => Math.floor(ms / 3600000) * 3600000;
 // Mitternacht, und der genaue Zeitpunkt schwankt um Minuten. Deshalb wird das
 // Fenster bei Uber erfragt statt gerechnet; das Portal rundet auf die volle
 // Stunde ab, wir machen es genauso.
-async function abrechnungsfenster(ruf: any, org: string, von: string, bis: string) {
-  const suchVon = Date.parse(`${von}T00:00:00Z`) - 86400000;
-  const suchBis = Date.parse(`${bis}T00:00:00Z`) + 2 * 86400000;
+// Ubers Fenster sind aber Auszahlungszeitraeume, keine Wochen: eine Auszahlung
+// mitten in der Woche teilt sie (KW39/2026 bei EH: 14.09. 02:02 – 25.09. 10:48,
+// dann 25.09. – 28.09. 02:06). Deshalb dienen Ubers Fenstergrenzen nur als
+// genaue Uhrzeit des Wochenwechsels: liegt eine Grenze binnen 12 h um Montag
+// 04:00 Wien, gilt sie, sonst wird gerechnet. Je Wochenende eigene Quelle.
+function montag4UhrWien(datum: string): number {
+  const mo = new Date(`${datum}T00:00:00Z`);
+  return mo.getTime() + 4 * 3600000 - wienOffsetMs(mo);
+}
+async function abrechnungsfenster(ruf: any, org: string, von: string, _bis: string) {
+  const sollVon = montag4UhrWien(von);
+  const sollBis = sollVon + WOCHE_MS;
+  let grenzen: number[] = [];
   try {
     const d = await ruf("vs-sp-reports-management/GetReportingTimeWindows", { orgId: uuid(org) });
     for (const f of d.timeWindows ?? []) {
       const s = Number(f.startTimeUnixMillis?.value);
-      if (!s || s < suchVon || s >= suchBis) continue;
-      const e = f.endTimeUnixMillis?.value ? Number(f.endTimeUnixMillis.value) : null;
-      return { vonMs: aufStunde(s), bisMs: e ? aufStunde(e) : aufStunde(s) + WOCHE_MS, quelle: "uber" };
+      const e = Number(f.endTimeUnixMillis?.value);
+      if (s) grenzen.push(s);
+      if (e) grenzen.push(e);
     }
-  } catch (_) { /* Rueckfall unten */ }
-  const mo = new Date(`${von}T00:00:00Z`);
-  const vonMs = mo.getTime() + 4 * 3600000 - wienOffsetMs(mo);
-  return { vonMs, bisMs: vonMs + WOCHE_MS, quelle: "berechnet" };
+  } catch (_) { grenzen = []; }
+  const naechste = (soll: number) => {
+    const g = grenzen.filter((x) => Math.abs(x - soll) <= 12 * 3600000)
+      .sort((a, b) => Math.abs(a - soll) - Math.abs(b - soll))[0];
+    return g ? { ms: aufStunde(g), quelle: "uber" } : { ms: soll, quelle: "berechnet" };
+  };
+  const a = naechste(sollVon), b = naechste(sollBis);
+  return { vonMs: a.ms, bisMs: b.ms, quelle: a.quelle === b.quelle ? a.quelle : `${a.quelle}/${b.quelle}` };
 }
 
 // ---------- CSV, RFC-4180-fest ----------
@@ -236,10 +250,18 @@ async function syncVerbindung(v: any, von: string, bis: string, woche: string, n
 
     if (nurTest) {
       const f = await abrechnungsfenster(ruf, org, von, bis);
+      // Zur Kontrolle: Ubers Rohfenster rund um die Woche (±14 Tage)
+      const rund = Date.parse(`${von}T00:00:00Z`);
+      const roh = ((await ruf("vs-sp-reports-management/GetReportingTimeWindows", { orgId: uuid(org) }))
+        .timeWindows ?? [])
+        .map((w: any) => [Number(w.startTimeUnixMillis?.value), Number(w.endTimeUnixMillis?.value) || null])
+        .filter(([s]: any) => s && Math.abs(s - rund) < 14 * 86400000)
+        .map(([s, e]: any) => `${new Date(s).toISOString()} .. ${e ? new Date(e).toISOString() : "offen"}`);
       await db(`sync_runs?id=eq.${lauf.id}`, { method: "PATCH", body: JSON.stringify({
         ende: new Date().toISOString(), anzahl: 0, status: "ok", fehler: "nur Verbindungstest" }) });
       return { firma: v.firma, status: "ok", test: true, org: orgName,
-               fenster: `${new Date(f.vonMs).toISOString()} .. ${new Date(f.bisMs).toISOString()} (${f.quelle})` };
+               fenster: `${new Date(f.vonMs).toISOString()} .. ${new Date(f.bisMs).toISOString()} (${f.quelle})`,
+               uber_fenster: roh };
     }
 
     const fenster = await abrechnungsfenster(ruf, org, von, bis);

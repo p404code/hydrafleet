@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Hydralink - Post</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <meta name="theme-color" content="#FBFBFC">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Hydralink">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"></noscript>
+    <script>try { if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}</script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* Tokens wie dashboard.html (hell / [data-theme="dark"], localStorage 'theme') */
+        :root {
+            --bg:#FBFBFC; --surface:#FFFFFF; --surface-2:#F1F3F5; --surface-3:#E6E8EB;
+            --border:#E6E8EB; --border-strong:#CFD4DA;
+            --text:#101418; --text-mut:#6B7280; --text-dim:#B0B6BF;
+            --accent:#0B6B4F; --accent-ink:#FFFFFF;
+            --accent-faint:rgba(11,107,79,.08); --accent-line:rgba(11,107,79,.35);
+            --warn:#B45309; --err:#B42318; --info:#1D4ED8;
+            --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+            --sans:-apple-system,"Inter","Segoe UI",system-ui,sans-serif;
+            --nav-h:46px;
+        }
+        [data-theme="dark"] {
+            --bg:#0F1115; --surface:#15181D; --surface-2:#1A1E24; --surface-3:#20252C;
+            --border:#23272F; --border-strong:#323843;
+            --text:#EDEEF0; --text-mut:#989FA7; --text-dim:#5F666E;
+            --accent:#3ECF8E; --accent-ink:#062D1C;
+            --accent-faint:rgba(62,207,142,.08); --accent-line:rgba(62,207,142,.35);
+            --warn:#E5B454; --err:#F0555D; --info:#7AA2F7;
+        }
+        html, body { overflow-x: hidden; max-width: 100vw; }
+        body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; font-size: 13px; line-height: 1.4; }
+        .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+        .header { position: sticky; top: 0; z-index: 50; height: var(--nav-h); display: flex; align-items: center; gap: 12px; padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--border); }
+        .header h1 { font-size: 14px; font-weight: 800; letter-spacing: -.3px; white-space: nowrap; }
+        .header h1 .link { font-weight: 400; color: var(--text-mut); }
+        .header h1 .titel { font-weight: 600; }
+        .header .sp { flex: 1; }
+        .hbtn { background: var(--surface); border: 1px solid var(--border); border-radius: 7px; height: 28px; padding: 0 10px; font-size: 12px; color: var(--text-mut); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; text-decoration: none; white-space: nowrap; }
+        .hbtn:hover { background: var(--surface-2); color: var(--text); }
+        .hbtn svg { width: 14px; height: 14px; }
+        main { max-width: 1320px; margin: 0 auto; padding: 12px 20px 40px; }
+        /* Upload-Leiste */
+        .drop { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border: 1px dashed var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--text-mut); font-size: 12.5px; cursor: pointer; min-width: 0; }
+        .drop.over { border-color: var(--accent); background: var(--accent-faint); color: var(--text); }
+        .drop b { color: var(--text); font-weight: 600; }
+        .drop .info { margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-mut); font-weight: 600; margin: 18px 0 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        h2 .sp { flex: 1; }
+        /* Filter */
+        .toolbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 18px 0 6px; }
+        .toolbar h2 { margin: 0 6px 0 0; }
+        .toolbar .sp { flex: 1; }
+        select, .chip, .btn { height: 28px; border-radius: 7px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: 12px; font-family: inherit; }
+        select { padding: 0 6px; max-width: 100%; min-width: 0; }
+        .chip, .btn { padding: 0 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-weight: 500; }
+        .chip:hover, .btn:hover { background: var(--surface-2); }
+        .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+        .chip .cnt { font-family: var(--mono); font-size: 11px; opacity: .8; }
+        .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+        .btn:disabled { opacity: .45; cursor: default; }
+        /* Tabellen */
+        table.t { width: 100%; border-collapse: collapse; table-layout: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+        .t th { text-align: right; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-mut); font-weight: 600; padding: 7px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; }
+        .t td { height: 36px; padding: 4px 8px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 12.5px; color: var(--text); }
+        .t th.l, .t td.l { text-align: left; font-family: var(--sans); }
+        .t th:first-child, .t td:first-child { padding-left: 12px; }
+        .t th:last-child, .t td:last-child { padding-right: 12px; }
+        .t tr:last-child > td { border-bottom: none; }
+        .t tr.klick { cursor: pointer; }
+        .t tr.klick:hover > td { background: var(--surface-2); }
+        .t tr.offen > td { background: var(--surface-2); }
+        .t td small, .sub { color: var(--text-mut); font-size: 11px; font-family: var(--sans); }
+        .t td.mut { color: var(--text-mut); }
+        .t td.leer { text-align: center; color: var(--text-mut); font-family: var(--sans); height: 44px; }
+        .t tr.det > td { white-space: normal; text-align: left; font-family: var(--sans); background: var(--surface-2); padding: 8px 12px 12px; height: auto; }
+        .t .t { background: var(--surface); }
+        .zwei { display: block; overflow: hidden; text-overflow: ellipsis; line-height: 1.25; }
+        .ok { color: var(--accent); font-weight: 700; }
+        .err { color: var(--err); font-weight: 600; }
+        .warn { color: var(--warn); }
+        .info { color: var(--info); }
+        .lnk { background: none; border: none; padding: 0; font: inherit; color: var(--info); cursor: pointer; text-decoration: underline; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lnk.mut { color: var(--text-mut); }
+        .lnk.ok, .lnk.err { text-decoration: none; }
+        .st { font-family: var(--sans); font-size: 11.5px; }
+        #fFirma { max-width: 220px; }
+        .x { background: none; border: none; color: var(--text-mut); cursor: pointer; font-size: 14px; width: 24px; height: 24px; border-radius: 6px; }
+        .x:hover { background: var(--surface-3); color: var(--err); }
+        .pruef { list-style: none; font-size: 12px; }
+        .pruef li { display: flex; gap: 8px; padding: 1px 0; min-width: 0; }
+        .pruef li > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+        .pruef small { color: var(--text-mut); font-size: 11px; }
+        .zbox { display: flex; gap: 6px; align-items: center; justify-content: flex-end; min-width: 0; }
+        .zbox select { flex: 1 1 auto; min-width: 0; height: 26px; font-size: 12px; }
+        .zbox .btn { height: 26px; }
+        .kv { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--text-mut); margin-bottom: 8px; }
+        .kv b { color: var(--text); font-weight: 600; font-family: var(--mono); }
+        .leiste { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; font-size: 12px; }
+        .hinweis { font-size: 12px; color: var(--text-mut); padding: 8px 0; }
+        .toast { position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 80px); opacity: 0; transition: all .25s; background: var(--text); color: var(--bg); padding: 9px 14px; border-radius: 8px; font-size: 12.5px; z-index: 99; max-width: calc(100vw - 32px); }
+        .toast.show { transform: translate(-50%, 0); opacity: 1; }
+        dialog.wahl { margin: auto; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); color: var(--text); padding: 14px 16px; width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 64px); }
+        dialog.wahl::backdrop { background: rgba(0,0,0,.35); }
+        dialog.wahl h3 { font-size: 14px; margin: 0 0 8px; }
+        dialog.wahl .wliste { max-height: 55vh; overflow-y: auto; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 6px 0 10px; }
+        dialog.wahl label { display: flex; gap: 8px; align-items: baseline; padding: 5px 2px; font-size: 12.5px; cursor: pointer; border-bottom: 1px solid var(--border); }
+        dialog.wahl label:last-child { border-bottom: 0; }
+        dialog.wahl label small { color: var(--text-mut); font-size: 11px; }
+        dialog.wahl .wfuss { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+        dialog.wahl .wfuss .sp { flex: 1; font-size: 12px; color: var(--text-mut); }
+        @media (max-width: 768px) {
+            .header { padding: 0 12px; gap: 8px; }
+            main { padding: 10px 12px 32px; }
+            .drop .info { display: none; }
+            .t th:first-child, .t td:first-child { padding-left: 8px; }
+            .t th:last-child, .t td:last-child { padding-right: 8px; }
+            .t tr.det > td { padding: 8px; }
+            .zbox { justify-content: flex-start; }
+        }
+        /* PDF-Ansicht im Fenster statt neuem Tab */
+        dialog.pdfv { margin: auto; padding: 0; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); color: var(--text); width: min(1000px, calc(100vw - 32px)); height: calc(100vh - 48px); max-height: none; max-width: none; overflow: hidden; }
+        dialog.pdfv[open] { display: flex; flex-direction: column; }
+        dialog.pdfv::backdrop { background: rgba(0,0,0,.45); }
+        .pdfv-kopf { display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .pdfv-kopf b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+        .pdfv-kopf a, .pdfv-kopf button { height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: 500 12px inherit; font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; text-decoration: none; }
+        .pdfv-kopf a:hover, .pdfv-kopf button:hover { background: var(--surface-2); }
+        .pdfv-body { flex: 1; min-height: 0; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-mut); }
+        .pdfv-body iframe { width: 100%; height: 100%; border: 0; background: #fff; }
+        @media (max-width: 700px) { dialog.pdfv { width: 100vw; height: 100dvh; border-radius: 0; border: 0; } }
+        /* Post-Seite: eigene Stile */
+        .kopfzeile { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 8px; }
+        .kopfzeile .sp { flex: 1; }
+        #suche { width: 100%; height: 34px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--text); font: 13px var(--sans); margin-bottom: 8px; }
+        .reiter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+        .sammel { position: sticky; top: var(--nav-h); z-index: 5; padding: 6px 0; background: var(--bg); }
+        .t tr.rot > td { color: var(--err); }
+        .t td.cb, .t th.cb { width: 34px; text-align: center; padding-left: 8px; }
+        .leise { color: var(--text-mut); font-size: 11px; font-family: var(--sans); }
+        dialog.wahl.breit { width: min(760px, calc(100vw - 32px)); }
+        .d-kopf { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .d-kopf b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+        .d-info { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; font-size: 12.5px; margin-bottom: 10px; }
+        .d-info dt { color: var(--text-mut); }
+        .d-info dd { min-width: 0; overflow-wrap: anywhere; }
+        pre.mail { white-space: pre-wrap; font: 12.5px/1.45 var(--mono); background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 6px 0 10px; overflow-wrap: anywhere; }
+        .d-fuss { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 10px; }
+        .dlabel { display: block; font-size: 12px; color: var(--text-mut); margin: 8px 0 4px; }
+        textarea, .dlabel select, .mtab input { width: 100%; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--surface); color: var(--text); font: 12.5px var(--sans); padding: 5px 8px; }
+        .dlabel select { height: 30px; }
+        .mtab input { height: 28px; padding: 0 6px; }
+        .mtab td { padding: 3px 4px !important; }
+        .warnbox { color: var(--warn); font-size: 12.5px; margin: 6px 0; }
+        @media (max-width: 768px) {
+            .t .m-weg { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1><span>HYDRA</span><span class="link">link</span> <span class="link">·</span> <span class="titel">Post</span></h1>
+        <div class="sp"></div>
+        <button class="hbtn" id="themeBtn" title="Hell / Dunkel" aria-label="Hell / Dunkel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+        <a class="hbtn" href="lohn.html">Löhne</a>
+        <a class="hbtn" href="dashboard.html">← Dashboard</a>
+    </header>
+    <main id="main">
+        <div class="kopfzeile">
+            <h2 style="margin:0">USP-Postkorb Hydrafleet KG</h2>
+            <span class="sp"></span>
+            <button class="btn" id="btnAbgleich" title="Gmail „Gesendet“ nach Geschäftszahl durchsuchen">Mit Gmail abgleichen</button>
+            <label class="btn">Ordner hochladen<input type="file" id="upload" accept="application/pdf" multiple webkitdirectory hidden></label>
+            <label class="btn">PDFs hochladen<input type="file" id="uploadDateien" accept=".pdf,application/pdf" multiple hidden></label>
+            <button class="btn" id="btnMieter">Mieter</button>
+        </div>
+        <input type="search" id="suche" placeholder="Suche: GZ, Kennzeichen, Behörde, Text im PDF …" autocomplete="off">
+        <div class="reiter" id="reiter" role="tablist"></div>
+        <div id="sammel" class="sammel" hidden></div>
+        <div id="uploadStatus" class="hinweis" hidden></div>
+        <table class="t" id="liste">
+            <thead><tr><th class="cb"><input type="checkbox" id="alleWahl" aria-label="Alle wählbaren wählen"></th>
+                <th class="l" style="width:78px">Eingang</th><th class="l m-weg">Absender</th><th class="l" style="width:130px">Art</th>
+                <th class="l m-weg" style="width:100px">Kennz.</th><th class="l m-weg">Fahrer</th><th class="m-weg" style="width:90px">Betrag</th>
+                <th class="l m-weg" style="width:78px">Frist</th><th class="l" style="width:170px">Status</th></tr></thead>
+            <tbody id="zeilen"><tr><td class="leer" colspan="9">Lade …</td></tr></tbody>
+        </table>
+    </main>
+    <dialog id="detail" class="wahl breit"></dialog>
+    <dialog id="mieterDlg" class="wahl breit"></dialog>
+    <dialog id="sammelDlg" class="wahl breit"></dialog>
+    <div class="toast" id="toast"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script>
+        /* Session-Guard wie dashboard.html */
+        (function () {
+            try {
+                const session = JSON.parse(localStorage.getItem('hydralink_session') || 'null');
+                if (!session || !session.timestamp || Date.now() - session.timestamp > 30 * 24 * 60 * 60 * 1000) {
+                    localStorage.removeItem('hydralink_session');
+                    window.location.replace('index.html');
+                    return;
+                }
+                session.timestamp = Date.now();
+                localStorage.setItem('hydralink_session', JSON.stringify(session));
+            } catch (e) { localStorage.removeItem('hydralink_session'); window.location.replace('index.html'); }
+        })();
+        function forceLogout() { localStorage.removeItem('hydralink_session'); window.location.replace('index.html'); }
+
+        const SUPABASE_URL = 'https://pkxcwfkfaaorwnbdmylg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBreGN3ZmtmYWFvcnduYmRteWxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3NTE1ODUsImV4cCI6MjA3OTMyNzU4NX0.xBDHKKXA9DFFwcTO18aDH_VHJr9BZyI__lv-L4Apryo';
+        let supabaseClient = null;
+        function getSupabase() { if (!supabaseClient) { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } return supabaseClient; }
+
+        function fmt(v) { if (v == null) return '-'; const n = parseFloat(v); if (isNaN(n)) return '-'; return (n < 0 ? '-' : '') + Math.abs(n).toLocaleString('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
+        function betrag(v) { return fmt(v).replace(/\s€$/, ''); }
+        function esc(s) { if (s == null) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+        const MOBIL = window.matchMedia('(max-width: 768px)');
+        function toast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg; t.classList.add('show');
+            clearTimeout(toast.h); toast.h = setTimeout(function () { t.classList.remove('show'); }, 4000);
+        }
+
+        async function pdfAnsicht(bucket, pfad, titel) {
+            const d = document.createElement('dialog');
+            d.className = 'pdfv';
+            const dateiname = (titel || 'Dokument').replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf';
+            d.innerHTML = '<div class="pdfv-kopf"><b></b><a data-tab target="_blank" rel="noopener" hidden>Neuer Tab</a><a data-dl hidden>Herunterladen</a><button data-zu aria-label="Schließen">✕</button></div><div class="pdfv-body">Lade …</div>';
+            d.querySelector('b').textContent = titel || 'Dokument';
+            let url = null;
+            d.querySelector('[data-zu]').addEventListener('click', function () { d.close(); });
+            d.addEventListener('click', function (e) { if (e.target === d) d.close(); });
+            d.addEventListener('close', function () { d.remove(); if (url) setTimeout(function () { URL.revokeObjectURL(url); }, 60000); });
+            document.body.appendChild(d); d.showModal();
+            try {
+                const { data, error } = await getSupabase().storage.from(bucket).download(pfad);
+                if (error) throw error;
+                if (!d.open) return;
+                url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
+                const body = d.querySelector('.pdfv-body');
+                body.textContent = '';
+                const f = document.createElement('iframe');
+                f.title = titel || 'PDF'; f.src = url;
+                body.appendChild(f);
+                const tab = d.querySelector('[data-tab]'), dl = d.querySelector('[data-dl]');
+                tab.href = url; tab.hidden = false;
+                dl.href = url; dl.download = dateiname; dl.hidden = false;
+            } catch (e) {
+                d.querySelector('.pdfv-body').textContent = 'PDF konnte nicht geladen werden: ' + ((e && e.message) || e);
+            }
+        }
+
+        /* === Post & Strafen (Spec docs/superpowers/specs/2026-09-28-post-strafen-design.md) === */
+        const ART = { lenkererhebung: 'Lenkererhebung', strafverfuegung: 'Strafverfügung', anonymverfuegung: 'Anonymverfügung',
+            zahlungsaufforderung: 'Zahlungsaufforderung', mahnung: 'Mahnung', sonstige: 'Sonstige' };
+        const STRAFE = ['strafverfuegung', 'anonymverfuegung', 'zahlungsaufforderung', 'mahnung'];
+        const REITER = [
+            ['offen', 'Offen', function (q) { return q.in('status', ['neu', 'pruefen', 'offen']); }],
+            ['le', 'Lenkererhebungen', function (q) { return q.eq('art', 'lenkererhebung'); }],
+            ['strafen', 'Strafen', function (q) { return q.in('art', STRAFE); }],
+            ['sonstige', 'Sonstige', function (q) { return q.eq('art', 'sonstige'); }],
+            ['gesendet', 'Gesendet', null],
+            ['erledigt', 'Erledigt', function (q) { return q.eq('status', 'erledigt'); }],
+            ['alle', 'Alle', function (q) { return q; }],
+        ];
+        const GMAIL = 'https://mail.google.com/mail/?authuser=sw.hydrafleet@gmail.com#all/';
+        const S = { reiter: 'offen', q: '', rows: [], gesendet: [], fahrer: [], mieter: [], ausgang: {}, wahl: new Set() };
+        const datum = function (d) { return d ? new Date(d).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: '2-digit' }) : ''; };
+        const zeit = function (d) { return d ? new Date(d).toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''; };
+        const euro = function (n) { return n == null ? '' : fmt(n); };
+        const heute = function () { return new Date().toISOString().slice(0, 10); };
+        const fahrerName = function (id) { return (S.fahrer.find(function (f) { return f.id === id; }) || {}).name || ''; };
+
+        async function fn(name, body) {
+            const { data, error } = await getSupabase().functions.invoke(name, { body: body });
+            if (error) { let t = error.message; try { t = (await error.context.json()).fehler || t; } catch (e) {} throw new Error(t); }
+            return data;
+        }
+        async function rpc(name, args) { const { error } = await getSupabase().rpc(name, args); if (error) throw error; }
+
+        async function stammdaten() {
+            const sb = getSupabase();
+            const res = await Promise.all([
+                sb.from('fahrer').select('id,name,kennzeichen,aktiv').order('name'),
+                sb.from('mietverhaeltnisse').select('*').order('gueltig_von', { ascending: true, nullsFirst: true }),
+            ]);
+            S.fahrer = res[0].data || []; S.mieter = res[1].data || [];
+        }
+
+        async function laden() {
+            const sb = getSupabase();
+            if (S.reiter === 'gesendet') {
+                const { data, error } = await sb.from('post_ausgang')
+                    .select('*, post_eingang(id, art, gz, kennzeichen, behoerde, usp_absender, datei_pfad)')
+                    .is('test_an', null).order('gesendet_am', { ascending: false, nullsFirst: false }).limit(500);
+                if (error) console.warn('Gesendet:', error);
+                S.gesendet = data || []; zeichnen(); return;
+            }
+            const r = REITER.find(function (x) { return x[0] === S.reiter; });
+            let q = sb.from('post_eingang')
+                .select('id,quelle,usp_absender,usp_betreff,zugestellt_am,eingelesen_am,art,gz,behoerde,kennzeichen,tatzeit,tatort,delikt,betrag,frist,antwort_email,fahrer_id,fahrer_vorschlag_id,status,pruef_grund,freigegeben_am,erledigt_am,notiz,datei_pfad')
+                .order('zugestellt_am', { ascending: false, nullsFirst: false }).order('eingelesen_am', { ascending: false }).limit(500);
+            q = r[2](q);
+            const such = S.q.replace(/[,()"*:%]/g, ' ').trim();
+            if (such) q = q.or('gz.ilike.*' + such + '*,kennzeichen.ilike.*' + such + '*,suche.wfts(german).' + such);
+            const { data, error } = await q;
+            if (error) { console.warn('Post laden:', error); toast('Laden fehlgeschlagen: ' + error.message); }
+            S.rows = data || [];
+            S.ausgang = {};
+            const gz = S.rows.map(function (x) { return x.gz; }).filter(Boolean);
+            if (gz.length) {
+                const a = await sb.from('post_ausgang').select('gz, gesendet_am, an, gmail_thread_id, quelle').in('gz', gz).is('test_an', null).is('fehler', null);
+                (a.data || []).forEach(function (x) { S.ausgang[x.gz] = x; });
+            }
+            zeichnen();
+        }
+
+        function statusText(r) {
+            const a = r.gz && S.ausgang[r.gz];
+            if (r.status === 'beantwortet' && a) return '✓ beantwortet ' + datum(a.gesendet_am) + (a.quelle === 'gmail_abgleich' ? ' (Gmail)' : '');
+            if (r.status === 'offen') return r.art === 'lenkererhebung' ? 'zu beantworten' : STRAFE.indexOf(r.art) >= 0 ? (r.fahrer_id ? 'freigeben' : 'zuordnen') : 'offen';
+            return ({ neu: 'wird gelesen …', pruefen: '⚠ prüfen', beantwortet: '✓ beantwortet', freigegeben: '✓ freigegeben', erledigt: 'erledigt' })[r.status] || r.status;
+        }
+
+        function zeichnen() {
+            document.getElementById('reiter').innerHTML = REITER.map(function (x) {
+                return '<button class="chip' + (x[0] === S.reiter ? ' active' : '') + '" data-r="' + x[0] + '" role="tab" aria-selected="' + (x[0] === S.reiter) + '">' + x[1] + '</button>';
+            }).join('');
+            const tb = document.getElementById('zeilen');
+            if (S.reiter === 'gesendet') {
+                tb.innerHTML = S.gesendet.map(function (a) {
+                    const e = a.post_eingang || {};
+                    return '<tr' + (e.id ? ' class="klick" data-id="' + esc(e.id) + '"' : '') + '><td class="cb"></td>'
+                        + '<td class="l">' + datum(a.gesendet_am) + '</td><td class="l m-weg">' + esc(a.an) + '</td>'
+                        + '<td class="l">' + esc(a.betreff) + '</td><td class="l m-weg">' + esc(e.kennzeichen) + '</td>'
+                        + '<td class="l m-weg" colspan="3">' + (a.fehler ? '<span class="err">⚠ ' + esc(a.fehler) + '</span>' : esc(((a.text || '').split('\n')[3]) || '')) + '</td>'
+                        + '<td class="l">' + (a.gmail_thread_id ? '<a class="lnk" target="_blank" rel="noopener" href="' + GMAIL + esc(a.gmail_thread_id) + '">in Gmail</a>' : '') + '</td></tr>';
+                }).join('') || '<tr><td class="leer" colspan="9">Noch nichts gesendet.</td></tr>';
+                document.getElementById('sammel').hidden = true;
+                return;
+            }
+            tb.innerHTML = S.rows.map(function (r) {
+                const ueber = r.frist && r.frist < heute() && ['neu', 'pruefen', 'offen'].indexOf(r.status) >= 0;
+                const waehlbar = r.art === 'lenkererhebung' && r.status === 'offen';
+                const fahrer = r.fahrer_id ? esc(fahrerName(r.fahrer_id)) + (r.fahrer_id === r.fahrer_vorschlag_id && !r.freigegeben_am ? ' <span class="leise">(Vorschl.)</span>' : '') : '';
+                return '<tr class="klick' + (ueber ? ' rot' : '') + '" data-id="' + r.id + '">'
+                    + '<td class="cb">' + (waehlbar ? '<input type="checkbox" data-w="' + r.id + '"' + (S.wahl.has(r.id) ? ' checked' : '') + ' aria-label="wählen">' : '') + '</td>'
+                    + '<td class="l">' + datum(r.zugestellt_am || r.eingelesen_am) + '</td>'
+                    + '<td class="l m-weg">' + esc(r.behoerde || r.usp_absender) + '</td>'
+                    + '<td class="l">' + esc(ART[r.art] || '–') + '</td>'
+                    + '<td class="l m-weg">' + esc(r.kennzeichen) + '</td><td class="l m-weg">' + fahrer + '</td>'
+                    + '<td class="m-weg">' + euro(r.betrag) + '</td><td class="l m-weg">' + datum(r.frist) + '</td>'
+                    + '<td class="l st">' + esc(statusText(r)) + '</td></tr>';
+            }).join('') || '<tr><td class="leer" colspan="9">Nichts gefunden.</td></tr>';
+            const n = S.wahl.size, s = document.getElementById('sammel');
+            s.hidden = n === 0;
+            s.innerHTML = '<button class="btn primary" id="btnSammel">' + n + ' Lenkererhebung' + (n === 1 ? '' : 'en') + ' senden …</button>';
+        }
+
+        async function detailOeffnen(id) {
+            let r = S.rows.find(function (x) { return x.id === id; });
+            if (!r) {
+                const { data } = await getSupabase().from('post_eingang').select('*').eq('id', id).maybeSingle();
+                if (!data) return; r = data;
+            }
+            const d = document.getElementById('detail');
+            d.innerHTML = '<div class="d-kopf"><b>' + esc(ART[r.art] || 'Post') + ' · ' + esc(r.gz || r.usp_betreff || '') + '</b>'
+                + '<button class="btn" id="dPdf">PDF ansehen</button><button class="x" data-zu aria-label="Schließen">✕</button></div>'
+                + '<dl class="d-info"><dt>Absender</dt><dd>' + esc(r.behoerde || r.usp_absender) + '</dd>'
+                + '<dt>Eingang</dt><dd>' + zeit(r.zugestellt_am || r.eingelesen_am) + '</dd>'
+                + '<dt>Kennzeichen</dt><dd>' + esc(r.kennzeichen) + '</dd><dt>Tatzeit</dt><dd>' + zeit(r.tatzeit) + '</dd>'
+                + '<dt>Ort / Delikt</dt><dd>' + esc([r.tatort, r.delikt].filter(Boolean).join(' · ')) + '</dd>'
+                + '<dt>Betrag</dt><dd>' + euro(r.betrag) + '</dd><dt>Frist</dt><dd>' + datum(r.frist) + '</dd></dl>'
+                + (r.pruef_grund ? '<p class="warnbox">⚠ ' + esc(r.pruef_grund) + ' <button class="btn" id="dNeu">Neu auslesen</button></p>' : '')
+                + '<div id="dArbeit">Lade …</div>'
+                + '<label class="dlabel">Notiz<textarea id="dNotiz" rows="2">' + esc(r.notiz) + '</textarea></label>'
+                + '<div class="d-fuss">' + (r.status === 'erledigt' ? '<button class="btn" id="dAuf">Wieder öffnen</button>' : '<button class="btn" id="dErl">Erledigt</button>') + '</div>';
+            d.showModal();
+            d.querySelector('[data-zu]').onclick = function () { d.close(); };
+            d.querySelector('#dPdf').onclick = function () { pdfAnsicht('post', r.datei_pfad, (ART[r.art] || 'Post') + ' ' + (r.gz || '')); };
+            const neu = d.querySelector('#dNeu');
+            if (neu) neu.onclick = async function () {
+                neu.disabled = true; neu.textContent = 'Lese …';
+                try { await fn('post-eingang', { aktion: 'neu_auslesen', id: r.id }); d.close(); laden(); }
+                catch (e) { neu.textContent = 'Fehler: ' + e.message; }
+            };
+            d.querySelector('#dNotiz').onchange = function (e) { rpc('post_notiz', { p_id: r.id, p_notiz: e.target.value }).catch(function (err) { toast(err.message); }); };
+            const erl = d.querySelector('#dErl');
+            if (erl) erl.onclick = async function () { try { await rpc('post_erledigt', { p_id: r.id, p_notiz: d.querySelector('#dNotiz').value }); d.close(); laden(); } catch (e) { toast(e.message); } };
+            const auf = d.querySelector('#dAuf');
+            if (auf) auf.onclick = async function () { try { await rpc('post_wieder_oeffnen', { p_id: r.id }); d.close(); laden(); } catch (e) { toast(e.message); } };
+            const box = d.querySelector('#dArbeit');
+
+            if (r.art === 'lenkererhebung') {
+                const a = S.ausgang[r.gz];
+                if (a) { box.innerHTML = '<p class="ok">✓ beantwortet ' + zeit(a.gesendet_am) + ' an ' + esc(a.an) + (a.gmail_thread_id ? ' · <a class="lnk" target="_blank" rel="noopener" href="' + GMAIL + esc(a.gmail_thread_id) + '">in Gmail</a>' : '') + '</p>'; return; }
+                try {
+                    const v = (await fn('post-senden', { aktion: 'vorschau', ids: [r.id] }))[0];
+                    if (!v || !v.ok) { box.innerHTML = '<p class="warnbox">Nicht sendbar: ' + esc(v ? v.grund : 'unbekannt') + '</p>'; return; }
+                    box.innerHTML = '<pre class="mail">An:      ' + esc(v.an) + '\nBetreff: ' + esc(v.betreff) + '\n\n' + esc(v.text) + '</pre>'
+                        + '<div class="d-fuss" style="justify-content:flex-start"><button class="btn primary" id="dSend">' + esc(v.knopf) + '</button>'
+                        + '<button class="btn" id="dTest">Probe an mich</button></div>';
+                    box.querySelector('#dSend').onclick = async function (ev) {
+                        const b = ev.currentTarget; b.disabled = true; b.textContent = 'Sende …';
+                        try { const e = (await fn('post-senden', { aktion: 'senden', ids: [r.id] }))[0]; b.textContent = e.ok ? '✓ gesendet' + (e.warnung ? ' (' + e.warnung + ')' : '') : 'Nicht gesendet: ' + e.grund; }
+                        catch (err) { b.textContent = 'Fehler: ' + err.message; }
+                        laden();
+                    };
+                    box.querySelector('#dTest').onclick = async function (ev) {
+                        const b = ev.currentTarget; b.disabled = true; b.textContent = 'Sende Probe …';
+                        try { const e = (await fn('post-senden', { aktion: 'senden', ids: [r.id], test_an: 'sw.hydrafleet@gmail.com' }))[0]; b.textContent = e.ok ? '✓ Probe an sw.hydrafleet@gmail.com' : 'Fehler: ' + e.grund; }
+                        catch (err) { b.textContent = 'Fehler: ' + err.message; }
+                    };
+                } catch (e) { box.innerHTML = '<p class="warnbox">' + esc(e.message) + '</p>'; }
+                return;
+            }
+
+            if (STRAFE.indexOf(r.art) >= 0) {
+                if (r.freigegeben_am) {
+                    box.innerHTML = '<p class="ok">✓ für ' + esc(fahrerName(r.fahrer_id)) + ' freigegeben am ' + zeit(r.freigegeben_am) + '</p><button class="btn" id="dZurueck">Freigabe zurücknehmen</button>';
+                    box.querySelector('#dZurueck').onclick = async function () { try { await rpc('post_freigabe_zuruecknehmen', { p_id: r.id }); d.close(); laden(); } catch (e) { toast(e.message); } };
+                    return;
+                }
+                const opts = '<option value="">– Fahrer wählen –</option>' + S.fahrer.filter(function (f) { return f.aktiv || f.id === r.fahrer_id; }).map(function (f) {
+                    return '<option value="' + f.id + '"' + (f.id === r.fahrer_id ? ' selected' : '') + '>' + esc(f.name) + (f.kennzeichen ? ' · ' + esc(f.kennzeichen) : '') + '</option>';
+                }).join('');
+                box.innerHTML = '<label class="dlabel">Fahrer' + (r.fahrer_vorschlag_id ? ' <span class="leise">(Vorschlag über Kennzeichen, Stand heute – Tatzeit ' + zeit(r.tatzeit) + ')</span>' : '') + '<select id="dFahrer">' + opts + '</select></label>'
+                    + '<div class="d-fuss" style="justify-content:flex-start"><button class="btn primary" id="dFrei"' + (r.fahrer_id ? '' : ' disabled') + '>Für Fahrer freigeben</button></div>';
+                const sel = box.querySelector('#dFahrer'), frei = box.querySelector('#dFrei');
+                sel.onchange = async function () {
+                    const neuId = sel.value ? Number(sel.value) : null;
+                    try { await rpc('post_zuordnen', { p_id: r.id, p_fahrer_id: neuId }); r.fahrer_id = neuId; frei.disabled = !neuId; }
+                    catch (e) { toast(e.message); }
+                };
+                frei.onclick = async function () { try { await rpc('post_freigeben', { p_id: r.id }); d.close(); laden(); toast('Freigegeben – sichtbar in der Fahrerapp'); } catch (e) { toast(e.message); } };
+                return;
+            }
+            box.innerHTML = '';
+        }
+
+        async function sammelSenden() {
+            const ids = Array.from(S.wahl), dlg = document.getElementById('sammelDlg');
+            dlg.innerHTML = '<p>Lade Vorschau …</p>'; dlg.showModal();
+            let v;
+            try { v = await fn('post-senden', { aktion: 'vorschau', ids: ids }); }
+            catch (e) { dlg.innerHTML = '<p class="warnbox">' + esc(e.message) + '</p><div class="d-fuss"><button class="btn" data-zu>Schließen</button></div>'; dlg.querySelector('[data-zu]').onclick = function () { dlg.close(); }; return; }
+            const ok = v.filter(function (x) { return x.ok; });
+            dlg.innerHTML = '<h3>' + ok.length + ' von ' + v.length + ' sendbar</h3><div class="wliste"><table class="t"><thead><tr><th class="l">Betreff</th><th class="l">An</th><th class="l" style="width:130px">Mieter</th></tr></thead><tbody>'
+                + v.map(function (x) { return '<tr><td class="l">' + esc(x.betreff || '') + '</td><td class="l">' + esc(x.an || '') + '</td><td class="l">' + (x.ok ? esc(x.mieter_kurz) : '<span class="warn">⚠ ' + esc(x.grund) + '</span>') + '</td></tr>'; }).join('')
+                + '</tbody></table></div><div class="wfuss"><span class="sp" id="sErg"></span><button class="btn" data-zu>Abbrechen</button><button class="btn primary" id="jetzt"' + (ok.length ? '' : ' disabled') + '>Jetzt ' + ok.length + ' senden</button></div>';
+            dlg.querySelector('[data-zu]').onclick = function () { dlg.close(); };
+            dlg.querySelector('#jetzt').onclick = async function (ev) {
+                const b = ev.currentTarget; b.disabled = true; b.textContent = 'Sende …';
+                try {
+                    const erg = await fn('post-senden', { aktion: 'senden', ids: ok.map(function (x) { return x.id; }) });
+                    const n = erg.filter(function (x) { return x.ok; }).length;
+                    b.textContent = n + ' gesendet';
+                    dlg.querySelector('#sErg').textContent = (erg.length - n) ? (erg.length - n) + ' nicht gesendet: ' + erg.filter(function (x) { return !x.ok; }).map(function (x) { return x.grund; }).join('; ') : '';
+                } catch (e) { b.textContent = 'Fehler: ' + e.message; }
+                S.wahl.clear(); laden();
+            };
+        }
+
+        async function hochladen(files) {
+            const liste = Array.from(files).filter(function (f) { return /\.pdf$/i.test(f.name); });
+            const st = document.getElementById('uploadStatus'); st.hidden = false;
+            let neu = 0, doppelt = 0, fehler = 0;
+            for (let i = 0; i < liste.length; i++) {
+                st.textContent = 'Lade ' + (i + 1) + '/' + liste.length + ': ' + liste[i].name + ' …';
+                const fd = new FormData(); fd.append('datei', liste[i], liste[i].name); fd.append('quelle', 'upload');
+                try { const r = await fn('post-eingang', fd); if (r.doppelt) doppelt++; else neu++; } catch (e) { fehler++; console.warn(liste[i].name, e); }
+            }
+            st.textContent = liste.length + ' PDFs: ' + neu + ' neu, ' + doppelt + ' schon vorhanden' + (fehler ? ', ' + fehler + ' Fehler (Konsole)' : '') + '. Danach „Mit Gmail abgleichen“.';
+            laden();
+        }
+
+        function mieterDialog() {
+            const d = document.getElementById('mieterDlg');
+            const zeile = function (m) {
+                return '<tr data-m="' + (m.id || '') + '">' + ['kurz', 'name', 'adresse', 'uid', 'fn', 'gueltig_von', 'gueltig_bis'].map(function (k) {
+                    return '<td class="l"><input data-k="' + k + '" ' + (k.indexOf('gueltig') === 0 ? 'type="date" ' : '') + 'value="' + esc(m[k] || '') + '" aria-label="' + k + '"></td>';
+                }).join('') + '</tr>';
+            };
+            d.innerHTML = '<h3>Mieter der Flotte</h3><p class="hinweis">Die Antwort nennt den Mieter, der am Tag der Tatzeit gilt (bis-Datum inklusive). Leere Zeile unten = neuer Mieter.</p>'
+                + '<div class="wliste"><table class="t mtab"><thead><tr><th class="l" style="width:70px">Kurz</th><th class="l">Firma</th><th class="l">Adresse</th><th class="l" style="width:110px">UID</th><th class="l" style="width:80px">FN</th><th class="l" style="width:130px">von</th><th class="l" style="width:130px">bis</th></tr></thead><tbody>'
+                + S.mieter.map(zeile).join('') + zeile({}) + '</tbody></table></div><p id="mFehler" class="warnbox"></p>'
+                + '<div class="wfuss"><span class="sp"></span><button class="btn" data-zu>Schließen</button><button class="btn primary" id="mSpeichern">Speichern</button></div>';
+            d.showModal();
+            d.querySelector('[data-zu]').onclick = function () { d.close(); };
+            d.querySelector('#mSpeichern').onclick = async function () {
+                const sb = getSupabase();
+                try {
+                    for (const tr of d.querySelectorAll('tr[data-m]')) {
+                        const o = {}; tr.querySelectorAll('input').forEach(function (i) { o[i.dataset.k] = i.value.trim() || null; });
+                        if (!o.kurz && !o.name) continue;
+                        const q = tr.dataset.m ? sb.from('mietverhaeltnisse').update(o).eq('id', Number(tr.dataset.m)) : sb.from('mietverhaeltnisse').insert(o);
+                        const { error } = await q; if (error) throw error;
+                    }
+                    await stammdaten(); d.close(); toast('Mieter gespeichert');
+                } catch (e) { d.querySelector('#mFehler').textContent = /ueberschneidung|exclusion/i.test(e.message) ? 'Zeiträume überschneiden sich.' : e.message; }
+            };
+        }
+
+        function initSeite() {
+            let suchTimer = null;
+            document.getElementById('suche').addEventListener('input', function (e) {
+                clearTimeout(suchTimer); suchTimer = setTimeout(function () { S.q = e.target.value; laden(); }, 300);
+            });
+            document.getElementById('reiter').addEventListener('click', function (e) {
+                const b = e.target.closest('[data-r]'); if (!b) return; S.reiter = b.dataset.r; S.wahl.clear(); laden();
+            });
+            document.getElementById('zeilen').addEventListener('click', function (e) {
+                const cb = e.target.closest('[data-w]');
+                if (cb) { if (cb.checked) S.wahl.add(cb.dataset.w); else S.wahl.delete(cb.dataset.w); zeichnen(); return; }
+                if (e.target.closest('a')) return;
+                const tr = e.target.closest('tr[data-id]'); if (tr && tr.dataset.id) detailOeffnen(tr.dataset.id);
+            });
+            document.getElementById('alleWahl').addEventListener('change', function (e) {
+                S.rows.filter(function (r) { return r.art === 'lenkererhebung' && r.status === 'offen'; }).forEach(function (r) { if (e.target.checked) S.wahl.add(r.id); else S.wahl.delete(r.id); });
+                zeichnen();
+            });
+            document.getElementById('sammel').addEventListener('click', function (e) { if (e.target.closest('#btnSammel')) sammelSenden(); });
+            document.getElementById('upload').addEventListener('change', function (e) { hochladen(e.target.files); e.target.value = ''; });
+            document.getElementById('uploadDateien').addEventListener('change', function (e) { hochladen(e.target.files); e.target.value = ''; });
+            document.getElementById('btnAbgleich').addEventListener('click', async function (e) {
+                const b = e.currentTarget; b.disabled = true; b.textContent = 'Gleiche ab …';
+                try { const r = await fn('post-senden', { aktion: 'abgleich' }); b.textContent = r.gefunden + ' von ' + r.geprueft + ' schon in Gmail'; }
+                catch (err) { b.textContent = 'Fehler: ' + err.message; }
+                setTimeout(function () { b.disabled = false; b.textContent = 'Mit Gmail abgleichen'; }, 6000);
+                laden();
+            });
+            document.getElementById('btnMieter').addEventListener('click', mieterDialog);
+            document.getElementById('themeBtn').addEventListener('click', function () {
+                const html = document.documentElement, dunkel = html.getAttribute('data-theme') !== 'dark';
+                if (dunkel) html.setAttribute('data-theme', 'dark'); else html.removeAttribute('data-theme');
+                try { localStorage.setItem('theme', dunkel ? 'dark' : 'light'); } catch (e) {}
+            });
+            stammdaten().then(laden);
+        }
+
+        /* Auth-Guard wie dashboard.html: nur mit app_metadata.app_role */
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                const client = getSupabase();
+                const { data } = await client.auth.getSession();
+                if (!data || !data.session) { forceLogout(); return; }
+                const am = (data.session.user && data.session.user.app_metadata) || {};
+                if (am.app_role !== 'admin' && am.app_role !== 'user') {
+                    if (am.fahrer_nr != null && am.fahrer_nr !== '') { window.location.replace('/fahrer/'); return; }
+                    try { await client.auth.signOut(); } catch (e2) {}
+                    forceLogout(); return;
+                }
+                client.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT') forceLogout(); });
+            } catch (e) { forceLogout(); return; }
+            initSeite();
+        });
+    </script>
+</body>
+</html>

@@ -58,6 +58,8 @@ Geld entscheidet weiterhin das alte System.
 | `bolt-sync` | Bolt Fleet Integration API (OIDC client_credentials) | `bolt_orders`, `bolt_drivers`, `bolt_vehicles` |
 | `uber-sync` | Uber Fleet-Portal (gespeicherte Sitzung, 3 Berichte) | `uber_reports`, `uber_drivers`, `uber_vehicles`, `uber_trips` |
 | `notion-sync` | Notion API (`/v1/data_sources/{id}/query`) | `fuhrpark`, `notion_fahrer`, setzt `fahrer.notion_fahrer_id` wo leer |
+| `post-eingang` | PDF vom USP-Skript oder Upload, Claude-Auslese | `post_eingang`, Storage `post` |
+| `post-senden` | Gmail-API (`sw.hydrafleet@gmail.com`) | `post_ausgang`, Status in `post_eingang` |
 
 Jeder Lauf schreibt eine Zeile nach `sync_runs`.
 
@@ -97,6 +99,35 @@ und `ee_taxi_kg` (E&E Taxi KG, Org `c566f3b3-…`, eigener Login, Browser-Profil
 schreibt `uber-sync` `sitzung_abgelaufen:` in `verbindungen.letzter_fehler`, der
 Verbindungen-Tab zeigt es an. Erneuern mit dem Skript oben.
 
+## Post & Strafen (seit 2026-09-28)
+
+Behördenpost an **Hydrafleet KG** (USP „Mein Postkorb“) landet zusätzlich zu Telegram in
+HYDRAlink. Spec: `docs/superpowers/specs/2026-09-28-post-strafen-design.md`, Plan:
+`docs/superpowers/plans/2026-09-28-post-strafen.md`.
+
+- **Eingang:** `/root/usp-bot.sh` auf `taxi` (stündlich) schickt jedes PDF zusätzlich an die
+  Edge Function `post-eingang` (Header `x-post-key` aus `/root/.post-eingang-key`, Vault-Anbieter
+  `usp`). Telegram und `CloseDelivery` laufen auch, wenn HYDRAlink nicht antwortet. Repo-Kopie
+  ohne Token: `scripts/server/usp-bot.sh`.
+- **Auslesen:** Claude (`claude-sonnet-5`, Key im Vault, Anbieter `anthropic`) liest Art, GZ,
+  Kennzeichen, Tatzeit, Betrag, Frist, Antwortadresse. Reine Logik und Prüfregeln in
+  `supabase/functions/_shared/post-logik.ts` (Tests: `node --test scripts/test-post-logik.mjs`).
+  Lenkererhebung ohne Datum: Frist = Zustellung + 14 Tage.
+- **Lenkererhebung beantworten:** `post-senden` schickt per Gmail-API von `sw.hydrafleet@gmail.com`
+  „vermietet an <Mieter zur Tatzeit>“ — nur per Knopf in `post.html`. Mieter der ganzen Flotte
+  stehen in `mietverhaeltnisse` (Wiener Datum der Tatzeit, bis inklusive; in `post.html → Mieter`
+  pflegen). Nie zweimal je GZ: Unique-Index `post_ausgang_gz_einmal` + Abgleich mit Gmail „Gesendet“.
+- **Strafen:** Fahrer-Vorschlag über Kennzeichen (`post_fahrer_vorschlag`), Büro bestätigt und
+  gibt frei (`post_freigeben`) → Fahrerapp „Mehr → Strafen“ (`fahrer_app_strafen`, Bucket `post`,
+  Policy `post_pfad_erlaubt`).
+- **Rückstand / Nachholen:** Das USP hebt abgeschlossene Zustellungen noch eine Zeit auf.
+  `/root/usp-rueckstand.sh --liste | --eine <ID> | --alle` holt sie (nur die laut Log
+  abgeschlossenen) und schickt sie an `post-eingang`; Doppelte erkennt der sha256.
+- **USP-Proxy** (`/root/usp-proxy.js`, systemd `usp-proxy`) lauscht seit 28.09. nur auf
+  `127.0.0.1:9999` — vorher war er offen im Internet. Nie wieder auf `0.0.0.0`.
+- **Zugänge einrichten:** `scripts/post-zugaenge-einrichten.js` (USP-Schlüssel + Anthropic,
+  `pbpaste | … --nur-anthropic`), `scripts/gmail-zugang-speichern.js <client.json>` (Google-OAuth).
+
 ## Key Supabase Tables
 
 **Bestehend (altes System, nicht anfassen):**
@@ -109,6 +140,8 @@ Verbindungen-Tab zeigt es an. Erneuern mit dem Skript oben.
 - `bolt_orders`, `bolt_drivers`, `bolt_vehicles`, `bolt_state_logs`
 - `uber_reports`, `uber_drivers`, `uber_vehicles`, `uber_trips`
 - `fuhrpark`, `notion_fahrer` — Notion-Lesekopien
+
+**Post & Strafen:** `post_eingang`, `post_ausgang`, `mietverhaeltnisse` (RLS: Büro liest, Fahrer nur über `fahrer_app_strafen`)
 
 **Views (alle `security_invoker = true`):**
 `abrechnung_abgleich`, `bolt_abgleich`, `fahrer_uebersicht`, `fuhrpark_uebersicht`, `zuordnung_abgleich`, `verbindungen_status`

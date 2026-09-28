@@ -105,6 +105,11 @@ CSV-Upload, Rechnungen. Am Handy Burger-Menü statt Tab-Leiste.
 
 ### Mit Frist
 
+0. **Post & Strafen (28.09.):** Mieterwechsel Mitte Oktober in `post.html → Mieter` eintragen
+   (EH bis …, neuer Mieter ab …), sonst nennen Antworten weiter EH. Telegram-Bot-Token des
+   USP-Bots rotieren (@BotFather `/revoke`, neu in `/root/usp-bot.sh`) — er stand am 28.09. im
+   Klartext in einer Claude-Sitzung. Gmail-Zugang (`scripts/gmail-zugang-speichern.js`) muss
+   eingerichtet sein, sonst kein Senden/Abgleich.
 1. **Die Uber-Sitzung läuft am 06.10.2026 ab.** Erneuern mit
    `node scripts/uber-session-speichern.js`. Der Weg ist gebaut, aber noch nie
    unter echten Bedingungen durchgespielt. **Vor dem 06.10. einmal testen,

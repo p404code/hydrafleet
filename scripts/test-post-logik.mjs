@@ -1,7 +1,7 @@
 // node --test scripts/test-post-logik.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { wienDatum, mieterZurTatzeit, pruefeAuslese, antwortMail, behoerdeKurz, knopfText, mimeRaw }
+import { wienDatum, mieterZurTatzeit, pruefeAuslese, antwortMail, behoerdeKurz, knopfText, mimeRaw, fristErgaenzen }
   from '../supabase/functions/_shared/post-logik.ts';
 
 const SORHAN = { id: 1, kurz: 'Sorhan', name: 'Sorhan Taxi KG', adresse: 'Seitenstettengasse 5/37, 1010 Wien', uid: null, fn: null, gueltig_von: null, gueltig_bis: '2026-01-10' };
@@ -83,4 +83,12 @@ test('mimeRaw: UTF-8-Betreff und Body, base64url', () => {
   assert.ok(!/[+/=]/.test(raw));
   const body = txt.split('\r\n\r\n')[1];
   assert.equal(Buffer.from(body, 'base64').toString('utf8'), 'Grüße');
+});
+
+test('fristErgaenzen: Lenkererhebung ohne Datum = Zustellung + 14 Tage (Wiener Datum)', () => {
+  assert.equal(fristErgaenzen('lenkererhebung', null, '2026-09-18T10:05:03Z'), '2026-10-02');
+  assert.equal(fristErgaenzen('lenkererhebung', null, '2026-09-17T22:30:00Z'), '2026-10-02');  // 18.09. 00:30 Wien
+  assert.equal(fristErgaenzen('lenkererhebung', '2026-10-05', '2026-09-18T10:05:03Z'), '2026-10-05');  // Datum im PDF gewinnt
+  assert.equal(fristErgaenzen('strafverfuegung', null, '2026-09-18T10:05:03Z'), null);
+  assert.equal(fristErgaenzen('lenkererhebung', null, null), null);
 });

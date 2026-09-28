@@ -37,7 +37,16 @@ export function mieterZurTatzeit(liste: Mieter[], tatzeitIso: string | null): Mi
   return liste.find((m) => (!m.gueltig_von || m.gueltig_von <= d) && (!m.gueltig_bis || d <= m.gueltig_bis)) ?? null;
 }
 
-const STRAFEN: Art[] = ["strafverfuegung", "anonymverfuegung", "zahlungsaufforderung", "mahnung"];
+// Lenkererhebungen nennen meist kein Datum, sondern "binnen zwei Wochen nach Zustellung".
+// Ein Datum aus dem PDF gewinnt immer.
+export function fristErgaenzen(art: Art, frist: string | null, zugestelltAm: string | null): string | null {
+  if (frist || art !== "lenkererhebung" || !zugestelltAm) return frist;
+  const d = new Date(`${wienDatum(zugestelltAm)}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 14);
+  return d.toISOString().slice(0, 10);
+}
+
+const STRAFEN: Art[] =["strafverfuegung", "anonymverfuegung", "zahlungsaufforderung", "mahnung"];
 
 export function pruefeAuslese(a: Auslese, zugestelltAm: string | null): string[] {
   const g: string[] = [];

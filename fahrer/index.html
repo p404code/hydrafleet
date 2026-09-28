@@ -274,9 +274,10 @@
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         /* Zustand. mode: 'fahrer' (eigene Sitzung) oder 'vorschau' (Büro-Sitzung, ?vorschau=<fahrer_id>). */
-        const S = { mode: null, vorschauId: null, profil: null, abr: [], offen: [], loadedAt: 0, loading: false, lz: lzLeer() };
+        const S = { mode: null, vorschauId: null, profil: null, abr: [], offen: [], loadedAt: 0, loading: false, lz: lzLeer(), st: stLeer() };
         /* Lohnzettel + Dienstgeber: eigener Ladezustand, lazy beim ersten Öffnen (Start oder Lohnzettel), nach >5 Min neu */
         function lzLeer() { return { rows: [], dg: [], err: false, loadedAt: 0, loading: false }; }
+        function stLeer() { return { rows: [], err: false, loadedAt: 0, loading: false }; }
 
         const ICON_BACK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>';
         const ICON_CHEV = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>';
@@ -391,7 +392,7 @@
         fidInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); pinInputs[0].focus(); } });
 
         function showLogin() {
-            S.mode = null; S.profil = null; S.abr = []; S.offen = []; S.lz = lzLeer();
+            S.mode = null; S.profil = null; S.abr = []; S.offen = []; S.lz = lzLeer(); S.st = stLeer();
             clearPins();
             document.getElementById('loginErr').textContent = '';
             try { const last = localStorage.getItem('fahrer_nr_last'); if (last && /^[0-9]{1,9}$/.test(last) && !fidInput.value) fidInput.value = last; } catch (e) {}
@@ -483,6 +484,26 @@
             if (n === 'start' || n === 'lohnzettel') render();
         }
 
+        /* Strafen: nur vom Büro freigegebene, eigene (fahrer_app_strafen); lazy, nach >5 Min neu */
+        function stAlt() { return !S.st.loadedAt || Date.now() - S.st.loadedAt > 5 * 60 * 1000; }
+        async function ladenStrafen() {
+            if (S.st.loading) return;
+            S.st.loading = true;
+            const arg = S.mode === 'vorschau' ? { p_fahrer_id: S.vorschauId } : null;
+            try {
+                const res = await (arg ? sb.rpc('fahrer_app_strafen', arg) : sb.rpc('fahrer_app_strafen'));
+                if (res.error) { console.warn('Strafen:', res.error); S.st.err = true; S.st.rows = []; }
+                else { S.st.err = false; S.st.rows = res.data || []; }
+            } catch (err) {
+                console.warn('Strafen laden:', err);
+                S.st.err = true;
+            } finally {
+                S.st.loadedAt = Date.now();
+                S.st.loading = false;
+            }
+            if (route().name === 'strafen') render();
+        }
+
         async function startApp() {
             showLoading();
             S.loading = true;
@@ -531,16 +552,17 @@
         function route() {
             const h = decodeURIComponent((location.hash || '').replace(/^#/, ''));
             const parts = h.split('/');
-            const name = ['start', 'abrechnung', 'offen', 'kontakt', 'mehr', 'lohnzettel', 'fahrzeug'].indexOf(parts[0]) >= 0 ? parts[0] : 'start';
+            const name = ['start', 'abrechnung', 'offen', 'kontakt', 'mehr', 'lohnzettel', 'fahrzeug', 'strafen'].indexOf(parts[0]) >= 0 ? parts[0] : 'start';
             return { name: name, arg: parts.slice(1).join('/') };
         }
-        const TAB_FOR = { start: 'start', abrechnung: 'abrechnung', offen: 'mehr', kontakt: 'mehr', mehr: 'mehr', lohnzettel: 'mehr', fahrzeug: 'fahrzeug' };
+        const TAB_FOR = { start: 'start', abrechnung: 'abrechnung', offen: 'mehr', kontakt: 'mehr', mehr: 'mehr', lohnzettel: 'mehr', fahrzeug: 'fahrzeug', strafen: 'mehr' };
 
         function render() {
             if (!S.profil || document.getElementById('shell').hidden) return;
             const r = route();
             if ((r.name === 'start' || r.name === 'lohnzettel') && lzAlt() && !S.lz.loading) ladenLohn();
-            const out = ({ start: viewStart, abrechnung: viewAbrechnung, offen: viewOffen, kontakt: viewKontakt, mehr: viewMehr, lohnzettel: viewLohnzettel, fahrzeug: viewFahrzeug })[r.name](r.arg);
+            if (r.name === 'strafen' && stAlt() && !S.st.loading) ladenStrafen();
+            const out = ({ start: viewStart, abrechnung: viewAbrechnung, offen: viewOffen, kontakt: viewKontakt, mehr: viewMehr, lohnzettel: viewLohnzettel, fahrzeug: viewFahrzeug, strafen: viewStrafen })[r.name](r.arg);
             document.getElementById('topbar').className = 'topbar' + (out.back ? ' sub' : '');
             document.getElementById('topbar').innerHTML = out.back
                 ? '<a class="back" href="' + out.back + '" aria-label="Zurück">' + ICON_BACK + '</a><div class="title">' + esc(out.title) + '</div><div class="who">' + esc(out.right || '') + '</div>'
@@ -682,6 +704,24 @@
             return Object.assign(base, { html: html });
         }
 
+        /* Strafen – nur freigegebene, eigene; PDF über denselben Knopf wie Lohnzettel (Bucket 'post') */
+        const ST_ART = { strafverfuegung: 'Strafverfügung', anonymverfuegung: 'Anonymverfügung', zahlungsaufforderung: 'Zahlungsaufforderung', mahnung: 'Mahnung' };
+        function viewStrafen() {
+            const base = { back: '#mehr', title: 'Strafen', right: '' };
+            if (!S.st.loadedAt) return Object.assign(base, { html: '<div class="empty"><b>Lade …</b></div>' });
+            if (S.st.err) return Object.assign(base, { html: '<div class="empty"><b>Strafen noch nicht verfügbar.</b><span>Bitte später erneut versuchen.</span></div>' });
+            if (!S.st.rows.length) return Object.assign(base, { html: '<div class="empty"><b>Keine Strafen.</b><span>Wenn das Büro eine Strafe für dich freigibt, steht sie hier mit PDF.</span></div>' });
+            const dt = d => d ? new Date(d).toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+            const html = '<div class="list">' + S.st.rows.map(r => '<div class="lzrow"><div class="lzrow-l"><b>' + esc(ST_ART[r.art] || 'Strafe') + ' · ' + esc(dt(r.tatzeit)) + '</b>'
+                    + '<span>' + esc([r.delikt, r.tatort].filter(Boolean).join(' · ') || (r.behoerde || '')) + '</span>'
+                    + '<span>' + esc(r.behoerde || '') + (r.gz ? ' · ' + esc(r.gz) : '') + (r.frist ? ' · Frist ' + esc(new Date(r.frist).toLocaleDateString('de-AT')) : '') + '</span></div>'
+                    + '<span class="num neg">' + (r.betrag != null ? fmt(r.betrag) : '') + '</span>'
+                    + (r.pfad ? '<button type="button" class="btn-ghost sm" data-act="pdf" data-bucket="post" data-pfad="' + esc(r.pfad) + '">PDF öffnen</button>' : '')
+                    + '</div>').join('') + '</div>'
+                + '<div class="note">Fragen zur Strafe? Bitte im Büro melden.</div>';
+            return Object.assign(base, { html: html });
+        }
+
         /* PDF über Signed URL öffnen. iOS-PWA (standalone): im selben Tab, sonst blockt Safari.
            Sonst: Fenster synchron vor dem await öffnen, danach Adresse setzen. */
         async function pdfOeffnen(btn) {
@@ -693,7 +733,7 @@
             const label = btn.textContent;
             btn.disabled = true; btn.textContent = 'Öffne …';
             try {
-                const { data, error } = await sb.storage.from('lohnzettel').createSignedUrl(pfad, 60);
+                const { data, error } = await sb.storage.from(btn.getAttribute('data-bucket') || 'lohnzettel').createSignedUrl(pfad, 60);
                 if (error || !data || !data.signedUrl) throw error || new Error('keine URL');
                 if (w && !w.closed) { try { w.opener = null; } catch (e) {} w.location.href = data.signedUrl; }
                 else location.href = data.signedUrl;
@@ -777,6 +817,7 @@
             let html = '<section class="profile"><b>' + esc(p.name) + '</b><span>' + sub.join(' · ') + '</span></section>'
                 + '<div class="group">'
                 + '<a class="item" href="#lohnzettel">' + ICON_DOC + '<span class="grow">Lohnzettel</span>' + ICON_CHEV + '</a>'
+                + '<a class="item" href="#strafen">' + ICON_DOC + '<span class="grow">Strafen</span>' + ICON_CHEV + '</a>'
                 + '<a class="item" href="#offen">' + ICON_CASH + '<span class="grow">Offene Beträge</span><span class="num' + (offen > 0.005 ? ' neg' : ' zero') + '" style="font-size:13px;font-weight:700">' + fmt(offen) + '</span>' + ICON_CHEV + '</a>'
                 + '<a class="item" href="#kontakt">' + ICON_CHAT + '<span class="grow">Kontakt</span>' + ICON_CHEV + '</a>'
                 + '</div>'

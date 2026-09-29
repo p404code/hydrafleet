@@ -141,10 +141,14 @@ Deno.serve(async (req) => {
     const hash = await sha256(pdf);
     const deliveryId = (f.get("delivery_id") as string | null)?.trim() || null;
 
-    const [alt] = await db(`post_eingang?sha256=eq.${hash}&select=id,status,art,pruef_grund,delivery_id`);
+    const [alt] = await db(`post_eingang?sha256=eq.${hash}&select=id,status,art,pruef_grund,delivery_id,zugestellt_am`);
     if (alt) {
       if (deliveryId && !alt.delivery_id) {
         await db(`post_eingang?id=eq.${alt.id}`, { method: "PATCH", body: JSON.stringify({ delivery_id: deliveryId }) });
+      }
+      // Erneuter Upload holt ein gescheitertes Auslesen nach (z.B. Anthropic-Guthaben leer, Timeout auf 'neu').
+      if (alt.status === "neu" || String(alt.pruef_grund ?? "").startsWith("Auslesen fehlgeschlagen")) {
+        return antwort(200, { id: alt.id, doppelt: true, nachgeholt: true, ...(await verarbeiten(alt.id, pdf, alt.zugestellt_am)) });
       }
       return antwort(200, { id: alt.id, status: alt.status, art: alt.art, pruef_grund: alt.pruef_grund, doppelt: true });
     }

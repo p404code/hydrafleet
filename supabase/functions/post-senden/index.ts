@@ -1,6 +1,7 @@
-// post-senden - beantwortet Lenkererhebungen ueber die Gmail-API (sw.hydrafleet@gmail.com)
-// und gleicht offene GZ mit Gmail "Gesendet" ab. Nur Buero. Nie zweimal je GZ.
-import { antwortMail, knopfText, type Mieter, mieterZurTatzeit, mimeRaw, sendbarGrund } from "../_shared/post-logik.ts";
+// post-senden - beantwortet Lenkererhebungen per SMTP ueber sw.hydrafleet@gmail.com (App-Passwort,
+// Vault-Anbieter 'gmail'). Gmail legt die Mail unter "Gesendet" ab. Nur Buero. Nie zweimal je GZ.
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { antwortMail, knopfText, type Mieter, mieterZurTatzeit, sendbarGrund } from "../_shared/post-logik.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -22,34 +23,20 @@ function nutzer(req: Request): { id: string } | null {
   } catch { return null; }
 }
 
-let token: { wert: string; bis: number } | null = null;
-async function gmailToken() {
-  if (token && token.bis > Date.now() + 60000) return token.wert;
+async function smtpSenden(an: string, betreff: string, text: string): Promise<string> {
   const [v] = await db("verbindungen?anbieter=eq.gmail&status=eq.aktiv&select=id");
-  if (!v) throw new Error("keine aktive Gmail-Verbindung");
+  if (!v) throw new Error("keine aktive Gmail-Verbindung (App-Passwort fehlt)");
   const z = await db("rpc/verbindung_zugang", { method: "POST", body: JSON.stringify({ p_verbindung_id: v.id }) });
-  const r = await fetch("https://oauth2.googleapis.com/token", { method: "POST", body: new URLSearchParams({
-    client_id: z.client_id, client_secret: z.client_secret, refresh_token: z.refresh_token, grant_type: "refresh_token" }) });
-  const j = await r.json();
-  if (!r.ok) throw new Error(`Google-Token ${r.status}: ${j.error_description ?? j.error}`);
-  token = { wert: j.access_token, bis: Date.now() + j.expires_in * 1000 };
-  return token.wert;
-}
-async function gmail(pfad: string, init: RequestInit = {}) {
-  const r = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${pfad}`, {
-    ...init, headers: { Authorization: `Bearer ${await gmailToken()}`, "Content-Type": "application/json" } });
-  const j = await r.json();
-  if (!r.ok) throw new Error(`Gmail ${r.status}: ${JSON.stringify(j).slice(0, 300)}`);
-  return j;
-}
-// Gesendete Mail mit dieser GZ im Betreff?
-async function inGmailGesendet(gz: string): Promise<{ id: string; threadId: string; datum: string | null } | null> {
-  const q = encodeURIComponent(`in:sent subject:"${gz}"`);
-  const j = await gmail(`messages?q=${q}&maxResults=1`);
-  const m = j.messages?.[0];
-  if (!m) return null;
-  const d = await gmail(`messages/${m.id}?format=metadata&metadataHeaders=Date`);
-  return { id: m.id, threadId: m.threadId, datum: d.internalDate ? new Date(Number(d.internalDate)).toISOString() : null };
+  const msgId = `<${crypto.randomUUID()}@hydralink.hydrafleet>`;
+  const client = new SMTPClient({ connection: { hostname: "smtp.gmail.com", port: 465, tls: true,
+    auth: { username: z.user, password: z.app_passwort } } });
+  try {
+    await client.send({ from: `Hydrafleet KG <${z.user}>`, to: an, subject: betreff, content: text,
+      headers: { "Message-ID": msgId } });
+  } finally {
+    await client.close().catch(() => null);
+  }
+  return msgId;   // Gmail-Suche: rfc822msgid:<id>
 }
 
 async function laden(ids: string[]) {
@@ -72,21 +59,7 @@ Deno.serve(async (req) => {
   try {
     const b = await req.json();
 
-    if (b.aktion === "abgleich") {
-      const offen = await db("post_eingang?art=eq.lenkererhebung&status=in.(offen,pruefen)&gz=not.is.null&select=id,gz");
-      let gefunden = 0;
-      for (const e of offen) {
-        const g = await inGmailGesendet(e.gz);
-        if (!g) continue;
-        await db("post_ausgang", { method: "POST", body: JSON.stringify({
-          eingang_id: e.id, gz: e.gz, an: "(aus Gmail)", betreff: `GZ: ${e.gz}`, text: "(von Hand in Gmail gesendet)",
-          gmail_message_id: g.id, gmail_thread_id: g.threadId, gesendet_am: g.datum, quelle: "gmail_abgleich" }) })
-          .catch(() => null);   // unique je GZ: schon vorhanden = ok
-        await db(`post_eingang?id=eq.${e.id}`, { method: "PATCH", body: JSON.stringify({ status: "beantwortet" }) });
-        gefunden++;
-      }
-      return antwort(200, { geprueft: offen.length, gefunden });
-    }
+    if (b.aktion === "abgleich") return antwort(400, { fehler: "abgleich_nicht_verfuegbar" });
 
     const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const ids: string[] = Array.isArray(b.ids) ? b.ids.filter((x: unknown) => typeof x === "string" && UUID.test(x)) : [];
@@ -109,11 +82,7 @@ Deno.serve(async (req) => {
         if (!x.ok) { erg.push({ id: e.id, ok: false, grund: x.grund }); continue; }
         if (!testAn) {
           const schon = await db(`post_ausgang?gz=eq.${encodeURIComponent(e.gz)}&test_an=is.null&fehler=is.null&select=id`);
-          const g = schon.length ? null : await inGmailGesendet(e.gz);
-          if (schon.length || g) {
-            if (g) await db("post_ausgang", { method: "POST", body: JSON.stringify({ eingang_id: e.id, gz: e.gz,
-              an: "(aus Gmail)", betreff: `GZ: ${e.gz}`, text: "(von Hand in Gmail gesendet)", gmail_message_id: g.id,
-              gmail_thread_id: g.threadId, gesendet_am: g.datum, quelle: "gmail_abgleich" }) }).catch(() => null);
+          if (schon.length) {
             await db(`post_eingang?id=eq.${e.id}`, { method: "PATCH", body: JSON.stringify({ status: "beantwortet" }) });
             erg.push({ id: e.id, ok: false, grund: "bereits beantwortet" }); continue;
           }
@@ -130,9 +99,9 @@ Deno.serve(async (req) => {
           erg.push({ id: e.id, ok: false, grund: String(err).includes("23505") ? "wird bereits gesendet oder ist beantwortet" : String(err).slice(0, 300) });
           continue;
         }
-        let s: any;
+        let msgId: string;
         try {
-          s = await gmail("messages/send", { method: "POST", body: JSON.stringify({ raw: mimeRaw(an, x.mail!.betreff, x.mail!.text) }) });
+          msgId = await smtpSenden(an, x.mail!.betreff, x.mail!.text);
         } catch (err) {
           const fehler = String(err).slice(0, 500);   // fehler gesetzt -> Reservierung frei, erneuter Versuch moeglich
           await db(`post_ausgang?id=eq.${res.id}`, { method: "PATCH", body: JSON.stringify({ fehler }) }).catch(() => null);
@@ -141,10 +110,10 @@ Deno.serve(async (req) => {
         }
         // Ab hier ist die Mail raus: Status in jedem Fall setzen, sonst droht ein zweiter Versand.
         const protokoll = await db(`post_ausgang?id=eq.${res.id}`, { method: "PATCH", body: JSON.stringify({
-          gmail_message_id: s.id, gmail_thread_id: s.threadId, gesendet_am: new Date().toISOString() }) })
+          gmail_message_id: msgId, gesendet_am: new Date().toISOString() }) })
           .then(() => null, (err) => String(err).slice(0, 200));
         if (!testAn) await db(`post_eingang?id=eq.${e.id}`, { method: "PATCH", body: JSON.stringify({ status: "beantwortet" }) });
-        erg.push({ id: e.id, ok: true, gmail_message_id: s.id, ...(protokoll ? { warnung: `gesendet, Protokoll fehlgeschlagen: ${protokoll}` } : {}) });
+        erg.push({ id: e.id, ok: true, gmail_message_id: msgId, ...(protokoll ? { warnung: `gesendet, Protokoll fehlgeschlagen: ${protokoll}` } : {}) });
       }
       return antwort(200, erg);
     }

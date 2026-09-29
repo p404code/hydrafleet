@@ -1,6 +1,7 @@
 // Einmalig vom Betreiber auszufuehren (liest den service_role-Key wie uber-session-speichern.js):
 //   node scripts/post-zugaenge-einrichten.js
 //   pbpaste | node scripts/post-zugaenge-einrichten.js --nur-anthropic   (Key aus der Zwischenablage)
+//   pbpaste | node scripts/post-zugaenge-einrichten.js --nur-gmail       (Gmail-App-Passwort fuer SMTP)
 // 1) erzeugt den Eingangsschluessel fuer usp-bot.sh -> Vault (anbieter 'usp') + /root/.post-eingang-key auf taxi
 // 2) fragt den Anthropic-API-Key verdeckt ab -> Vault (anbieter 'anthropic')
 // Gibt keine Geheimnisse aus.
@@ -39,6 +40,13 @@ function ausStdin() {
 }
 (async () => {
   const key = serviceKey();
+  if (process.argv.includes('--nur-gmail')) {
+    // Gmail-App-Passwort (16 Zeichen, Leerzeichen egal) fuer SMTP-Versand von sw.hydrafleet@gmail.com
+    const pw = (process.stdin.isTTY ? await verdeckt('Gmail-App-Passwort (Eingabe unsichtbar): ') : await ausStdin()).replace(/\s+/g, '');
+    if (!/^[a-z]{16}$/i.test(pw)) throw new Error('sieht nicht wie ein 16-stelliges App-Passwort aus - nichts gespeichert');
+    console.log('Gmail (SMTP):', await setzen(key, 'gmail', { user: 'sw.hydrafleet@gmail.com', app_passwort: pw }));
+    return;
+  }
   if (!process.argv.includes('--nur-anthropic')) {
     const postKey = crypto.randomBytes(32).toString('hex');
     console.log('USP-Eingang:', await setzen(key, 'usp', { post_key: postKey }));

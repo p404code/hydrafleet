@@ -56,6 +56,8 @@ export function pruefeAuslese(a: Auslese, zugestelltAm: string | null): string[]
   if (!a.gz) g.push("GZ fehlt");
   else if (!text.includes(a.gz.toLowerCase())) g.push("GZ steht nicht im PDF-Text");
   if (a.tatzeit && zugestelltAm && Date.parse(a.tatzeit) > Date.parse(zugestelltAm)) g.push("Tatzeit liegt nach der Zustellung");
+  // Ohne Offset liest JS/Postgres die Zeit als UTC: 1-2 h falsch, am Stichtag falscher Mieter.
+  if (a.tatzeit && !/(Z|[+-]\d\d:?\d\d)$/.test(a.tatzeit.trim())) g.push("Tatzeit ohne Zeitzone");
   if (a.art === "lenkererhebung") {
     if (!a.kennzeichen) g.push("Kennzeichen fehlt");
     if (!a.tatzeit) g.push("Tatzeit fehlt");
@@ -68,6 +70,21 @@ export function pruefeAuslese(a: Auslese, zugestelltAm: string | null): string[]
   }
   if (a.art !== "lenkererhebung" && a.art !== "mahnung" && (a.betrag == null || !(a.betrag >= 0))) g.push("Betrag fehlt");
   return g;
+}
+
+// Behoerden-Adresse: nur ein Token, keine Leerzeichen/Zeilenumbrueche (Header-Injection), Endung .gv.at
+export const GV_MAIL = /^[^\s@]+@[^\s@]+\.gv\.at$/i;
+
+// null = darf gesendet werden; sonst der Grund. Serverseitige Sperre in post-senden.
+export function sendbarGrund(e: { art: string | null; status: string; pruef_grund: string | null;
+  gz: string | null; tatzeit: string | null; antwort_email: string | null }): string | null {
+  if (e.art !== "lenkererhebung") return "keine Lenkererhebung";
+  if (e.status === "beantwortet") return "bereits beantwortet";
+  if (e.pruef_grund) return `prüfen: ${e.pruef_grund}`;
+  if (e.status !== "offen") return `Status ${e.status} – nicht offen`;
+  if (!e.gz || !e.tatzeit || !e.antwort_email) return "GZ, Tatzeit oder Mailadresse fehlt";
+  if (!GV_MAIL.test(e.antwort_email)) return "Mailadresse ist keine gültige .gv.at-Adresse";
+  return null;
 }
 
 export function antwortMail(

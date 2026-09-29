@@ -1,6 +1,6 @@
 // post-senden - beantwortet Lenkererhebungen ueber die Gmail-API (sw.hydrafleet@gmail.com)
 // und gleicht offene GZ mit Gmail "Gesendet" ab. Nur Buero. Nie zweimal je GZ.
-import { antwortMail, knopfText, type Mieter, mieterZurTatzeit, mimeRaw } from "../_shared/post-logik.ts";
+import { antwortMail, knopfText, type Mieter, mieterZurTatzeit, mimeRaw, sendbarGrund } from "../_shared/post-logik.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -59,10 +59,8 @@ async function laden(ids: string[]) {
   return { rows, mieter };
 }
 function entwurf(e: any, mieter: Mieter[]) {
-  if (e.art !== "lenkererhebung") return { ok: false, grund: "keine Lenkererhebung" };
-  if (e.status === "beantwortet") return { ok: false, grund: "bereits beantwortet" };
-  if (e.status === "pruefen") return { ok: false, grund: `prüfen: ${e.pruef_grund ?? ""}` };
-  if (!e.gz || !e.tatzeit || !e.antwort_email) return { ok: false, grund: "GZ, Tatzeit oder Mailadresse fehlt" };
+  const nein = sendbarGrund(e);
+  if (nein) return { ok: false, grund: nein };
   const m = mieterZurTatzeit(mieter, e.tatzeit);
   if (!m) return { ok: false, grund: "kein Mieter zur Tatzeit" };
   return { ok: true, m, mail: antwortMail(e, m) };
@@ -90,7 +88,8 @@ Deno.serve(async (req) => {
       return antwort(200, { geprueft: offen.length, gefunden });
     }
 
-    const ids: string[] = Array.isArray(b.ids) ? b.ids.filter((x: unknown) => typeof x === "string") : [];
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const ids: string[] = Array.isArray(b.ids) ? b.ids.filter((x: unknown) => typeof x === "string" && UUID.test(x)) : [];
     if (!ids.length || ids.length > 100) return antwort(400, { fehler: "ids_fehlen_oder_zu_viele" });
     const { rows, mieter } = await laden(ids);
 
@@ -120,20 +119,29 @@ Deno.serve(async (req) => {
           }
         }
         const an = testAn ?? x.mail!.an;
-        const zeile: any = { eingang_id: e.id, gz: e.gz, an, betreff: x.mail!.betreff, text: x.mail!.text,
-          mietverhaeltnis_id: x.m!.id, gesendet_von: u.id, test_an: testAn, quelle: "hydralink" };
+        // Erst reservieren, dann senden: der Unique-Index post_ausgang_gz_einmal (test_an/fehler null)
+        // laesst je GZ nur eine Zeile zu - ein zweiter gleichzeitiger Klick scheitert hier, nicht bei der Behoerde.
+        let res: any;
+        try {
+          [res] = await db("post_ausgang", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({
+            eingang_id: e.id, gz: e.gz, an, betreff: x.mail!.betreff, text: x.mail!.text,
+            mietverhaeltnis_id: x.m!.id, gesendet_von: u.id, test_an: testAn, quelle: "hydralink" }) });
+        } catch (err) {
+          erg.push({ id: e.id, ok: false, grund: String(err).includes("23505") ? "wird bereits gesendet oder ist beantwortet" : String(err).slice(0, 300) });
+          continue;
+        }
         let s: any;
         try {
           s = await gmail("messages/send", { method: "POST", body: JSON.stringify({ raw: mimeRaw(an, x.mail!.betreff, x.mail!.text) }) });
         } catch (err) {
-          zeile.fehler = String(err).slice(0, 500);
-          await db("post_ausgang", { method: "POST", body: JSON.stringify(zeile) }).catch(() => null);
-          erg.push({ id: e.id, ok: false, grund: zeile.fehler });
+          const fehler = String(err).slice(0, 500);   // fehler gesetzt -> Reservierung frei, erneuter Versuch moeglich
+          await db(`post_ausgang?id=eq.${res.id}`, { method: "PATCH", body: JSON.stringify({ fehler }) }).catch(() => null);
+          erg.push({ id: e.id, ok: false, grund: fehler });
           continue;
         }
         // Ab hier ist die Mail raus: Status in jedem Fall setzen, sonst droht ein zweiter Versand.
-        Object.assign(zeile, { gmail_message_id: s.id, gmail_thread_id: s.threadId, gesendet_am: new Date().toISOString() });
-        const protokoll = await db("post_ausgang", { method: "POST", body: JSON.stringify(zeile) })
+        const protokoll = await db(`post_ausgang?id=eq.${res.id}`, { method: "PATCH", body: JSON.stringify({
+          gmail_message_id: s.id, gmail_thread_id: s.threadId, gesendet_am: new Date().toISOString() }) })
           .then(() => null, (err) => String(err).slice(0, 200));
         if (!testAn) await db(`post_eingang?id=eq.${e.id}`, { method: "PATCH", body: JSON.stringify({ status: "beantwortet" }) });
         erg.push({ id: e.id, ok: true, gmail_message_id: s.id, ...(protokoll ? { warnung: `gesendet, Protokoll fehlgeschlagen: ${protokoll}` } : {}) });

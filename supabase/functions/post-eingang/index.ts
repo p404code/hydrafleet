@@ -91,19 +91,25 @@ async function verarbeiten(id: string, pdf: Uint8Array, zugestelltAm: string | n
     const vorschlag = a.kennzeichen && a.art !== "lenkererhebung" && a.art !== "sonstige"
       ? await rpc("post_fahrer_vorschlag", { p_kennzeichen: a.kennzeichen }) : null;
     const kk = a.kennzeichen ? await rpc("kennzeichen_key", { t: a.kennzeichen }) : null;
-    await db(`post_eingang?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({
+    // "Neu auslesen" darf Entscheidungen des Bueros nicht ueberschreiben: freigegebener Fahrer
+    // bleibt, beantwortet/freigegeben/erledigt bleibt.
+    const [vorher] = await db(`post_eingang?id=eq.${id}&select=status,freigegeben_am`);
+    const patch: Record<string, unknown> = {
       art: a.art, gz: a.gz, behoerde: a.behoerde, kennzeichen: a.kennzeichen, kennzeichen_key: kk,
       tatzeit: a.tatzeit, tatort: a.tatort, delikt: a.delikt, betrag: a.betrag,
       frist: fristErgaenzen(a.art, a.frist, zugestelltAm),
       antwort_email: a.antwort_email?.trim().toLowerCase() ?? null, volltext: a.volltext, auslese_roh: a,
-      fahrer_vorschlag_id: vorschlag, fahrer_id: vorschlag,
       pruef_grund: gruende.length ? gruende.join("; ") : null,
-      status: gruende.length ? "pruefen" : "offen",
-    }) });
+    };
+    if (!vorher?.freigegeben_am) { patch.fahrer_vorschlag_id = vorschlag; patch.fahrer_id = vorschlag; }
+    if (!["beantwortet", "freigegeben", "erledigt"].includes(vorher?.status)) patch.status = gruende.length ? "pruefen" : "offen";
+    await db(`post_eingang?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(patch) });
     return { status: gruende.length ? "pruefen" : "offen", art: a.art, pruef_grund: gruende.join("; ") || null };
   } catch (e) {
     await db(`post_eingang?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({
-      status: "pruefen", pruef_grund: `Auslesen fehlgeschlagen: ${String(e).slice(0, 300)}` }) });
+      pruef_grund: `Auslesen fehlgeschlagen: ${String(e).slice(0, 300)}` }) });
+    await db(`post_eingang?id=eq.${id}&status=not.in.(beantwortet,freigegeben,erledigt)`, { method: "PATCH",
+      body: JSON.stringify({ status: "pruefen" }) });
     return { status: "pruefen", art: null, pruef_grund: String(e).slice(0, 300) };
   }
 }
@@ -119,6 +125,7 @@ Deno.serve(async (req) => {
     if ((req.headers.get("content-type") ?? "").includes("application/json")) {
       const b = await req.json();
       if (b.aktion !== "neu_auslesen" || !istBuero) return antwort(400, { fehler: "unbekannte_aktion" });
+      if (!/^[0-9a-f-]{36}$/i.test(String(b.id))) return antwort(400, { fehler: "id_ungueltig" });
       const [e] = await db(`post_eingang?id=eq.${b.id}&select=id,datei_pfad,zugestellt_am`);
       if (!e) return antwort(404, { fehler: "nicht_gefunden" });
       const d = await fetch(`${SUPABASE_URL}/storage/v1/object/post/${e.datei_pfad}`, { headers: kopf });

@@ -106,6 +106,46 @@
             .tab-btn.active { background: transparent; color: var(--text); font-weight: 700; }
             .tab-btn svg { width: 18px; height: 18px; }
         }
+        /* === Post (USP-Postkorb) === */
+        #psKpi .kpi-item { cursor: pointer; border: 1px solid transparent; }
+        #psKpi .kpi-item:hover { border-color: var(--border-strong); }
+        #psKpi .kpi-item.active { border-color: var(--text); }
+        #psKpi .kpi-item .ps-sub { display: block; font-size: 10.5px; color: var(--text-mut); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #psKpi .kpi-item .ps-sub.err { color: var(--err); }
+        .ps-leiste[hidden] { display: none; }
+        .ps-leiste { display: flex; gap: 8px; align-items: center; padding: 8px 20px; background: var(--surface-2); border-bottom: 1px solid var(--border); font-size: 12px; }
+        .ps-leiste .sp { flex: 1; }
+        #psTable td.cb, #psTable th.cb { width: 34px; text-align: center; padding-left: 12px; }
+        #psTable td.l, #psTable th.l { text-align: left; font-family: var(--sans); }
+        #psTable td .ps-art { color: var(--text); font-weight: 500; }
+        #psTable td small { display: block; font-size: 10.5px; color: var(--text-mut); font-family: var(--sans); }
+        #psTable tr.ps-rot td.ps-frist { color: var(--err); font-weight: 600; }
+        #psTable .kz { transform: scale(.85); transform-origin: left center; }
+        .ps-status { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 600; font-family: var(--sans); background: var(--surface-2); color: var(--text-mut); white-space: nowrap; }
+        .ps-status.todo { background: var(--status-warn-bg); color: var(--status-warn); }
+        .ps-status.err { background: var(--status-err-bg); color: var(--status-err); }
+        .ps-status.ok { background: var(--status-ok-bg); color: var(--status-ok); }
+        .ps-mail { white-space: pre-wrap; font: 12px/1.45 var(--mono); background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 6px 0 0; overflow-wrap: anywhere; }
+        .detail-row .ps-mail { background: var(--surface); }
+        #contentPost .detail-acts { flex-wrap: wrap; }
+        #contentPost .detail-acts .btn-primary, #contentPost .detail-acts .btn-ghost { flex: 1 1 140px; }
+        .ps-warn { font-size: 12px; color: var(--status-warn); background: var(--status-warn-bg); border-radius: 6px; padding: 6px 10px; margin-top: 8px; }
+        .ps-feld { display: block; font-size: 11.5px; color: var(--text-mut); margin-top: 8px; }
+        .ps-feld input, .ps-feld select, .ps-feld textarea { width: 100%; box-sizing: border-box; min-height: 34px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px 10px; background: var(--surface); color: var(--text); font-family: inherit; font-size: 13px; margin-top: 3px; }
+        .detail-acts .btn-primary:disabled, .detail-acts .btn-ghost:disabled { opacity: .5; cursor: default; }
+        .ps-dlg { border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); color: var(--text); padding: 16px 18px; width: min(820px, calc(100vw - 24px)); max-height: calc(100dvh - 48px); box-sizing: border-box; }
+        .ps-dlg::backdrop { background: rgba(0,0,0,.4); }
+        .ps-dlg h3 { margin: 0 0 8px; font-size: 15px; }
+        .ps-dlg .ps-liste { max-height: 55vh; overflow: auto; border: 1px solid var(--border); border-radius: 8px; margin: 8px 0; }
+        .ps-dlg table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .ps-dlg td, .ps-dlg th { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+        .ps-dlg input { width: 100%; box-sizing: border-box; height: 30px; border: 1px solid var(--border-strong); border-radius: 6px; padding: 0 6px; background: var(--surface); color: var(--text); font-family: inherit; }
+        .ps-dlg .ps-fuss { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+        .ps-dlg .ps-fuss .sp { flex: 1; font-size: 12px; color: var(--text-mut); }
+        @media (max-width: 768px) {
+            .ps-leiste { padding: 8px 12px; }
+            #psTable td.cb, #psTable th.cb { width: 28px; padding-left: 8px; }
+        }
         /* Kopfbereich eines Tabs */
         .hero { padding: 14px 20px 10px; background: var(--surface); border-bottom: 1px solid var(--border); }
         .hero-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
@@ -1120,6 +1160,35 @@
             <div class="side-panel" id="fzPanel"><div class="placeholder">Fahrer auswählen</div></div>
         </div>
     </div>
+    <div class="tab-content" id="contentPost">
+        <div class="hero">
+            <div class="hero-top">
+                <div class="week-pick"><span style="font-size:18px;font-weight:700">Post</span><span class="week-range">USP-Postkorb Hydrafleet KG</span></div>
+                <div class="hero-big" id="psHeroBig"><b id="psOffenBig">--</b><small>zu erledigen</small></div>
+            </div>
+            <div class="kpi" id="psKpi"></div>
+        </div>
+        <div class="toolbar">
+            <input type="text" class="search" id="psSuche" placeholder="GZ, Kennzeichen, Text im PDF">
+            <span id="psChips" style="display:contents"></span>
+            <div class="sp"></div>
+            <label class="btn desktop-only" title="PDFs manuell hochladen">PDFs ↑<input type="file" id="psUpload" accept=".pdf,application/pdf" multiple hidden></label>
+            <button class="btn desktop-only" id="psMieterBtn">Mieter</button>
+            <button class="btn" id="psRefresh" title="Neu laden">↺</button>
+        </div>
+        <div class="ps-leiste" id="psLeiste" hidden></div>
+        <div class="split">
+            <div class="split-main">
+                <table class="data-table" id="psTable">
+                    <thead id="psHead"></thead>
+                    <tbody id="psBody"><tr><td colspan="8" class="empty">Laden…</td></tr></tbody>
+                </table>
+            </div>
+            <aside class="side-panel" id="psPanel"><div class="placeholder">Eintrag anklicken für Details</div></aside>
+        </div>
+        <dialog class="ps-dlg" id="psDlg"></dialog>
+    </div>
+
     <div class="tab-content" id="contentFuhrpark">
         <div class="hero">
             <div class="hero-top">
@@ -1171,7 +1240,7 @@
             <div class="menue-gruppe">Fahrer</div>
             <button onclick="switchTab('fahrer')" data-menue="fahrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg>Fahrer/App</button>
             <button onclick="switchTab('fuhrpark')" data-menue="fuhrpark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 17h-2v-6l2-5h9l4 5h3a1 1 0 011 1v5h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>Fuhrpark</button>
-            <a href="post.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Post</a>
+            <button onclick="switchTab('post')" data-menue="post"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Post</button>
             <div class="menue-gruppe">Weitere</div>
             <button onclick="switchTab('verbindungen')" data-menue="verbindungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/><path d="M3 12h4M17 12h4"/><circle cx="12" cy="12" r="9"/></svg>Verbindungen<span class="tab-warn" id="vbWarnMenue"></span></button>
             <button onclick="switchTab('rechnungen')" data-menue="rechnungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Rechnungen</button>
@@ -3330,7 +3399,7 @@
         /* Reiter-Gruppen: oben die Gruppe, daneben ihre Unterreiter */
         const GRUPPEN = {
             abrechnung: [['abrechnungen', 'Übersicht'], ['api', 'API'], ['abrbot', 'Upload'], ['muessenzahlen', 'Kassieren'], ['lohn.html', 'Löhne']],
-            fahrer: [['fahrer', 'App'], ['fuhrpark', 'Fuhrpark'], ['post.html', 'Post']],
+            fahrer: [['fahrer', 'App'], ['fuhrpark', 'Fuhrpark'], ['post', 'Post']],
             verbindungen: [['verbindungen']],
             rechnungen: [['rechnungen']]
         };
@@ -3348,7 +3417,7 @@
         function switchTab(tab) {
             menueZu();
             const inhalt = { abrechnungen: 'contentAbrechnungen', api: 'contentApi', abrbot: 'contentAbrBot', muessenzahlen: 'contentMuessenZahlen',
-                fahrer: 'contentFahrer', fuhrpark: 'contentFuhrpark', verbindungen: 'contentVerbindungen', rechnungen: 'contentRechnungen' };
+                fahrer: 'contentFahrer', fuhrpark: 'contentFuhrpark', post: 'contentPost', verbindungen: 'contentVerbindungen', rechnungen: 'contentRechnungen' };
             if (!inhalt[tab]) tab = 'abrechnungen';
             const g = gruppeVon(tab);
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.gruppe === g));
@@ -3365,6 +3434,7 @@
             else if (tab === 'fuhrpark') initFuhrpark();
             else if (tab === 'api') initApi();
             else if (tab === 'fahrer') initFahrer();
+            else if (tab === 'post') initPost();
             else if (tab === 'muessenzahlen') initMuessenZahlen();
             localStorage.setItem('hydralink_tab', tab);
             try { localStorage.setItem('hydralink_tab_' + g, tab); } catch (e) {}
@@ -3379,6 +3449,414 @@
         let reArchivLoaded = false;
         const RE_INVOICE_URL = 'https://n8n.hydrafleet.at/webhook/invoice';
         const RE_COLOR_MAP = { blau:'#2c3e50', gruen:'#27ae60', rot:'#c0392b', orange:'#e67e22', lila:'#8e44ad', tuerkis:'#16a085', grau:'#7f8c8d', schwarz:'#1a1a1a' };
+
+        /* === POST-TAB (USP-Postkorb Hydrafleet KG) ===
+           Spec docs/superpowers/specs/2026-09-28-post-strafen-design.md. Aufbau wie Abrechnungen:
+           Hero + KPI (klickbar = Filter), Toolbar, Tabelle + Seitenpanel; Handy: 3 Spalten + Detailzeile. */
+        const PS_ART = { lenkererhebung: 'Lenkererhebung', strafverfuegung: 'Strafverfügung', anonymverfuegung: 'Anonymverfügung',
+            zahlungsaufforderung: 'Zahlungsaufford.', mahnung: 'Mahnung', sonstige: 'Sonstige' };
+        const PS_STRAFE = ['strafverfuegung', 'anonymverfuegung', 'zahlungsaufforderung', 'mahnung'];
+        const PS_OFFEN = ['neu', 'pruefen', 'offen'];
+        const PS_GMAIL = 'https://mail.google.com/mail/?authuser=sw.hydrafleet@gmail.com#';
+        const PS = { init: false, rows: [], treffer: null, gesendet: [], ausgang: {}, fahrer: [], mieter: [], filter: 'offen', q: '', sel: null, wahl: new Set(), vorschau: {} };
+        // Filter: Schluessel -> [Chip-Text, Pruefung je Zeile]
+        const PS_FILTER = {
+            offen:      ['Offen', r => PS_OFFEN.includes(r.status)],
+            le:         ['Lenkererhebungen', r => r.art === 'lenkererhebung' && PS_OFFEN.includes(r.status)],
+            strafe:     ['Strafverfügungen', r => r.art === 'strafverfuegung' && PS_OFFEN.includes(r.status)],
+            anonym:     ['Anonymverfügungen', r => r.art === 'anonymverfuegung' && PS_OFFEN.includes(r.status)],
+            mahnung:    ['Mahnungen', r => (r.art === 'mahnung' || r.art === 'zahlungsaufforderung') && PS_OFFEN.includes(r.status)],
+            sonstige:   ['Sonstige', r => r.art === 'sonstige' && PS_OFFEN.includes(r.status)],
+            freigegeben:['Freigegeben', r => r.status === 'freigegeben'],
+            gesendet:   ['Gesendet', null],
+            erledigt:   ['Erledigt', r => r.status === 'erledigt' || r.status === 'beantwortet'],
+            alle:       ['Alle', r => true],
+        };
+        const psDatum = d => d ? new Date(d).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '–';
+        const psZeit = d => d ? new Date(d).toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '–';
+        const psHeute = () => new Date().toISOString().slice(0, 10);
+        const psFahrer = id => (PS.fahrer.find(f => f.id === id) || {}).name || '';
+        function psGmailLink(a) {
+            if (a.gmail_thread_id) return PS_GMAIL + 'all/' + encodeURIComponent(a.gmail_thread_id);
+            if (a.gmail_message_id) return PS_GMAIL + 'search/' + encodeURIComponent('rfc822msgid:' + a.gmail_message_id);
+            return '';
+        }
+        function psHinweis(t) {
+            const el = document.getElementById('psLeiste');
+            el.hidden = false; el.dataset.hinweis = '1'; el.innerHTML = '<span>' + esc(t) + '</span><span class="sp"></span><button class="chip" data-ps="leiste-zu">✕</button>';
+        }
+        async function psFn(name, body) {
+            const { data, error } = await getSupabase().functions.invoke(name, { body: body });
+            if (error) { let t = error.message; try { t = (await error.context.json()).fehler || t; } catch (e) {} throw new Error(t); }
+            return data;
+        }
+        async function psRpc(name, args) { const { error } = await getSupabase().rpc(name, args); if (error) throw error; }
+
+        async function initPost() {
+            if (!PS.init) {
+                PS.init = true;
+                const c = document.getElementById('contentPost');
+                c.addEventListener('click', psKlick);
+                c.addEventListener('change', psAenderung);
+                let t = null;
+                document.getElementById('psSuche').addEventListener('input', e => { clearTimeout(t); t = setTimeout(() => { PS.q = e.target.value.trim(); psSuchen(); }, 300); });
+                document.getElementById('psUpload').addEventListener('change', e => { psHochladen(e.target.files); e.target.value = ''; });
+                window.matchMedia('(max-width: 768px)').addEventListener('change', () => { if (document.getElementById('contentPost').classList.contains('active')) psRender(); });
+            }
+            await psLaden();
+        }
+
+        async function psLaden() {
+            const sb = getSupabase();
+            const res = await Promise.all([
+                sb.from('post_eingang').select('id,quelle,usp_absender,usp_betreff,zugestellt_am,eingelesen_am,art,gz,behoerde,kennzeichen,tatzeit,tatort,delikt,betrag,frist,antwort_email,fahrer_id,fahrer_vorschlag_id,status,pruef_grund,freigegeben_am,erledigt_am,notiz,datei_pfad,dateiname')
+                    .order('zugestellt_am', { ascending: false, nullsFirst: false }).order('eingelesen_am', { ascending: false }).limit(2000),
+                sb.from('post_ausgang').select('id,eingang_id,gz,an,betreff,text,gesendet_am,gmail_thread_id,gmail_message_id,quelle,fehler,test_an')
+                    .order('gesendet_am', { ascending: false, nullsFirst: false }).limit(2000),
+                sb.from('fahrer').select('id,name,kennzeichen,aktiv').order('name'),
+                sb.from('mietverhaeltnisse').select('*').order('gueltig_von', { ascending: true, nullsFirst: true }),
+            ]);
+            if (res[0].error) { document.getElementById('psBody').innerHTML = '<tr><td colspan="8" class="empty">Laden fehlgeschlagen: ' + esc(res[0].error.message) + '</td></tr>'; return; }
+            PS.rows = res[0].data || [];
+            const aus = res[1].data || [];
+            PS.gesendet = aus.filter(a => !a.test_an);
+            PS.ausgang = {};
+            PS.gesendet.filter(a => !a.fehler).forEach(a => { if (!PS.ausgang[a.gz]) PS.ausgang[a.gz] = a; });
+            PS.fahrer = res[2].data || [];
+            PS.mieter = res[3].data || [];
+            PS.vorschau = {};
+            psRender();
+        }
+
+        // Volltextsuche serverseitig (Text im PDF), Ergebnis = Menge von IDs
+        async function psSuchen() {
+            const q = PS.q.replace(/[,()"*:%]/g, ' ').trim();
+            if (!q) { PS.treffer = null; psRender(); return; }
+            const { data } = await getSupabase().from('post_eingang').select('id')
+                .or('gz.ilike.*' + q + '*,kennzeichen.ilike.*' + q + '*,suche.wfts(german).' + q).limit(2000);
+            PS.treffer = new Set((data || []).map(x => x.id));
+            if (PS.filter === 'gesendet') PS.filter = 'alle';
+            psRender();
+        }
+
+        function psStatus(r) {
+            const a = r.gz && PS.ausgang[r.gz];
+            if (r.status === 'beantwortet') return ['ok', '✓ beantwortet' + (a && a.gesendet_am ? ' ' + psDatum(a.gesendet_am) : '')];
+            if (r.status === 'freigegeben') return ['ok', '✓ freigegeben'];
+            if (r.status === 'erledigt') return ['', 'erledigt'];
+            if (r.status === 'neu') return ['', 'wird gelesen'];
+            if (r.status === 'pruefen') return ['err', '⚠ prüfen'];
+            if (r.art === 'lenkererhebung') return ['todo', 'zu beantworten'];
+            if (PS_STRAFE.includes(r.art)) return ['todo', r.fahrer_id ? 'freigeben' : 'zuordnen'];
+            return ['todo', 'offen'];
+        }
+        const psUeber = r => r.frist && r.frist < psHeute() && PS_OFFEN.includes(r.status);
+
+        function psKpiHtml() {
+            const offen = PS.rows.filter(r => PS_OFFEN.includes(r.status));
+            const zahl = f => PS.rows.filter(PS_FILTER[f][1]);
+            const le = zahl('le'), leUeber = le.filter(psUeber).length;
+            const leGz = new Set(le.map(r => r.gz)).size;
+            const tage30 = Date.now() - 30 * 86400000;
+            const beantw30 = PS.gesendet.filter(a => !a.fehler && a.quelle === 'hydralink' && a.gesendet_am && Date.parse(a.gesendet_am) > tage30).length;
+            const kachel = (f, titel, wert, sub, subErr) => '<div class="kpi-item' + (PS.filter === f ? ' active' : '') + '" data-ps-filter="' + f + '"><small>' + titel + '</small><b' + (subErr ? ' class="err"' : '') + '>' + wert + '</b>'
+                + (sub ? '<span class="ps-sub' + (subErr ? ' err' : '') + '">' + sub + '</span>' : '') + '</div>';
+            document.getElementById('psOffenBig').textContent = offen.length;
+            document.getElementById('psHeroBig').classList.toggle('err', offen.some(psUeber));
+            return kachel('le', 'Lenkererhebungen', le.length, leUeber ? leUeber + ' Frist vorbei' : (leGz !== le.length ? leGz + ' Geschäftszahlen' : 'offen'), leUeber > 0)
+                + kachel('strafe', 'Strafverfügungen', zahl('strafe').length, 'zuordnen / freigeben')
+                + kachel('anonym', 'Anonymverfügungen', zahl('anonym').length, 'zuordnen / freigeben')
+                + kachel('mahnung', 'Mahnungen', zahl('mahnung').length, 'inkl. Zahlungsaufford.')
+                + kachel('sonstige', 'Sonstige Post', zahl('sonstige').length, 'WKO, ÖGK, Gericht …')
+                + kachel('gesendet', 'Beantwortet', beantw30, 'von HYDRAlink, 30 Tage');
+        }
+
+        function psSichtbar() {
+            let rows = PS.rows;
+            if (PS.treffer) rows = rows.filter(r => PS.treffer.has(r.id));
+            const f = PS_FILTER[PS.filter];
+            if (f && f[1]) rows = rows.filter(f[1]);
+            // Offene: ueberfaellige Fristen zuerst
+            if (['offen', 'le', 'strafe', 'anonym', 'mahnung', 'sonstige'].includes(PS.filter)) {
+                rows = rows.slice().sort((a, b) => (psUeber(b) - psUeber(a)) || String(a.frist || '9').localeCompare(String(b.frist || '9')));
+            }
+            return rows;
+        }
+
+        function psRender() {
+            document.getElementById('psKpi').innerHTML = psKpiHtml();
+            // Art-Filter sitzen als klickbare KPI-Kacheln im Hero; hier nur die Status-Filter
+            document.getElementById('psChips').innerHTML = ['offen', 'freigegeben', 'gesendet', 'erledigt', 'alle'].map(k => {
+                const n = k === 'gesendet' ? PS.gesendet.length : PS.rows.filter(r => (!PS.treffer || PS.treffer.has(r.id)) && PS_FILTER[k][1](r)).length;
+                const aktiv = PS.filter === k || (k === 'offen' && ['le', 'strafe', 'anonym', 'mahnung', 'sonstige'].includes(PS.filter));
+                return '<button class="chip' + (aktiv ? ' active' : '') + '" data-ps-filter="' + k + '">' + PS_FILTER[k][0] + ' <span class="cnt">' + n + '</span></button>';
+            }).join('');
+            const mobil = isMobile();
+            const head = document.getElementById('psHead'), body = document.getElementById('psBody');
+
+            if (PS.filter === 'gesendet') {
+                head.innerHTML = mobil ? '<tr><th class="l">Gesendet</th><th class="l">Betreff</th><th class="l">Gmail</th></tr>'
+                    : '<tr><th class="l" style="width:110px">Gesendet</th><th class="l">An</th><th class="l">Betreff</th><th class="l" style="width:90px">Quelle</th><th class="l" style="width:80px">Gmail</th></tr>';
+                body.innerHTML = PS.gesendet.map(a => {
+                    const link = psGmailLink(a), gl = link ? '<a class="chip-link" target="_blank" rel="noopener" href="' + esc(link) + '">öffnen</a>' : '–';
+                    const zeit = a.fehler ? '<span class="ps-status err">Fehler</span>' : psDatum(a.gesendet_am);
+                    return mobil ? '<tr><td class="l">' + zeit + '</td><td class="l">' + esc(a.betreff) + '<small>' + esc(a.an) + '</small></td><td class="l">' + gl + '</td></tr>'
+                        : '<tr><td class="l">' + zeit + '</td><td class="l">' + esc(a.an) + '</td><td class="l">' + esc(a.betreff) + (a.fehler ? '<small>' + esc(a.fehler) + '</small>' : '') + '</td><td class="l">' + (a.quelle === 'hydralink' ? 'HYDRAlink' : 'von Hand') + '</td><td class="l">' + gl + '</td></tr>';
+                }).join('') || '<tr><td colspan="5" class="empty">Noch nichts gesendet.</td></tr>';
+                document.getElementById('psPanel').innerHTML = '<div class="placeholder">Gesendete Antworten an Behörden. Die Mails liegen in Gmail unter „Gesendet“.</div>';
+                psLeiste();
+                return;
+            }
+
+            const rows = psSichtbar();
+            const cbKopf = '<th class="cb"><input type="checkbox" data-ps="alle-wahl" aria-label="Alle sendbaren wählen"></th>';
+            head.innerHTML = mobil
+                ? '<tr>' + cbKopf + '<th class="l">Art</th><th class="l">Kennz. / Frist</th><th class="l">Status</th></tr>'
+                : '<tr>' + cbKopf + '<th class="l" style="width:80px">Eingang</th><th class="l" style="width:150px">Art</th><th class="l">Behörde</th><th class="l" style="width:120px">Kennz.</th><th class="l" style="width:150px">Fahrer</th><th style="width:90px">Betrag</th><th class="l" style="width:80px">Frist</th><th class="l" style="width:150px">Status</th></tr>';
+            if (!rows.length) { body.innerHTML = '<tr><td colspan="9" class="empty">Nichts gefunden.</td></tr>'; psPanel(); psLeiste(); return; }
+            body.innerHTML = rows.map(r => {
+                const sendbar = r.art === 'lenkererhebung' && r.status === 'offen' && !r.pruef_grund;
+                const cb = '<td class="cb">' + (sendbar ? '<input type="checkbox" data-ps-wahl="' + r.id + '"' + (PS.wahl.has(r.id) ? ' checked' : '') + ' aria-label="wählen">' : '') + '</td>';
+                const st = psStatus(r), status = '<span class="ps-status ' + st[0] + '">' + st[1] + '</span>';
+                const sel = PS.sel === r.id, cls = (sel ? 'selected ' : '') + (psUeber(r) ? 'ps-rot' : '');
+                const art = '<span class="ps-art">' + esc(PS_ART[r.art] || 'Post') + '</span>';
+                const fahrer = r.fahrer_id ? esc(psFahrer(r.fahrer_id)) + (r.fahrer_id === r.fahrer_vorschlag_id && !r.freigegeben_am ? ' <small>Vorschlag</small>' : '') : '–';
+                if (mobil) {
+                    return '<tr class="' + cls + '" data-ps-zeile="' + r.id + '">' + cb
+                        + '<td class="l">' + art + '<small>' + psDatum(r.zugestellt_am || r.eingelesen_am) + ' · ' + esc(r.behoerde || r.usp_absender || '') + '</small></td>'
+                        + '<td class="l ps-frist">' + (r.kennzeichen ? kzHtml(r.kennzeichen) : '–') + '<small>' + (r.frist ? 'Frist ' + psDatum(r.frist) : (r.betrag != null ? fmt(r.betrag) : '')) + '</small></td>'
+                        + '<td class="l">' + status + '</td></tr>'
+                        + (sel ? '<tr class="detail-row"><td colspan="4">' + psDetailHtml(r) + '</td></tr>' : '');
+                }
+                return '<tr class="' + cls + '" data-ps-zeile="' + r.id + '">' + cb
+                    + '<td class="l">' + psDatum(r.zugestellt_am || r.eingelesen_am) + '</td>'
+                    + '<td class="l">' + art + '</td>'
+                    + '<td class="l">' + esc(r.behoerde || r.usp_absender || '') + '</td>'
+                    + '<td class="l">' + (r.kennzeichen ? kzHtml(r.kennzeichen) : '–') + '</td>'
+                    + '<td class="l">' + fahrer + '</td>'
+                    + '<td>' + (r.betrag != null ? fmt(r.betrag) : '–') + '</td>'
+                    + '<td class="l ps-frist">' + psDatum(r.frist) + '</td>'
+                    + '<td class="l">' + status + '</td></tr>';
+            }).join('');
+            psPanel();
+            psLeiste();
+            if (PS.sel) psVorschauNachladen(PS.sel);
+        }
+
+        function psPanel() {
+            const panel = document.getElementById('psPanel');
+            if (isMobile()) { panel.innerHTML = ''; return; }
+            const r = PS.sel && PS.rows.find(x => x.id === PS.sel);
+            panel.innerHTML = r ? psDetailHtml(r) : '<div class="placeholder">Eintrag anklicken für Details</div>';
+        }
+
+        function psLeiste() {
+            const el = document.getElementById('psLeiste');
+            const n = PS.wahl.size;
+            if (!n) { if (!el.dataset.hinweis) el.hidden = true; return; }
+            el.hidden = false;
+            el.innerHTML = '<b>' + n + '</b>&nbsp;Lenkererhebung' + (n === 1 ? '' : 'en') + ' gewählt<span class="sp"></span>'
+                + '<button class="chip" data-ps="wahl-leeren">Abwählen</button><button class="btn-primary ok" style="flex:none" data-ps="sammel">Senden …</button>';
+        }
+
+        function psDetailHtml(r) {
+            const kv = (k, v) => v ? '<div class="detail-kv"><span>' + k + '</span><span>' + v + '</span></div>' : '';
+            let h = '<div class="detail" data-ps-detail="' + r.id + '">'
+                + '<h4>' + esc(PS_ART[r.art] || 'Post') + '</h4>'
+                + '<div class="sub">' + esc(r.gz || r.usp_betreff || r.dateiname || '') + '</div>'
+                + kv('Behörde', esc(r.behoerde || r.usp_absender || ''))
+                + kv('Eingang', psZeit(r.zugestellt_am || r.eingelesen_am))
+                + kv('Kennzeichen', r.kennzeichen ? esc(r.kennzeichen) : '')
+                + kv('Tatzeit', r.tatzeit ? psZeit(r.tatzeit) : '')
+                + kv('Ort', esc(r.tatort || ''))
+                + kv('Delikt', esc(r.delikt || ''))
+                + kv('Betrag', r.betrag != null ? fmt(r.betrag) : '')
+                + kv('Frist', r.frist ? '<span' + (psUeber(r) ? ' class="neg"' : '') + '>' + psDatum(r.frist) + '</span>' : '')
+                + '<div class="detail-acts"><button class="btn-ghost" data-ps="pdf" data-id="' + r.id + '">PDF ansehen</button></div>';
+            if (r.pruef_grund) h += '<div class="ps-warn">⚠ ' + esc(r.pruef_grund) + '</div>';
+            h += '<div class="detail-sec">' + (r.art === 'lenkererhebung' ? 'Antwort' : PS_STRAFE.includes(r.art) ? 'Fahrer' : 'Bearbeitung') + '</div>';
+            h += '<div data-ps-arbeit="' + r.id + '">' + psArbeitHtml(r) + '</div>';
+            h += '<label class="ps-feld">Notiz<textarea rows="2" data-ps-notiz="' + r.id + '">' + esc(r.notiz || '') + '</textarea></label>';
+            h += '<div class="detail-acts">' + (r.status === 'erledigt'
+                ? '<button class="btn-ghost" data-ps="oeffnen" data-id="' + r.id + '">Wieder öffnen</button>'
+                : '<button class="btn-ghost" data-ps="erledigt" data-id="' + r.id + '">Erledigt</button>') + '</div>';
+            return h + '</div>';
+        }
+
+        function psArbeitHtml(r) {
+            if (r.art === 'lenkererhebung') {
+                const a = r.gz && PS.ausgang[r.gz];
+                if (a) {
+                    const link = psGmailLink(a);
+                    return '<div class="detail-kv"><span>Beantwortet</span><span>' + psZeit(a.gesendet_am) + '</span></div>'
+                        + '<div class="detail-kv"><span>An</span><span>' + esc(a.an) + '</span></div>'
+                        + (link ? '<div class="detail-acts"><a class="btn-ghost" style="text-decoration:none" target="_blank" rel="noopener" href="' + esc(link) + '">In Gmail öffnen</a></div>' : '');
+                }
+                if (r.status === 'pruefen' && r.tatzeit) {
+                    return '<div class="sub">Mit dem PDF vergleichen, bei Bedarf korrigieren. Danach ist die Antwort sendbar.</div>'
+                        + '<label class="ps-feld">Empfänger (aus dem PDF)<input data-ps-pmail="' + r.id + '" value="' + esc(r.antwort_email || '') + '"></label>'
+                        + '<label class="ps-feld">Geschäftszahl<input data-ps-pgz="' + r.id + '" value="' + esc(r.gz || '') + '"></label>'
+                        + '<div class="detail-acts"><button class="btn-primary" data-ps="pruef-ok" data-id="' + r.id + '">Geprüft – übernehmen</button></div>';
+                }
+                if (r.status !== 'offen') return '<div class="sub">Keine Antwort nötig (' + esc(psStatus(r)[1]) + ').</div>';
+                const v = PS.vorschau[r.id];
+                if (!v) return '<div class="sub">Lade Entwurf …</div>';
+                if (!v.ok) return '<div class="ps-warn">Nicht sendbar: ' + esc(v.grund || '') + '</div>';
+                return '<div class="ps-mail">An:      ' + esc(v.an) + '\nBetreff: ' + esc(v.betreff) + '\n\n' + esc(v.text) + '</div>'
+                    + '<div class="detail-acts"><button class="btn-primary ok" data-ps="senden" data-id="' + r.id + '">' + esc(v.knopf) + '</button>'
+                    + '<button class="btn-ghost" data-ps="probe" data-id="' + r.id + '">Probe an mich</button></div>';
+            }
+            if (PS_STRAFE.includes(r.art)) {
+                if (r.freigegeben_am) {
+                    return '<div class="detail-kv"><span>Fahrer</span><span>' + esc(psFahrer(r.fahrer_id)) + '</span></div>'
+                        + '<div class="detail-kv"><span>Freigegeben</span><span>' + psZeit(r.freigegeben_am) + '</span></div>'
+                        + '<div class="detail-acts"><button class="btn-ghost danger" data-ps="zurueck" data-id="' + r.id + '">Freigabe zurücknehmen</button></div>';
+                }
+                const opts = '<option value="">– Fahrer wählen –</option>' + PS.fahrer.filter(f => f.aktiv || f.id === r.fahrer_id)
+                    .map(f => '<option value="' + f.id + '"' + (f.id === r.fahrer_id ? ' selected' : '') + '>' + esc(f.name) + (f.kennzeichen ? ' · ' + esc(f.kennzeichen) : '') + '</option>').join('');
+                return (r.fahrer_vorschlag_id ? '<div class="sub">Vorschlag über das Kennzeichen (Stand heute). Tatzeit beachten.</div>' : '')
+                    + '<label class="ps-feld">Fahrer<select data-ps-fahrer="' + r.id + '">' + opts + '</select></label>'
+                    + '<div class="detail-acts"><button class="btn-primary ok" data-ps="freigeben" data-id="' + r.id + '"' + (r.fahrer_id && !r.pruef_grund && r.status === 'offen' ? '' : ' disabled') + '>Für Fahrer freigeben</button></div>';
+            }
+            return '<div class="sub">Nur zur Ablage. Bearbeitung außerhalb von HYDRAlink, danach „Erledigt“.</div>';
+        }
+
+        async function psVorschauNachladen(id) {
+            const r = PS.rows.find(x => x.id === id);
+            if (!r || r.art !== 'lenkererhebung' || r.status !== 'offen' || (id in PS.vorschau) || (r.gz && PS.ausgang[r.gz])) return;
+            PS.vorschau[id] = null;
+            try { PS.vorschau[id] = (await psFn('post-senden', { aktion: 'vorschau', ids: [id] }))[0] || { ok: false, grund: 'keine Antwort' }; }
+            catch (e) { PS.vorschau[id] = { ok: false, grund: e.message }; }
+            document.querySelectorAll('[data-ps-arbeit="' + id + '"]').forEach(el => { el.innerHTML = psArbeitHtml(r); });
+        }
+
+        async function psKlick(e) {
+            const t = e.target;
+            const f = t.closest('[data-ps-filter]');
+            if (f) { PS.filter = f.dataset.psFilter; PS.sel = null; if (PS.filter !== 'le') PS.wahl.clear(); psRender(); return; }
+            if (t.closest('[data-ps-wahl]') || t.closest('[data-ps="alle-wahl"]')) return;   // change-Handler
+            const b = t.closest('[data-ps]');
+            if (b) { e.stopPropagation(); await psAktion(b.dataset.ps, b.dataset.id, b); return; }
+            if (t.closest('.detail-row') || t.closest('a')) return;
+            const z = t.closest('[data-ps-zeile]');
+            if (z) { const id = z.dataset.psZeile; PS.sel = (PS.sel === id && isMobile()) ? null : id; psRender(); }
+        }
+
+        async function psAenderung(e) {
+            const t = e.target;
+            if (t.dataset.psWahl) { if (t.checked) PS.wahl.add(t.dataset.psWahl); else PS.wahl.delete(t.dataset.psWahl); psLeiste(); return; }
+            if (t.dataset.ps === 'alle-wahl') {
+                psSichtbar().filter(r => r.art === 'lenkererhebung' && r.status === 'offen' && !r.pruef_grund).forEach(r => { if (t.checked) PS.wahl.add(r.id); else PS.wahl.delete(r.id); });
+                psRender(); return;
+            }
+            if (t.dataset.psNotiz) { psRpc('post_notiz', { p_id: t.dataset.psNotiz, p_notiz: t.value }).catch(err => psHinweis('Notiz: ' + err.message)); return; }
+            if (t.dataset.psFahrer) {
+                const id = t.dataset.psFahrer, fid = t.value ? Number(t.value) : null;
+                try { await psRpc('post_zuordnen', { p_id: id, p_fahrer_id: fid }); const r = PS.rows.find(x => x.id === id); r.fahrer_id = fid; psRender(); }
+                catch (err) { psHinweis(err.message); }
+            }
+        }
+
+        async function psAktion(was, id, knopf) {
+            const r = id && PS.rows.find(x => x.id === id);
+            const merk = knopf.textContent;
+            const laeuft = txt => { knopf.disabled = true; knopf.textContent = txt; };
+            try {
+                if (was === 'leiste-zu') { const el = document.getElementById('psLeiste'); delete el.dataset.hinweis; el.hidden = true; psLeiste(); return; }
+                if (was === 'wahl-leeren') { PS.wahl.clear(); psRender(); return; }
+                if (was === 'sammel') { psSammel(); return; }
+                if (was === 'pdf') { pdfAnsicht('post', r.datei_pfad, (PS_ART[r.art] || 'Post') + ' ' + (r.gz || '')); return; }
+                if (was === 'probe') {
+                    laeuft('Sende Probe …');
+                    const x = (await psFn('post-senden', { aktion: 'senden', ids: [id], test_an: 'sw.hydrafleet@gmail.com' }))[0];
+                    knopf.textContent = x.ok ? '✓ Probe an sw.hydrafleet@gmail.com' : 'Fehler: ' + x.grund; return;
+                }
+                if (was === 'senden') {
+                    laeuft('Sende …');
+                    const x = (await psFn('post-senden', { aktion: 'senden', ids: [id] }))[0];
+                    if (!x.ok) { knopf.textContent = 'Nicht gesendet: ' + x.grund; return; }
+                    await psLaden(); return;
+                }
+                if (was === 'pruef-ok') {
+                    laeuft('Speichere …');
+                    await psRpc('post_pruefung_bestaetigen', { p_id: id, p_antwort_email: document.querySelector('[data-ps-pmail="' + id + '"]').value, p_gz: document.querySelector('[data-ps-pgz="' + id + '"]').value });
+                    await psLaden(); return;
+                }
+                if (was === 'freigeben') { laeuft('Gebe frei …'); await psRpc('post_freigeben', { p_id: id }); await psLaden(); return; }
+                if (was === 'zurueck') { laeuft('…'); await psRpc('post_freigabe_zuruecknehmen', { p_id: id }); await psLaden(); return; }
+                if (was === 'erledigt') { laeuft('…'); const n = document.querySelector('[data-ps-notiz="' + id + '"]'); await psRpc('post_erledigt', { p_id: id, p_notiz: n ? n.value : null }); PS.sel = null; await psLaden(); return; }
+                if (was === 'oeffnen') { laeuft('…'); await psRpc('post_wieder_oeffnen', { p_id: id }); await psLaden(); return; }
+            } catch (err) {
+                knopf.disabled = false; knopf.textContent = merk;
+                psHinweis(/mailadresse_ungueltig/.test(err.message) ? 'Keine gültige .gv.at-Adresse' : (err.message || String(err)));
+            }
+        }
+
+        async function psSammel() {
+            const d = document.getElementById('psDlg'), ids = Array.from(PS.wahl);
+            d.innerHTML = '<h3>Antworten prüfen</h3><div class="sub">Lade Vorschau …</div>'; d.showModal();
+            let v;
+            try { v = await psFn('post-senden', { aktion: 'vorschau', ids: ids }); }
+            catch (e) { d.innerHTML = '<h3>Fehler</h3><div class="ps-warn">' + esc(e.message) + '</div><div class="ps-fuss"><button class="btn-ghost" style="flex:none" data-zu>Schließen</button></div>'; d.querySelector('[data-zu]').onclick = () => d.close(); return; }
+            const ok = v.filter(x => x.ok);
+            d.innerHTML = '<h3>' + ok.length + ' von ' + v.length + ' Antworten sendbar</h3>'
+                + '<div class="ps-liste"><table><thead><tr><th>Betreff</th><th>An</th><th>Mieter</th></tr></thead><tbody>'
+                + v.map(x => '<tr><td>' + esc(x.betreff || '') + '</td><td>' + esc(x.an || '') + '</td><td>' + (x.ok ? esc(x.mieter_kurz) : '<span class="neg">⚠ ' + esc(x.grund) + '</span>') + '</td></tr>').join('')
+                + '</tbody></table></div><div class="ps-fuss"><span class="sp" id="psSammelErg"></span><button class="btn-ghost" style="flex:none" data-zu>Abbrechen</button>'
+                + '<button class="btn-primary ok" style="flex:none" id="psJetzt"' + (ok.length ? '' : ' disabled') + '>Jetzt ' + ok.length + ' senden</button></div>';
+            d.querySelector('[data-zu]').onclick = () => d.close();
+            d.querySelector('#psJetzt').onclick = async ev => {
+                const b = ev.currentTarget; b.disabled = true; b.textContent = 'Sende …';
+                try {
+                    const erg = await psFn('post-senden', { aktion: 'senden', ids: ok.map(x => x.id) });
+                    const n = erg.filter(x => x.ok).length, fehl = erg.filter(x => !x.ok);
+                    b.textContent = '✓ ' + n + ' gesendet';
+                    document.getElementById('psSammelErg').textContent = fehl.length ? fehl.length + ' nicht: ' + fehl.map(x => x.grund).join('; ') : '';
+                } catch (err) { b.textContent = 'Fehler: ' + err.message; }
+                PS.wahl.clear(); await psLaden();
+            };
+        }
+
+        async function psHochladen(files) {
+            const liste = Array.from(files).filter(f => /\.pdf$/i.test(f.name));
+            const el = document.getElementById('psLeiste'); el.dataset.hinweis = '1';
+            let neu = 0, doppelt = 0, fehler = 0;
+            for (let i = 0; i < liste.length; i++) {
+                psHinweis('Lade ' + (i + 1) + '/' + liste.length + ': ' + liste[i].name + ' …');
+                const fd = new FormData(); fd.append('datei', liste[i], liste[i].name); fd.append('quelle', 'upload');
+                try { const r = await psFn('post-eingang', fd); if (r.doppelt && !r.nachgeholt) doppelt++; else neu++; } catch (e) { fehler++; console.warn(liste[i].name, e); }
+            }
+            psHinweis(liste.length + ' PDFs: ' + neu + ' neu, ' + doppelt + ' schon vorhanden' + (fehler ? ', ' + fehler + ' Fehler' : ''));
+            await psLaden();
+        }
+
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('#psMieterBtn')) psMieter();
+            if (e.target.closest('#psRefresh')) psLaden();
+        });
+        function psMieter() {
+            const d = document.getElementById('psDlg');
+            const zeile = m => '<tr data-m="' + (m.id || '') + '">' + ['kurz', 'name', 'adresse', 'uid', 'fn', 'gueltig_von', 'gueltig_bis']
+                .map(k => '<td><input data-k="' + k + '" ' + (k.indexOf('gueltig') === 0 ? 'type="date" ' : '') + 'value="' + esc(m[k] || '') + '" aria-label="' + k + '"></td>').join('') + '</tr>';
+            d.innerHTML = '<h3>Mieter der Flotte</h3><div class="sub">Die Antwort nennt den Mieter, der am Tag der Tatzeit gilt (bis-Datum inklusive). Leere Zeile unten = neuer Mieter.</div>'
+                + '<div class="ps-liste"><table><thead><tr><th>Kurz</th><th>Firma</th><th>Adresse</th><th>UID</th><th>FN</th><th>von</th><th>bis</th></tr></thead><tbody>'
+                + PS.mieter.map(zeile).join('') + zeile({}) + '</tbody></table></div><div class="ps-warn" id="psMFehler" hidden></div>'
+                + '<div class="ps-fuss"><span class="sp"></span><button class="btn-ghost" style="flex:none" data-zu>Schließen</button><button class="btn-primary ok" style="flex:none" id="psMSpeichern">Speichern</button></div>';
+            d.showModal();
+            d.querySelector('[data-zu]').onclick = () => d.close();
+            d.querySelector('#psMSpeichern').onclick = async () => {
+                const sb = getSupabase();
+                try {
+                    for (const tr of d.querySelectorAll('tr[data-m]')) {
+                        const o = {}; tr.querySelectorAll('input').forEach(i => { o[i.dataset.k] = i.value.trim() || null; });
+                        if (!o.kurz && !o.name) continue;
+                        const { error } = await (tr.dataset.m ? sb.from('mietverhaeltnisse').update(o).eq('id', Number(tr.dataset.m)) : sb.from('mietverhaeltnisse').insert(o));
+                        if (error) throw error;
+                    }
+                    d.close(); await psLaden();
+                } catch (e) { const f = d.querySelector('#psMFehler'); f.hidden = false; f.textContent = /ueberschneidung|exclusion/i.test(e.message) ? 'Zeiträume überschneiden sich.' : e.message; }
+            };
+        }
 
         /* Restore last tab (MUST be after all let/const declarations above) */
         const savedTab = localStorage.getItem('hydralink_tab');

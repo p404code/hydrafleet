@@ -59,7 +59,7 @@ Geld entscheidet weiterhin das alte System.
 | `uber-sync` | Uber Fleet-Portal (gespeicherte Sitzung, 3 Berichte) | `uber_reports`, `uber_drivers`, `uber_vehicles`, `uber_trips` |
 | `notion-sync` | Notion API (`/v1/data_sources/{id}/query`) | `fuhrpark`, `notion_fahrer`, setzt `fahrer.notion_fahrer_id` wo leer |
 | `post-eingang` | PDF vom USP-Skript oder Upload, Claude-Auslese | `post_eingang`, Storage `post` |
-| `post-senden` | Gmail-API (`sw.hydrafleet@gmail.com`) | `post_ausgang`, Status in `post_eingang` |
+| `post-senden` | SMTP Gmail (`sw.hydrafleet@gmail.com`, App-Passwort) | `post_ausgang`, Status in `post_eingang` |
 
 Jeder Lauf schreibt eine Zeile nach `sync_runs`.
 
@@ -113,10 +113,10 @@ HYDRAlink. Spec: `docs/superpowers/specs/2026-09-28-post-strafen-design.md`, Pla
   Kennzeichen, Tatzeit, Betrag, Frist, Antwortadresse. Reine Logik und Prüfregeln in
   `supabase/functions/_shared/post-logik.ts` (Tests: `node --test scripts/test-post-logik.mjs`).
   Lenkererhebung ohne Datum: Frist = Zustellung + 14 Tage.
-- **Lenkererhebung beantworten:** `post-senden` schickt per Gmail-API von `sw.hydrafleet@gmail.com`
-  „vermietet an <Mieter zur Tatzeit>“ — nur per Knopf in `post.html`. Mieter der ganzen Flotte
-  stehen in `mietverhaeltnisse` (Wiener Datum der Tatzeit, bis inklusive; in `post.html → Mieter`
-  pflegen). Nie zweimal je GZ: Unique-Index `post_ausgang_gz_einmal` + Abgleich mit Gmail „Gesendet“.
+- **Lenkererhebung beantworten:** `post-senden` schickt per SMTP (`smtp.gmail.com:465`, App-Passwort im Vault, Anbieter `gmail`) von `sw.hydrafleet@gmail.com`
+  „vermietet an <Mieter zur Tatzeit>“ — nur per Knopf im Dashboard-Reiter **Fahrer → Post** (`contentPost`, JS-Präfix `ps`; `post.html` leitet nur noch dorthin). Mieter der ganzen Flotte
+  stehen in `mietverhaeltnisse` (Wiener Datum der Tatzeit, bis inklusive; im Post-Reiter → Mieter
+  pflegen, Knopf „Mieter“ im Post-Reiter). Nie zweimal je GZ: Reservierung in `post_ausgang` vor dem Versand + Unique-Index `post_ausgang_gz_einmal`. Alte Handantworten wurden am 30.09. einmalig aus Gmail abgeglichen (`quelle='gmail_abgleich'`).
 - **Strafen:** Fahrer-Vorschlag über Kennzeichen (`post_fahrer_vorschlag`), Büro bestätigt und
   gibt frei (`post_freigeben`) → Fahrerapp „Mehr → Strafen“ (`fahrer_app_strafen`, Bucket `post`,
   Policy `post_pfad_erlaubt`).
@@ -126,7 +126,7 @@ HYDRAlink. Spec: `docs/superpowers/specs/2026-09-28-post-strafen-design.md`, Pla
 - **USP-Proxy** (`/root/usp-proxy.js`, systemd `usp-proxy`) lauscht seit 28.09. nur auf
   `127.0.0.1:9999` — vorher war er offen im Internet. Nie wieder auf `0.0.0.0`.
 - **Zugänge einrichten:** `scripts/post-zugaenge-einrichten.js` (USP-Schlüssel + Anthropic,
-  `pbpaste | … --nur-anthropic`), `scripts/gmail-zugang-speichern.js <client.json>` (Google-OAuth).
+  `pbpaste | … --nur-anthropic`, `… --nur-gmail` für das Gmail-App-Passwort). `scripts/gmail-zugang-speichern.js` (Google-OAuth) ist nicht mehr in Gebrauch.
 
 ## Key Supabase Tables
 

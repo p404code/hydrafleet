@@ -37,7 +37,9 @@ async function smtpSenden(an: string, betreff: string, text: string): Promise<st
     await client.send({ from: `Hydrafleet KG <${z.user}>`, to: an, subject: betreff, content: text,
       headers: { "Message-ID": msgId } });
   } finally {
-    await client.close().catch(() => null);
+    // close() liefert bei denomailer kein Promise: nie .catch() dranhaengen, sonst gilt eine
+    // bereits zugestellte Mail als gescheitert (30.09.: Probe kam an, Protokoll zeigte TypeError).
+    try { await client.close(); } catch (_) { /* Verbindung ist ohnehin fertig */ }
   }
   return msgId;   // Gmail-Suche: rfc822msgid:<id>
 }

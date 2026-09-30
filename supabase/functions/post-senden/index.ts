@@ -6,7 +6,10 @@ import { antwortMail, knopfText, type Mieter, mieterZurTatzeit, sendbarGrund } f
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const kopf = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" };
-const antwort = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });
+// Aufruf aus dem Dashboard (Browser): CORS wie fahrer-zugang, sonst scheitert schon die Vorabfrage.
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+  "Access-Control-Allow-Methods": "POST, OPTIONS" };
+const antwort = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
 
 async function db(pfad: string, init: RequestInit = {}) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${pfad}`, { ...init, headers: { ...kopf, ...(init.headers ?? {}) } });
@@ -54,6 +57,7 @@ function entwurf(e: any, mieter: Mieter[]) {
 }
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   const u = nutzer(req);
   if (!u) return antwort(403, { fehler: "nicht_berechtigt" });
   try {

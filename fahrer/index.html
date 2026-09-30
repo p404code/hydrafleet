@@ -501,7 +501,8 @@
                 S.st.loadedAt = Date.now();
                 S.st.loading = false;
             }
-            if (route().name === 'strafen') render();
+            const n = route().name;
+            if (n === 'start' || n === 'strafen') render();
         }
 
         async function startApp() {
@@ -561,7 +562,7 @@
             if (!S.profil || document.getElementById('shell').hidden) return;
             const r = route();
             if ((r.name === 'start' || r.name === 'lohnzettel') && lzAlt() && !S.lz.loading) ladenLohn();
-            if (r.name === 'strafen' && stAlt() && !S.st.loading) ladenStrafen();
+            if ((r.name === 'start' || r.name === 'strafen') && stAlt() && !S.st.loading) ladenStrafen();
             const out = ({ start: viewStart, abrechnung: viewAbrechnung, offen: viewOffen, kontakt: viewKontakt, mehr: viewMehr, lohnzettel: viewLohnzettel, fahrzeug: viewFahrzeug, strafen: viewStrafen })[r.name](r.arg);
             document.getElementById('topbar').className = 'topbar' + (out.back ? ' sub' : '');
             document.getElementById('topbar').innerHTML = out.back
@@ -590,6 +591,7 @@
             if (!S.abr.length) {
                 return { html: '<section class="hero"><div class="hero-row"><div class="hero-l"><div class="hero-t">Abrechnung</div><div class="hero-s">Noch keine Abrechnung freigegeben.</div></div></div>'
                     + '<div class="kpis">' + offenKpi + '</div></section>'
+                    + strafenStartHtml()
                     + '<div class="empty"><b>Noch keine Abrechnung freigegeben.</b><span>Sobald das Büro deine Woche freigibt, steht sie hier.</span></div>'
                     + dienstgeberHtml() };
             }
@@ -606,6 +608,7 @@
                 + kpi('Lohn überwiesen', fmt(lohnOf(a)), zc(lohnOf(a)))
                 + offenKpi
                 + '</div><a class="btn-primary" href="' + wocheHref(a.woche) + '">Abrechnung ' + esc(kw(a.woche)) + ' ansehen</a></section>';
+            html += strafenStartHtml();
             const frueher = S.abr.slice(1, 3);
             if (frueher.length) {
                 html += '<div class="sec-h"><span>Frühere Wochen</span><span>Brutto · Du bekommst</span></div><div class="list">'
@@ -705,19 +708,31 @@
         }
 
         /* Strafen – nur freigegebene, eigene; PDF über denselben Knopf wie Lohnzettel (Bucket 'post') */
+        function strafeZeile(r) {
+            const dt = d => d ? new Date(d).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+            return '<div class="lzrow"><div class="lzrow-l"><b>' + esc(ST_ART[r.art] || 'Strafe') + ' · ' + esc(dt(r.tatzeit)) + '</b>'
+                    + '<span>' + esc([r.delikt, r.tatort].filter(Boolean).join(' · ') || (r.behoerde || '')) + '</span>'
+                    + '<span>' + esc(r.behoerde || '') + (r.gz ? ' · ' + esc(r.gz) : '') + (r.frist ? ' · Frist ' + esc(new Date(r.frist).toLocaleDateString('de-AT')) : '') + '</span></div>'
+                    + '<span class="num neg">' + (r.betrag != null ? fmt(r.betrag) : '') + '</span>'
+                    + (r.pfad ? '<button type="button" class="btn-ghost sm" data-act="pdf" data-bucket="post" data-pfad="' + esc(r.pfad) + '">PDF öffnen</button>' : '')
+                    + '</div>';
+        }
+        // Start: die 3 neuesten freigegebenen Strafen, nur wenn es welche gibt
+        function strafenStartHtml() {
+            const rows = S.st.rows || [];
+            if (!rows.length) return '';
+            const summe = rows.reduce((t, r) => t + (parseFloat(r.betrag) || 0), 0);
+            return '<div class="sec-h"><span>Strafen</span><span>' + (summe ? fmt(summe) : '') + '</span></div><div class="list">'
+                + rows.slice(0, 3).map(strafeZeile).join('') + '</div>'
+                + (rows.length > 3 ? '<div class="group"><a class="item" href="#strafen">' + ICON_DOC + '<span class="grow">Alle Strafen</span><span class="num" style="font-size:13px;font-weight:700">' + rows.length + '</span>' + ICON_CHEV + '</a></div>' : '');
+        }
         const ST_ART = { strafverfuegung: 'Strafverfügung', anonymverfuegung: 'Anonymverfügung', zahlungsaufforderung: 'Zahlungsaufforderung', mahnung: 'Mahnung' };
         function viewStrafen() {
             const base = { back: '#mehr', title: 'Strafen', right: '' };
             if (!S.st.loadedAt) return Object.assign(base, { html: '<div class="empty"><b>Lade …</b></div>' });
             if (S.st.err) return Object.assign(base, { html: '<div class="empty"><b>Strafen noch nicht verfügbar.</b><span>Bitte später erneut versuchen.</span></div>' });
             if (!S.st.rows.length) return Object.assign(base, { html: '<div class="empty"><b>Keine Strafen.</b><span>Wenn das Büro eine Strafe für dich freigibt, steht sie hier mit PDF.</span></div>' });
-            const dt = d => d ? new Date(d).toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-            const html = '<div class="list">' + S.st.rows.map(r => '<div class="lzrow"><div class="lzrow-l"><b>' + esc(ST_ART[r.art] || 'Strafe') + ' · ' + esc(dt(r.tatzeit)) + '</b>'
-                    + '<span>' + esc([r.delikt, r.tatort].filter(Boolean).join(' · ') || (r.behoerde || '')) + '</span>'
-                    + '<span>' + esc(r.behoerde || '') + (r.gz ? ' · ' + esc(r.gz) : '') + (r.frist ? ' · Frist ' + esc(new Date(r.frist).toLocaleDateString('de-AT')) : '') + '</span></div>'
-                    + '<span class="num neg">' + (r.betrag != null ? fmt(r.betrag) : '') + '</span>'
-                    + (r.pfad ? '<button type="button" class="btn-ghost sm" data-act="pdf" data-bucket="post" data-pfad="' + esc(r.pfad) + '">PDF öffnen</button>' : '')
-                    + '</div>').join('') + '</div>'
+            const html = '<div class="list">' + S.st.rows.map(strafeZeile).join('') + '</div>'
                 + '<div class="note">Fragen zur Strafe? Bitte im Büro melden.</div>';
             return Object.assign(base, { html: html });
         }

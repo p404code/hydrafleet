@@ -68,6 +68,8 @@ Eine Bargeldkassa in `kassabuch`, geführt **je Kalenderwoche** wie die Abrechnu
   gezählten Betrag samt Differenz fest. Erst ab Sonntag der Woche, Wochen der Reihe nach. Danach nimmt die Woche
   keine Buchung mehr an; der Endbestand ist der Übertrag in die nächste KW.
 
+- **Anfangsbestand korrigieren** (`kassa_anfang_korrigieren`): eigene Zeile `quelle = 'anfang'` am Tag des
+  Anfangsbestands, zählt zum Anfangsbestand statt zu Ein/Aus. Nur solange noch keine Woche abgeschlossen ist.
 - **Abrechnung → Kassabuch:** „Unterm Strich“ (Σ `auszahlung − lohn` der `berechnet`-Zeilen, ohne `__…` und ohne
   `WARNUNG_KEIN_FAHRER`) wird bar ausgezahlt. Knopf „Ins Kassabuch übernehmen“ im Kassabuch (`kassa_abrechnung_buchen`):
   eine Zeile Abrechnung ohne Zu-/Abschläge + je Zu-/Abschlag eine Zeile (Zuschlag = Ausgabe). Spätere Änderungen

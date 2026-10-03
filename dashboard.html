@@ -733,7 +733,7 @@
         #kbTable tr.kb-storno td { color: var(--text-dim) !important; text-decoration: line-through; }
         #kbTable tr.kb-storno td.pay { text-decoration: none; }
         #kbToolbar .kb-neu { flex: none; padding: 7px 12px; }
-        .kb-dlg { width: min(400px, calc(100vw - 24px)); }
+        .kb-dlg { width: min(400px, calc(100vw - 24px)); margin: auto; }
         .kb-art { display: flex; gap: 6px; margin: 4px 0 2px; }
         .kb-art label { flex: 1; cursor: pointer; }
         .kb-art input { position: absolute; opacity: 0; pointer-events: none; }
@@ -4442,6 +4442,7 @@
                     .forEach(function (r, i) { b = Math.round((b + wert(r)) * 100) / 100; r.bestand = b; r.pos = i; r.storniert = storniert[r.id] != null; });
                 render();
             }
+            function anfangJetzt() { return summe(ROWS.filter(function (r) { return r.art === 'anfang' || r.quelle === 'anfang'; })); }
             function anfangZeile() { return ROWS.filter(function (r) { return r.art === 'anfang'; })[0] || null; }
             function summe(rows) { return Math.round(rows.reduce(function (a, r) { return a + wert(r); }, 0) * 100) / 100; }
             function bestandJetzt() { return summe(ROWS); }
@@ -4452,8 +4453,8 @@
                 const a = abschluss(w);
                 if (a) return { anfang: +a.anfangsbestand, ein: +a.einnahmen, aus: +a.ausgaben, ende: +a.endbestand };
                 const bis = plus(von, 6);
-                const anfang = summe(ROWS.filter(function (r) { return r.datum < von || (r.art === 'anfang' && r.datum <= bis); }));
-                const inW = ROWS.filter(function (r) { return r.datum >= von && r.datum <= bis; });
+                const anfang = summe(ROWS.filter(function (r) { return r.datum < von || ((r.art === 'anfang' || r.quelle === 'anfang') && r.datum <= bis); }));
+                const inW = ROWS.filter(function (r) { return r.datum >= von && r.datum <= bis && r.quelle !== 'anfang'; });
                 const ein = summe(inW.filter(function (r) { return r.art === 'ein'; })), aus = -summe(inW.filter(function (r) { return r.art === 'aus'; }));
                 return { anfang: anfang, ein: ein, aus: aus, ende: Math.round((anfang + ein - aus) * 100) / 100 };
             }
@@ -4493,6 +4494,7 @@
                     : bis > h ? '<span class="fg-pill">Offen <span>· Abschluss ab ' + datumText(bis) + '</span></span>'
                     : next && next !== woche && wochen[next] < von ? '<span class="fg-pill">Offen <span>· zuerst ' + kwText(next) + ' abschließen</span></span>'
                     : (a0.datum > bis ? '' : '<span class="fg-pill">Offen</span><button class="btn fg-go" data-kb-zu="' + woche + '"' + (busy ? ' disabled' : '') + '>' + kwText(woche) + ' abschließen</button>');
+                if (a0 && !ABS.length) st += '<button class="fg-link" id="kbAnfangKorr">Anfangsbestand korrigieren</button>';
                 if (PRUEF) st += PRUEF.ok ? '<span class="fg-pill ok kb-pruef" title="Jede Buchung trägt eine Prüfsumme, in die die Buchung davor einfließt. Die Kette wurde eben nachgerechnet.">Unverändert <span>· ' + (PRUEF.buchungen || 0) + ' Buchungen geprüft</span></span>'
                     : '<span class="fg-pill geaendert kb-pruef">⚠ ' + esc(PRUEF.hinweis || 'Prüfung fehlgeschlagen') + '</span>';
                 status.innerHTML = st;
@@ -4522,7 +4524,7 @@
                         return '<tr class="' + (an ? 'selected ' : '') + (grau ? 'kb-storno' : '') + '" data-kb-zeile="' + r.id + '">' + (m
                             ? '<td class="l">' + esc(r.text || '') + '<small>' + kurz(r.datum) + ' · ' + esc(r.name) + ' · Nr. ' + r.nr + '</small></td>'
                               + '<td class="' + (r.art === 'aus' ? 'neg' : 'kb-ein') + '">' + (r.art === 'anfang' ? '' : mitVz(wert(r))) + '</td><td class="pay">' + fmt(r.bestand) + '</td>'
-                            : '<td class="l kb-nr">' + r.nr + '</td><td class="l">' + datumText(r.datum) + '</td><td class="l kb-name">' + esc(r.name) + '</td><td class="l">' + (r.quelle && r.quelle !== 'hand' ? '<span class="kb-tag">Abrechnung</span>' : '') + esc(r.text || '') + '</td>'
+                            : '<td class="l kb-nr">' + r.nr + '</td><td class="l">' + datumText(r.datum) + '</td><td class="l kb-name">' + esc(r.name) + '</td><td class="l">' + (r.quelle === 'anfang' ? '<span class="kb-tag">Anfangsbestand</span>' : r.quelle && r.quelle !== 'hand' ? '<span class="kb-tag">Abrechnung</span>' : '') + esc(r.text || '') + '</td>'
                               + '<td class="kb-ein">' + (r.art === 'ein' ? b : '') + '</td><td class="neg">' + (r.art === 'aus' ? b : '') + '</td><td class="pay">' + fmt(r.bestand) + '</td>')
                             + '</tr>' + (m && an ? '<tr class="detail-row"><td colspan="3">' + detail(r) + '</td></tr>' : '');
                     }).join('');
@@ -4542,7 +4544,8 @@
                     + kv('Prüfsumme', '<span title="' + esc(r.pruefsumme || '') + '">' + esc((r.pruefsumme || '').slice(0, 12)) + '…</span>')
                     + (gegen ? '<div class="ps-warn">Storniert am ' + datumText(gegen.datum) + ' von ' + esc(gegen.name) + ' (Nr. ' + gegen.nr + ')</div>' : '')
                     + (r.storno_von != null ? '<div class="ps-warn">Gegenbuchung zu einer stornierten Buchung</div>' : '')
-                    + (ausAbr ? '<div class="kb-wer">Kommt aus der Abrechnung ' + kwText(r.woche_abr || '') + (r.quelle === 'posten' ? ' (Zu-/Abschlag)' : '') + '. Geändert wird dort – das Kassabuch zieht nach.</div>' : '')
+                    + (r.quelle === 'anfang' ? '<div class="kb-wer">Korrektur des Anfangsbestands – zählt zum Anfangsbestand, nicht zu den Einnahmen oder Ausgaben.</div>' : '')
+                    + (ausAbr && r.quelle !== 'anfang' ? '<div class="kb-wer">Kommt aus der Abrechnung ' + kwText(r.woche_abr || '') + (r.quelle === 'posten' ? ' (Zu-/Abschlag)' : '') + '. Geändert wird dort – das Kassabuch zieht nach.</div>' : '')
                     + (darf ? '<div class="detail-acts"><button class="btn-ghost danger" data-kb-storno="' + r.id + '"' + (busy ? ' disabled' : '') + '>Stornieren</button></div>' : '')
                     + '</div>';
             }
@@ -4607,6 +4610,28 @@
                             await laden();
                         } catch (e) { alert('Speichern fehlgeschlagen: ' + fehlerText(e)); }
                     });
+            }
+            function anfangKorrFenster() {
+                const alt = anfangJetzt(), a0 = anfangZeile();
+                const d = fenster('<h3>Anfangsbestand korrigieren</h3>'
+                    + '<div class="detail-kv strong"><span>Bisher (Stand ' + datumText(a0.datum) + ')</span><span>' + fmt(alt) + '</span></div>'
+                    + '<label class="ps-feld">Richtiger Anfangsbestand €<input name="betrag" inputmode="decimal" placeholder="0,00" autocomplete="off" required></label>'
+                    + '<div class="kb-wer">Der alte Wert bleibt stehen; die Korrektur wird als eigene Zeile auf <b>' + esc(ich()) + '</b> eingetragen. Möglich nur, solange noch keine Woche abgeschlossen ist.</div>'
+                    + FUSS('Korrigieren'),
+                    async function (dlg) {
+                        const b = betragLesen(dlg.querySelector('[name=betrag]').value);
+                        if (isNaN(b)) { alert('Bitte einen Betrag eintragen (0 ist erlaubt).'); return; }
+                        if (busy) return;
+                        busy = true;
+                        try {
+                            const { error } = await getSupabase().rpc('kassa_anfang_korrigieren', { p_betrag: b });
+                            if (error) throw error;
+                            dlg.close(); woche = wocheVon(a0.datum); sel = null;
+                            showReToast('Anfangsbestand jetzt ' + fmt(b), 'success');
+                        } catch (e) { alert('Korrigieren fehlgeschlagen: ' + fehlerText(e)); }
+                        finally { busy = false; await laden(); }
+                    });
+                d.querySelector('[name=betrag]').focus();
             }
             function abschlussFenster(w) {
                 const von = wocheMontag(w);
@@ -4686,6 +4711,7 @@
                     if ((b = e.target.closest('[data-kb-zu]'))) { abschlussFenster(b.dataset.kbZu); return; }
                     if ((b = e.target.closest('[data-kb-abr]'))) { abrechnungBuchen(b.dataset.kbAbr); return; }
                     if (e.target.closest('#kbAnfangBtn')) { anfangFenster(); return; }
+                    if (e.target.closest('#kbAnfangKorr')) { anfangKorrFenster(); return; }
                     if (e.target.closest('#kbExport')) { exportCsv(); return; }
                     if (e.target.closest('#kbRefresh')) { laden(); return; }
                     if (e.target.closest('.detail-row')) return;

@@ -219,6 +219,17 @@
         .detail-row .detail-lohn { background: var(--surface); }
         .detail-lohn input { width: 100px; height: 30px; border: 1px solid var(--border-strong); border-radius: 6px; text-align: right; padding: 0 8px; background: var(--surface); color: var(--text); font-family: var(--mono); font-size: 13px; }
         .detail-acts { display: flex; gap: 6px; margin-top: 12px; }
+        /* Zu-/Abschlaege */
+        .detail-kv.posten span:first-child { color: var(--text); }
+        .detail-kv .neg { color: var(--err); }
+        .posten-x { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 11px; margin-left: 8px; padding: 0 2px; }
+        .posten-x:hover { color: var(--err); }
+        .posten-neu { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .posten-neu input, .posten-neu select { height: 30px; border: 1px solid var(--border-strong); border-radius: 6px; padding: 0 8px; background: var(--surface); color: var(--text); font-size: 12px; font-family: inherit; min-width: 0; }
+        .posten-neu .posten-text { flex: 1 1 100%; }
+        .posten-neu .posten-vz { flex: 0 0 auto; }
+        .posten-neu .posten-betrag { flex: 1 1 70px; text-align: right; font-family: var(--mono); }
+        .posten-neu .btn { flex: 0 0 auto; }
         .btn-primary, .btn-ghost { flex: 1; text-align: center; padding: 8px 10px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid transparent; font-family: inherit; }
         .btn-primary { background: var(--text); color: var(--bg); }
         .btn-primary.ok { background: var(--accent); color: var(--accent-ink); }
@@ -701,6 +712,64 @@
             #apTable td:last-child { padding-right: 12px; }
             #apTable .zeile-sub { display: block; font-family: var(--mono); font-size: 11px; color: var(--text-mut); margin-top: 2px; }
         }
+        /* Loehne-Reiter */
+        #contentLohn .kpi { grid-template-columns: repeat(5, 1fr); }
+        #loKpi .lo-kachel { cursor: pointer; border: 1px solid transparent; }
+        #loKpi .lo-kachel:hover { border-color: var(--border-strong); }
+        #loKpi .lo-kachel.active { border-color: var(--text); }
+        #contentLohn td.l, #contentLohn th.l { text-align: left; font-family: var(--sans); }
+        #contentLohn .data-table td small { display: block; font-size: 10.5px; color: var(--text-mut); font-weight: 400; font-family: var(--sans); overflow: hidden; text-overflow: ellipsis; }
+        #loTable tbody tr:not(.detail-row) { cursor: pointer; }
+        .lo-wahl-feld { height: 30px; border: 1px solid var(--border-strong); border-radius: 7px; padding: 0 8px; background: var(--surface); color: var(--text); font-size: 12px; font-family: inherit; max-width: 220px; min-width: 0; }
+        .lo-drop { display: flex; align-items: center; gap: 10px; margin: 10px 20px 0; padding: 9px 12px; border: 1px dashed var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--text-mut); font-size: 12.5px; cursor: pointer; min-width: 0; }
+        .lo-drop.over { border-color: var(--accent); background: var(--accent-faint); color: var(--text); }
+        .lo-drop b { color: var(--text); font-weight: 600; }
+        .lo-drop .info { margin-left: auto; white-space: nowrap; }
+        .lo-neu[hidden] { display: none; }
+        .lo-neu { margin: 10px 20px 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        .lo-neu-kopf { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface-2); font-size: 12.5px; }
+        .lo-neu-kopf .sp { flex: 1; }
+        .lo-neu .data-table tr:last-child td { border-bottom: none; }
+        #contentLohn .split { margin-top: 10px; border-top: 1px solid var(--border); }
+        .lo-ok { color: var(--accent); font-weight: 700; }
+        .lo-err { color: var(--err); font-weight: 600; }
+        .lo-warn { color: var(--warn); font-weight: 600; }
+        .lo-info { color: var(--info, var(--text-mut)); }
+        .lo-mut { color: var(--text-mut); font-size: 12px; }
+        .lo-lnk { background: none; border: none; padding: 0; font: inherit; font-family: var(--sans); color: var(--text); cursor: pointer; text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lo-lnk:hover { text-decoration: underline; }
+        .lo-lnk.lo-mut { text-decoration: underline; flex: none; }
+        .lo-x { background: none; border: none; color: var(--text-mut); cursor: pointer; font-size: 14px; width: 24px; height: 24px; border-radius: 6px; }
+        .lo-x:hover { background: var(--surface-3); color: var(--err); }
+        .lo-pruef { list-style: none; font-size: 12px; margin: 0; padding: 0; }
+        .lo-pruef li { display: flex; gap: 8px; padding: 1px 0; min-width: 0; }
+        .lo-pruef li > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+        .lo-pruef small { color: var(--text-mut); font-size: 11px; }
+        .lo-z { padding: 7px 0; border-bottom: 1px dotted var(--border); font-size: 12.5px; }
+        .lo-z:last-child { border-bottom: none; }
+        .lo-zeile { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+        .lo-z .lo-zeile .lo-lnk { font-weight: 500; }
+        #contentLohn .zbox { display: flex; gap: 6px; align-items: center; min-width: 0; margin-top: 4px; }
+        #contentLohn .zbox.fest { margin-top: 1px; font-size: 11.5px; color: var(--text-mut); justify-content: space-between; }
+        #contentLohn .zbox.fest span::before { content: "→ "; }
+        #contentLohn .zbox select { flex: 1 1 auto; min-width: 0; height: 28px; border: 1px solid var(--border-strong); border-radius: 6px; padding: 0 6px; background: var(--surface); color: var(--text); font-size: 12px; font-family: inherit; }
+        #contentLohn .zbox .btn { flex: none; padding: 5px 9px; }
+        dialog.lo-wahl { margin: auto; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); color: var(--text); padding: 16px 18px; width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 64px); }
+        dialog.lo-wahl::backdrop { background: rgba(0,0,0,.4); }
+        dialog.lo-wahl h3 { font-size: 15px; margin: 0 0 8px; }
+        dialog.lo-wahl .wliste { max-height: 55vh; overflow-y: auto; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 6px 0 10px; }
+        dialog.lo-wahl label { display: flex; gap: 8px; align-items: baseline; padding: 5px 2px; font-size: 12.5px; cursor: pointer; border-bottom: 1px solid var(--border); }
+        dialog.lo-wahl label:last-child { border-bottom: 0; }
+        dialog.lo-wahl label small { color: var(--text-mut); font-size: 11px; }
+        dialog.lo-wahl .wfuss { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+        dialog.lo-wahl .wfuss .sp { flex: 1; font-size: 12px; color: var(--text-mut); }
+        dialog.lo-wahl .wfuss .btn-primary { flex: none; }
+        @media (max-width: 768px) {
+            #contentLohn .kpi { grid-template-columns: repeat(2, 1fr); }
+            .lo-drop, .lo-neu { margin: 8px 12px 0; }
+            .lo-drop .info { display: none; }
+            .lo-wahl-feld { flex: none; }
+        }
         /* Verbindungen-Statusseite */
         .vb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
                    gap: 12px; padding: 14px 20px 24px; }
@@ -800,7 +869,7 @@
             .pk-karte { margin: 14px 12px 20px; }
             .pk-liste { grid-template-columns: 1fr; }
         }
-        /* Lohn: Hinweis beim Lohn-Feld (Abrechnungen); Upload/Zuordnung liegen in lohn.html */
+        /* Lohn: Hinweis beim Lohn-Feld (Abrechnungen); Upload/Zuordnung liegen im Reiter Löhne */
         .detail-lohn { flex-wrap: wrap; }
         .lz-hints { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
         .lz-hint { padding: 3px 8px; border-radius: 999px; border: 1px solid var(--accent-line); background: var(--accent-faint); color: var(--text); font-family: var(--mono); font-size: 11px; cursor: pointer; white-space: nowrap; }
@@ -833,13 +902,13 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg>
                     Fahrer
                 </button>
-                <button class="tab-btn" onclick="switchTab('verbindungen')" data-gruppe="verbindungen">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/><path d="M3 12h4M17 12h4"/><circle cx="12" cy="12" r="9"/></svg>
-                    Verbindungen<span class="tab-warn" id="vbWarn"></span>
-                </button>
                 <button class="tab-btn" onclick="switchTab('rechnungen')" data-gruppe="rechnungen">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                     Rechnungen
+                </button>
+                <button class="tab-btn" onclick="gruppeWechseln('experimentell')" data-gruppe="experimentell">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"/><path d="M7.5 15h9"/></svg>
+                    Experimentell<span class="tab-warn" id="vbWarn"></span>
                 </button>
             </div>
             <div class="sub-nav" id="subNav"></div>
@@ -895,6 +964,10 @@
             <div class="alias-banner" id="aliasBanner">
                 <span><strong id="aliasBannerCount">0</strong> Fahrer ohne Zuordnung in dieser Woche</span>
                 <button class="btn" onclick="openAliasModal()">Jetzt zuordnen →</button>
+            </div>
+            <div class="alias-banner" id="postenBanner">
+                <span id="postenBannerText"></span>
+                <button class="btn" onclick="postenNeuAnwenden()">Wieder einrechnen</button>
             </div>
             <div class="abgleich" id="abgleichBox"></div>
             <div class="excluded-panel" id="excludedPanel">
@@ -1132,7 +1205,7 @@
             <button class="chip" data-fz="ohneapp">ohne App <span class="cnt" id="fzCntOhneApp"></span></button>
             <button class="chip" data-fz="archiv">Archiviert <span class="cnt" id="fzCntArchiv"></span></button>
             <div class="sp"></div>
-            <a class="chip chip-link" href="lohn.html">Löhne →</a>
+            <button class="chip chip-link" onclick="switchTab('lohn')">Löhne →</button>
             <span class="badge" id="fzShown"></span>
         </div>
         <div class="split">
@@ -1189,6 +1262,39 @@
         <dialog class="ps-dlg" id="psDlg"></dialog>
     </div>
 
+    <div class="tab-content" id="contentLohn">
+        <div class="hero">
+            <div class="hero-top">
+                <div class="week-pick"><span style="font-size:18px;font-weight:700">Löhne</span><span class="week-range" id="loSub"></span></div>
+                <div class="hero-big"><b id="loBig">--</b><small>ausbezahlt</small></div>
+            </div>
+            <div class="kpi" id="loKpi"></div>
+        </div>
+        <div class="toolbar">
+            <select class="lo-wahl-feld" id="loMonat" aria-label="Monat"><option value="">Alle Monate</option></select>
+            <select class="lo-wahl-feld" id="loFirma" aria-label="Firma"><option value="">Alle Firmen</option></select>
+            <span id="loChips" style="display:contents"></span>
+            <div class="sp"></div>
+            <button class="btn" id="loRefresh" title="Neu laden">↺</button>
+        </div>
+        <input type="file" id="loDatei" accept=".pdf,application/pdf" multiple hidden>
+        <label class="lo-drop" id="loDrop" for="loDatei"><span><b>Neuer Monat:</b> Auszahlungsjournal + Lohnzettel als PDF hierher ziehen oder wählen</span><span class="info" id="loDropInfo"></span></label>
+        <div class="lo-neu" id="loNeu" hidden>
+            <div class="lo-neu-kopf"><b>Zum Speichern</b><span class="sp"></span><button class="btn-primary ok" style="flex:none" id="loSpeichern" disabled>Alle speichern (0)</button></div>
+            <table class="data-table" id="loNeuTab"></table>
+        </div>
+        <div class="ps-leiste" id="loLeiste" hidden></div>
+        <div class="split">
+            <div class="split-main">
+                <table class="data-table" id="loTable">
+                    <thead id="loHead"></thead>
+                    <tbody id="loBody"><tr><td colspan="6" class="empty">Laden…</td></tr></tbody>
+                </table>
+            </div>
+            <aside class="side-panel" id="loPanel"><div class="placeholder">Firma anklicken für Lohnzettel und Zuordnung</div></aside>
+        </div>
+    </div>
+
     <div class="tab-content" id="contentFuhrpark">
         <div class="hero">
             <div class="hero-top">
@@ -1233,17 +1339,18 @@
         <div class="menue-liste">
             <div class="menue-gruppe">Abrechnung</div>
             <button onclick="switchTab('abrechnungen')" data-menue="abrechnungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Abrechnung</button>
-            <button onclick="switchTab('api')" data-menue="api"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-6"/></svg>API-Abrechnung</button>
             <button onclick="switchTab('abrbot')" data-menue="abrbot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload</button>
             <button onclick="switchTab('muessenzahlen')" data-menue="muessenzahlen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Kassieren</button>
-            <a href="lohn.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M7 12h.01M17 12h.01"/></svg>Löhne</a>
+            <button onclick="switchTab('lohn')" data-menue="lohn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M7 12h.01M17 12h.01"/></svg>Löhne</button>
             <div class="menue-gruppe">Fahrer</div>
             <button onclick="switchTab('fahrer')" data-menue="fahrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg>Fahrer/App</button>
-            <button onclick="switchTab('fuhrpark')" data-menue="fuhrpark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 17h-2v-6l2-5h9l4 5h3a1 1 0 011 1v5h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>Fuhrpark</button>
             <button onclick="switchTab('post')" data-menue="post"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Post</button>
-            <div class="menue-gruppe">Weitere</div>
-            <button onclick="switchTab('verbindungen')" data-menue="verbindungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/><path d="M3 12h4M17 12h4"/><circle cx="12" cy="12" r="9"/></svg>Verbindungen<span class="tab-warn" id="vbWarnMenue"></span></button>
+            <div class="menue-gruppe">Rechnungen</div>
             <button onclick="switchTab('rechnungen')" data-menue="rechnungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Rechnungen</button>
+            <div class="menue-gruppe">Experimentell</div>
+            <button onclick="switchTab('api')" data-menue="api"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-6"/></svg>API-Abrechnung</button>
+            <button onclick="switchTab('fuhrpark')" data-menue="fuhrpark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 17h-2v-6l2-5h9l4 5h3a1 1 0 011 1v5h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>Fuhrpark</button>
+            <button onclick="switchTab('verbindungen')" data-menue="verbindungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/><path d="M3 12h4M17 12h4"/><circle cx="12" cy="12" r="9"/></svg>Verbindungen<span class="tab-warn" id="vbWarnMenue"></span></button>
         </div>
     </div>
     <div class="tab-content" id="contentVerbindungen">
@@ -1723,7 +1830,7 @@
         function updateExcludedUI() { document.getElementById('excludedCount').textContent = excludedDrivers.length; const list = document.getElementById('excludedList'); if (excludedDrivers.length === 0) { list.innerHTML = '<span style="color: var(--text-muted)">Keine Fahrer ausgeschlossen</span>'; } else { list.innerHTML = excludedDrivers.map(name => `<span class="excluded-tag">${esc(name)} <button data-include="${esc(name)}">\u2715</button></span>`).join(''); } }
         document.getElementById('excludedList').addEventListener('click', function(e) { const btn = e.target.closest('[data-include]'); if (btn) includeDriver(btn.dataset.include); });
         async function fetchAllSettlements(client) { const pageSize = 1000; let from = 0; let all = []; while (true) { const { data, error } = await client.from('settlements').select('*').order('id', { ascending: true }).range(from, from + pageSize - 1); if (error) throw error; if (data && data.length) all = all.concat(data); if (!data || data.length < pageSize) break; from += pageSize; } return all; }
-        async function loadData() { try { const client = getSupabase(); const [settleData, aliasRes, fahrerRes, kassierRes, abgleichRes, freigabeRes, lohnLetzteRes] = await Promise.all([ fetchAllSettlements(client), client.from('name_aliases').select('csv_name,fahrer_name'), client.from('fahrer').select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon').eq('aktiv', true), client.from('kassier_zahlungen').select('*'), client.from('api_abrechnung').select('woche,fahrer_id,fahrer,alt_fahrer_name,befund,diff,du_bekommst,alt_du_bekommst,bolt_gesynct,uber_gesynct'), client.from('abrechnung_freigaben').select('*'), client.from('lohn_letzte').select('*').then(r => r, e => ({ error: e })) ]); if (!settleData || settleData.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = settleData.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); NAME_ALIASES = {}; if (!aliasRes.error && aliasRes.data) { aliasRes.data.forEach(a => { NAME_ALIASES[a.csv_name.toLowerCase()] = a.fahrer_name; }); } FAHRER_LIST = (!fahrerRes.error && fahrerRes.data) ? fahrerRes.data : []; KASSIER = (!kassierRes.error && kassierRes.data) ? kassierRes.data : []; ABGLEICH = (abgleichRes && !abgleichRes.error && abgleichRes.data) ? abgleichRes.data : []; if (abgleichRes && abgleichRes.error) console.warn('abgleich load error:', abgleichRes.error); if (kassierRes.error) console.warn('kassier load error:', kassierRes.error); FREIGABEN_OK = !!(freigabeRes && !freigabeRes.error); FREIGABEN = (FREIGABEN_OK && freigabeRes.data) ? freigabeRes.data : []; if (freigabeRes && freigabeRes.error) console.warn('freigaben load error:', freigabeRes.error); LOHN_LETZTE = (lohnLetzteRes && !lohnLetzteRes.error && lohnLetzteRes.data) ? lohnLetzteRes.data : []; if (lohnLetzteRes && lohnLetzteRes.error) console.warn('lohn_letzte load error:', lohnLetzteRes.error); WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; fillWeekFilter(); render(); } catch (err) { console.error('Load error:', err); const offlineHint = !navigator.onLine ? ' (Offline — keine Internetverbindung)' : ''; document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Fehler beim Laden: ' + esc(err.message) + offlineHint + '<br><button class="btn" style="margin-top:12px" onclick="loadData()">Erneut versuchen</button></td></tr>'; } }
+        async function loadData() { try { const client = getSupabase(); const [settleData, aliasRes, fahrerRes, kassierRes, abgleichRes, freigabeRes, lohnLetzteRes] = await Promise.all([ fetchAllSettlements(client), client.from('name_aliases').select('csv_name,fahrer_name'), client.from('fahrer').select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon').eq('aktiv', true), client.from('kassier_zahlungen').select('*'), client.from('api_abrechnung').select('woche,fahrer_id,fahrer,alt_fahrer_name,befund,diff,du_bekommst,alt_du_bekommst,bolt_gesynct,uber_gesynct'), client.from('abrechnung_freigaben').select('*'), client.from('lohn_letzte').select('*').then(r => r, e => ({ error: e })), ladePosten() ]); if (!settleData || settleData.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = settleData.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); NAME_ALIASES = {}; if (!aliasRes.error && aliasRes.data) { aliasRes.data.forEach(a => { NAME_ALIASES[a.csv_name.toLowerCase()] = a.fahrer_name; }); } FAHRER_LIST = (!fahrerRes.error && fahrerRes.data) ? fahrerRes.data : []; KASSIER = (!kassierRes.error && kassierRes.data) ? kassierRes.data : []; ABGLEICH = (abgleichRes && !abgleichRes.error && abgleichRes.data) ? abgleichRes.data : []; if (abgleichRes && abgleichRes.error) console.warn('abgleich load error:', abgleichRes.error); if (kassierRes.error) console.warn('kassier load error:', kassierRes.error); FREIGABEN_OK = !!(freigabeRes && !freigabeRes.error); FREIGABEN = (FREIGABEN_OK && freigabeRes.data) ? freigabeRes.data : []; if (freigabeRes && freigabeRes.error) console.warn('freigaben load error:', freigabeRes.error); LOHN_LETZTE = (lohnLetzteRes && !lohnLetzteRes.error && lohnLetzteRes.data) ? lohnLetzteRes.data : []; if (lohnLetzteRes && lohnLetzteRes.error) console.warn('lohn_letzte load error:', lohnLetzteRes.error); WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; fillWeekFilter(); render(); } catch (err) { console.error('Load error:', err); const offlineHint = !navigator.onLine ? ' (Offline — keine Internetverbindung)' : ''; document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Fehler beim Laden: ' + esc(err.message) + offlineHint + '<br><button class="btn" style="margin-top:12px" onclick="loadData()">Erneut versuchen</button></td></tr>'; } }
         function updateThemeUI(isDark) { const icon = document.getElementById('themeIcon'); const text = document.getElementById('themeText'); if (isDark) { icon.innerHTML = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>'; text.textContent = 'Light'; } else { icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'; text.textContent = 'Dark'; } }
         function toggleTheme() { const html = document.documentElement; if (html.getAttribute('data-theme') === 'dark') { html.removeAttribute('data-theme'); localStorage.setItem('theme', 'light'); updateThemeUI(false); } else { html.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); updateThemeUI(true); } }
         function toggleSort(col) {
@@ -1773,6 +1880,10 @@
                 if (exclude) { excludeDriver(exclude.dataset.exclude); selectedDriver = null; return true; }
                 const lzHint = e.target.closest('[data-lzwert]');
                 if (lzHint) { lohnHinweisKlick(lzHint); return true; }
+                const pAdd = e.target.closest('[data-posten-add]');
+                if (pAdd) { postenAnlegen(pAdd.closest('.posten-neu')); return true; }
+                const pDel = e.target.closest('[data-posten-del]');
+                if (pDel) { postenLoeschen(pDel.dataset.postenDel); return true; }
                 return false;
             }
             document.getElementById('tableBody').addEventListener('click', function(e) {
@@ -1786,8 +1897,96 @@
                 const el = document.getElementById(id);
                 el.addEventListener('change', function(e) { const t = e.target; if (t && t.classList && t.classList.contains('lohn-input')) { saveLohn(parseInt(t.getAttribute('data-lohn-id'), 10), t.value); } });
                 el.addEventListener('keydown', function(e) { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('lohn-input')) { e.target.blur(); } });
+                el.addEventListener('keydown', function(e) { const box = e.key === 'Enter' && e.target.closest && e.target.closest('.posten-neu'); if (box) { e.preventDefault(); postenAnlegen(box); } });
             });
             loadData(); pruefeVerbindungen(); });
+        /* === Zu-/Abschlaege (abrechnung_posten) ===
+           Die Summe je Fahrer und Woche steht in settlements.korrektur und steckt in
+           auszahlung - gerechnet wird in der Datenbank (posten_anlegen / posten_loeschen). */
+        let POSTEN = [], POSTEN_OFFEN = [], postenLaeuft = false;
+        async function ladePosten() {
+            try {
+                const sb = getSupabase();
+                const [p, o] = await Promise.all([sb.from('abrechnung_posten').select('*').order('id'), sb.from('abrechnung_posten_offen').select('*')]);
+                if (p.error) throw p.error;
+                POSTEN = p.data || []; POSTEN_OFFEN = (!o.error && o.data) || [];
+            } catch (e) { console.warn('posten load error:', e); POSTEN = []; POSTEN_OFFEN = []; }
+        }
+        function postenVon(s) { return POSTEN.filter(function(p) { return p.woche === s.woche && p.fahrer_name === s.fahrer_name; }); }
+        function postenBetrag(b) { b = parseFloat(b) || 0; return (b > 0 ? '+' : '−') + fmt(Math.abs(b)); }
+        function postenHtml(s, korr) {
+            const liste = postenVon(s);
+            const dis = postenLaeuft ? ' disabled' : '';
+            let h = '<div class="detail-sec">Zu-/Abschläge</div>';
+            if (!liste.length && korr !== 0) h += '<div class="detail-kv"><span>' + esc(s.korrektur_note || 'Korrektur') + '</span><span>' + postenBetrag(korr) + '</span></div>';
+            liste.forEach(function(p) {
+                h += '<div class="detail-kv posten" title="' + esc((p.angelegt_von || '') + ' · ' + fgDatum(p.angelegt_am)) + '"><span>' + esc(p.text) + '</span>'
+                    + '<span class="' + (p.betrag < 0 ? 'neg' : '') + '">' + postenBetrag(p.betrag) + '<button class="posten-x" data-posten-del="' + p.id + '" aria-label="Löschen" title="Löschen"' + dis + '>✕</button></span></div>';
+            });
+            if (liste.length > 1) h += '<div class="detail-kv strong"><span>Summe</span><span>' + postenBetrag(korr) + '</span></div>';
+            return h + '<div class="posten-neu" data-woche="' + esc(s.woche) + '" data-fahrer="' + esc(s.fahrer_name) + '">'
+                + '<input type="text" class="posten-text" placeholder="z. B. Pickerl selbst bezahlt" maxlength="80"' + dis + '>'
+                + '<select class="posten-vz" aria-label="Zuschlag oder Abzug"' + dis + '><option value="1">+ dazu</option><option value="-1">− Abzug</option></select>'
+                + '<input type="text" inputmode="decimal" class="posten-betrag" placeholder="0,00"' + dis + '>'
+                + '<button class="btn" data-posten-add="1"' + dis + '>Eintragen</button></div>';
+        }
+        // Nach dem Schreiben: die Zeile(n) der Woche und die Posten frisch aus der Datenbank
+        async function postenNachladen(w) {
+            const [rows] = await Promise.all([getSupabase().from('settlements').select('*').eq('woche', w), ladePosten()]);
+            if (!rows.error && rows.data) rows.data.forEach(function(n) {
+                const alt = SETTLEMENTS.find(function(s) { return s.id === n.id; });
+                if (alt) { alt.auszahlung = n.auszahlung; alt.korrektur = n.korrektur; alt.korrektur_note = n.korrektur_note; }
+            });
+        }
+        async function postenAnlegen(box) {
+            if (postenLaeuft || !box) return;
+            const text = box.querySelector('.posten-text').value.trim();
+            const roh = box.querySelector('.posten-betrag').value.trim().replace(/[€\s]/g, '').replace(',', '.');
+            const betrag = Math.round(Math.abs(parseFloat(roh)) * 100) / 100 * (roh.charAt(0) === '-' ? -1 : parseInt(box.querySelector('.posten-vz').value, 10));
+            if (!text) { alert('Bitte einen Text eintragen, z. B. „Pickerl selbst bezahlt“.'); return; }
+            if (!/^[+-]?\d+(\.\d{1,2})?$/.test(roh) || !betrag) { alert('Bitte einen Betrag eintragen, z. B. 70 oder 70,50.'); return; }
+            const w = box.dataset.woche, f = box.dataset.fahrer;
+            if (freigabeVon(w) && !confirm('KW ' + w + ' ist für Fahrer freigegeben – ' + f + ' sieht „' + text + ' ' + postenBetrag(betrag) + '“ sofort in der App. Eintragen?')) return;
+            postenLaeuft = true; render();
+            try {
+                const { error } = await getSupabase().rpc('posten_anlegen', { p_woche: w, p_fahrer_name: f, p_betrag: betrag, p_text: text });
+                if (error) throw error;
+                await postenNachladen(w);
+                showReToast(text + ' ' + postenBetrag(betrag) + ' eingetragen', 'success');
+            } catch (e) { alert('Eintragen fehlgeschlagen: ' + fgFehler(e)); }
+            finally { postenLaeuft = false; render(); }
+        }
+        async function postenLoeschen(id) {
+            const p = POSTEN.find(function(x) { return String(x.id) === String(id); });
+            if (postenLaeuft || !p) return;
+            if (!confirm('„' + p.text + ' ' + postenBetrag(p.betrag) + '“ bei ' + p.fahrer_name + ' löschen?')) return;
+            postenLaeuft = true; render();
+            try {
+                const { error } = await getSupabase().rpc('posten_loeschen', { p_id: p.id });
+                if (error) throw error;
+                await postenNachladen(p.woche);
+            } catch (e) { alert('Löschen fehlgeschlagen: ' + fgFehler(e)); }
+            finally { postenLaeuft = false; render(); }
+        }
+        // Nach neuem CSV-Upload stecken die Posten nicht mehr in der Auszahlung
+        function renderPostenBanner() {
+            const offen = POSTEN_OFFEN.filter(function(o) { return o.woche === week; });
+            const b = document.getElementById('postenBanner');
+            b.style.display = offen.length ? 'flex' : 'none';
+            if (offen.length) document.getElementById('postenBannerText').innerHTML = '<strong>' + offen.length + '</strong> Fahrer: Zu-/Abschläge sind nach der Neuberechnung nicht mehr in der Auszahlung (' + offen.map(function(o) { return esc(o.fahrer_name); }).join(', ') + ')';
+        }
+        async function postenNeuAnwenden() {
+            if (postenLaeuft) return;
+            postenLaeuft = true;
+            const w = week;
+            try {
+                const { error } = await getSupabase().rpc('posten_neu_anwenden', { p_woche: w });
+                if (error) throw error;
+                await postenNachladen(w);
+                showReToast('Zu-/Abschläge wieder eingerechnet', 'success');
+            } catch (e) { alert('Fehlgeschlagen: ' + fgFehler(e)); }
+            finally { postenLaeuft = false; render(); }
+        }
         function detailHtml(s, editLohn) {
             const korr = parseFloat(s.korrektur) || 0;
             const net = netAuszahlung(s);
@@ -1802,7 +2001,7 @@
                 + kv('Bolt Auszahlung', fmt(s.bolt_auszahlung)) + kv('Uber Auszahlung', fmt(s.uber_auszahlung)) + kv('Wir bekommen', fmt(s.wir_bekommen), 'strong')
                 + '<div class="detail-sec">Abzüge</div>'
                 + kv('Pauschale', fmt(s.miete)) + kv('Prozent', fmt(s.prozent_abzug)) + kv('Abzug gesamt', fmt(s.abzug_gesamt), 'strong')
-                + (korr !== 0 ? '<div class="detail-sec">Korrektur</div>' + kv(esc(s.korrektur_note || 'Korrektur'), (korr > 0 ? '+' : '') + fmt(korr)) : '')
+                + postenHtml(s, korr)
                 + '<div class="detail-lohn"><span>Lohn bereits überwiesen</span>'
                 + (editLohn ? lohnHinweisHtml(s) + '<input type="number" step="0.01" class="lohn-input" data-lohn-id="' + s.id + '" value="' + (lohnOf(s) || '') + '" placeholder="0">' : '<b class="num">' + (lohnOf(s) ? fmt(lohnOf(s)) : '–') + '</b>')
                 + '</div>'
@@ -1988,6 +2187,7 @@
             return r ? '<span class="fahrer-ab" title="' + esc(abgleichTitel(r)) + '">\u2260</span>' : '';
         }
         function render() {
+            renderPostenBanner();
             const data = getData();
             const all = SETTLEMENTS.filter(function(s) { return s.woche === week && s.fahrer_name !== '__TRANSFER__' && !excludedDrivers.includes(s.fahrer_name); });
             const warnCount = all.filter(function(s) { return (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; }).length;
@@ -2649,7 +2849,7 @@
             }
         }
 
-        /* === LOHN: Upload, Uebersicht und Zuordnung liegen in lohn.html.
+        /* === LOHN: Upload, Uebersicht und Zuordnung liegen im Reiter Löhne (Lohn, weiter unten).
            Hier bleiben nur der Hinweis beim Lohn-Feld (Abrechnungen) und die
            Lohnzettel-Zeile im Fahrer-Detail (beide aus lohn_letzte). */
         let LOHN_LETZTE = [];
@@ -3396,12 +3596,749 @@
             }).join('');
         }
 
+        /* === LÖHNE: Reiter im Dashboard (bis 03.10.2026 eigene Seite lohn.html) ===
+           Upload von Auszahlungsjournal + Lohnzettel, Uebersicht je Firma und Monat,
+           Zuordnung der Lohnzettel zu Fahrern. Alles in einer Huelle, damit kurze Namen
+           wie filter/busy/sel nicht mit dem Rest des Dashboards kollidieren. */
+        const Lohn = (function () {
+        function betrag(v) { return fmt(v).replace(/\s€$/, ''); }
+        function toast(msg) { showReToast(msg, 'success'); }
+
+        /* LOHN-PARSER START */
+        const LOHN_MONATE = { 'jänner': 1, 'januar': 1, 'februar': 2, 'feber': 2, 'märz': 3, 'april': 4, 'mai': 5, 'juni': 6,
+            'juli': 7, 'august': 8, 'september': 9, 'oktober': 10, 'november': 11, 'dezember': 12 };
+        const LOHN_BETRAG_RE = '-?\\d{1,3}(?:\\.\\d{3})*,\\d{2}';
+        function lohnBetrag(s) { return parseFloat(String(s).replace(/\./g, '').replace(',', '.')); }
+        function lohnRund(n) { return Math.round((parseFloat(n) || 0) * 100) / 100; }
+        // "August 2026" -> "2026-08-01"
+        function lohnMonat(txt) {
+            const m = /(Jänner|Januar|Februar|Feber|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\s+(\d{4})/i.exec(txt || '');
+            if (!m) return null;
+            const mm = LOHN_MONATE[m[1].toLowerCase()];
+            return m[2] + '-' + (mm < 10 ? '0' : '') + mm + '-01';
+        }
+        // pdf.js-Textitems einer Seite -> Zeilen (gleiche y-Position = eine Zeile, links nach rechts)
+        function lohnZeilen(items) {
+            const rows = [];
+            (items || []).forEach(function (it) {
+                if (!it || !it.str || !it.str.trim()) return;
+                const x = it.transform[4], y = it.transform[5];
+                let r = null;
+                for (let i = 0; i < rows.length; i++) { if (Math.abs(rows[i].y - y) < 2.5) { r = rows[i]; break; } }
+                if (!r) { r = { y: y, parts: [] }; rows.push(r); }
+                r.parts.push({ x: x, s: it.str });
+            });
+            rows.sort(function (a, b) { return b.y - a.y; });
+            return rows.map(function (r) {
+                return r.parts.sort(function (a, b) { return a.x - b.x; })
+                    .map(function (p) { return p.s.trim(); }).join(' ').replace(/\s+/g, ' ').trim();
+            });
+        }
+        // 'AJ' | 'LZ' | null - am Inhalt, nicht am Dateinamen
+        function lohnArt(textSeiten) {
+            const t = (textSeiten || []).map(function (z) { return z.join('\n'); }).join('\n');
+            if (/Auszahlungsjournal/.test(t)) return 'AJ';
+            if (/Lohn\s*\/\s*Gehaltsabrechnung/.test(t)) return 'LZ';
+            return null;
+        }
+        function lohnFirma(zeilen) {
+            for (let i = 0; i < zeilen.length; i++) {
+                const m = /^Firma\s*:\s*(\d+)\s+(.+)$/.exec(zeilen[i]);
+                if (m) return { nr: m[1], name: m[2].trim() };
+            }
+            return null;
+        }
+        function parseJournal(textSeiten) {
+            const r = { art: 'AJ', firma_nr: null, firma_name: null, monat: null, journal_datum: null, personen: [],
+                anzahl: null, summe: null, koerperschaften: [], gesamt_summe: null, fehler: [] };
+            const seiten = textSeiten || [];
+            const alle = [].concat.apply([], seiten);
+            const text = alle.join('\n');
+            const f = lohnFirma(alle);
+            if (f) { r.firma_nr = f.nr; r.firma_name = f.name; } else r.fehler.push('Journal: Firma nicht gefunden');
+            seiten.forEach(function (z, i) {
+                const fs = lohnFirma(z);
+                if (f && fs && fs.nr !== f.nr) r.fehler.push('Journal Seite ' + (i + 1) + ': andere Firma ' + fs.nr);
+            });
+            r.monat = lohnMonat(text);
+            if (!r.monat) r.fehler.push('Journal: Monat nicht gefunden');
+            for (let i = 0; i < alle.length; i++) {
+                const d = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(alle[i]);
+                if (d) { r.journal_datum = d[3] + '-' + d[2] + '-' + d[1]; break; }
+            }
+            let m = /Anzahl Dienstnehmer\s+(\d+)/.exec(text);
+            if (m) r.anzahl = parseInt(m[1], 10); else r.fehler.push('Journal: „Anzahl Dienstnehmer“ fehlt');
+            m = new RegExp('Summe Dienstnehmer\\s+(' + LOHN_BETRAG_RE + ')').exec(text);
+            if (m) r.summe = lohnBetrag(m[1]); else r.fehler.push('Journal: „Summe Dienstnehmer“ fehlt');
+            m = new RegExp('Gesamt-Summe\\s+(' + LOHN_BETRAG_RE + ')').exec(text);
+            if (m) r.gesamt_summe = lohnBetrag(m[1]);
+
+            const dnRe = new RegExp('^(\\d+)\\s+(.+?)\\s+(' + LOHN_BETRAG_RE + ')$');
+            const endRe = new RegExp('^(.+?)\\s+(' + LOHN_BETRAG_RE + ')$');
+            const postenRe = new RegExp('^([A-Za-zÄÖÜäöü]+)\\s*:\\s*(' + LOHN_BETRAG_RE + ')$');
+            // Zahlungsart beginnt beim ersten Token nach dem Komma, das Barzahlung, BIC oder IBAN ist
+            function nameOhneZahlung(mitte) {
+                const tok = mitte.split(' ');
+                let komma = -1;
+                for (let i = 0; i < tok.length; i++) { if (tok[i].indexOf(',') >= 0) { komma = i; break; } }
+                for (let i = komma + 1; i < tok.length; i++) {
+                    if (i === 0) continue;
+                    if (/^Barzahlung$/i.test(tok[i]) || /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(tok[i]) || /^[A-Z]{2}\d{2}/.test(tok[i])) {
+                        return { name: tok.slice(0, i).join(' '), zahlungsart: tok.slice(i).join(' ') };
+                    }
+                }
+                return { name: mitte, zahlungsart: '' };
+            }
+            let teil = '';
+            alle.forEach(function (z) {
+                if (/^Dienstnehmer$/.test(z)) { teil = 'dn'; return; }
+                if (/^Körperschaften$/.test(z)) { teil = 'ks'; return; }
+                if (/^Anzahl Dienstnehmer/.test(z)) { teil = ''; return; }
+                if (/^(Summe |Gesamt-Summe)/.test(z)) return;
+                if (teil === 'dn') {
+                    const x = dnRe.exec(z);
+                    if (!x) return;
+                    const nz = nameOhneZahlung(x[2]);
+                    r.personen.push({ ma_nr: parseInt(x[1], 10), name: nz.name, zahlungsart: nz.zahlungsart, betrag: lohnBetrag(x[3]) });
+                } else if (teil === 'ks') {
+                    const p = postenRe.exec(z);
+                    if (p) {
+                        const last = r.koerperschaften[r.koerperschaften.length - 1];
+                        if (last) last.posten[p[1]] = lohnBetrag(p[2]);
+                        return;
+                    }
+                    const k = endRe.exec(z);
+                    if (k && !/^Bezeichnung\b/.test(z)) r.koerperschaften.push({ bezeichnung: k[1].trim(), betrag: lohnBetrag(k[2]), posten: {} });
+                }
+            });
+            if (!r.personen.length) r.fehler.push('Journal: keine Dienstnehmer-Zeilen erkannt');
+            return r;
+        }
+        function parseLohnzettel(textSeiten) {
+            const r = { art: 'LZ', firma_nr: null, firma_name: null, monat: null, seiten: [], personen: [], fehler: [] };
+            const betragNurRe = new RegExp('^(' + LOHN_BETRAG_RE + ')$');
+            function wert(zeilen, wort) {
+                const re = new RegExp('^' + wort + '(?:\\s+(' + LOHN_BETRAG_RE + '))?$');
+                for (let i = 0; i < zeilen.length; i++) {
+                    const m = re.exec(zeilen[i]);
+                    if (!m) continue;
+                    if (m[1]) return lohnBetrag(m[1]);
+                    const n = betragNurRe.exec(zeilen[i + 1] || '');   // Betrag in der Folgezeile
+                    if (n) return lohnBetrag(n[1]);
+                }
+                return null;
+            }
+            (textSeiten || []).forEach(function (z, i) {
+                const nr = i + 1;
+                const f = lohnFirma(z);
+                const monat = lohnMonat((z.filter(function (l) { return /Gehaltsabrechnung/.test(l); })[0]) || '');
+                let pers = null;
+                for (let j = 0; j < z.length; j++) {
+                    const m = /^Person\s*:\s*(\d+)\s*\(\s*(\d+)\s*\)\s*(.+?)(?:\s+SV-Nr\..*)?$/.exec(z[j]);
+                    if (m) { pers = { ma_nr: parseInt(m[1], 10), dv: parseInt(m[2], 10), name: m[3].trim() }; break; }
+                }
+                if (!pers) { r.fehler.push('Lohnzettel Seite ' + nr + ': keine Person erkannt'); return; }
+                if (f) {
+                    if (!r.firma_nr) { r.firma_nr = f.nr; r.firma_name = f.name; }
+                    else if (f.nr !== r.firma_nr) r.fehler.push('Lohnzettel Seite ' + nr + ': andere Firma ' + f.nr);
+                } else r.fehler.push('Lohnzettel Seite ' + nr + ': Firma fehlt');
+                if (monat) {
+                    if (!r.monat) r.monat = monat;
+                    else if (monat !== r.monat) r.fehler.push('Lohnzettel Seite ' + nr + ': anderer Monat');
+                } else r.fehler.push('Lohnzettel Seite ' + nr + ': Monat fehlt');
+                const s = { index: i, ma_nr: pers.ma_nr, dv: pers.dv, name: pers.name,
+                    brutto: wert(z, 'Brutto'), netto: wert(z, 'Netto'), auszahlung: wert(z, 'Auszahlung') };
+                if (s.auszahlung == null) r.fehler.push('Lohnzettel Seite ' + nr + ' (Ma-Nr ' + pers.ma_nr + '): Auszahlung fehlt');
+                r.seiten.push(s);
+            });
+            const map = {};
+            r.seiten.forEach(function (s) {
+                let p = map[s.ma_nr];
+                if (!p) { p = map[s.ma_nr] = { ma_nr: s.ma_nr, name: s.name, seiten: [], brutto: 0, netto: 0, auszahlung: 0 }; r.personen.push(p); }
+                p.seiten.push(s.index);
+                p.brutto = lohnRund(p.brutto + (s.brutto || 0));
+                p.netto = lohnRund(p.netto + (s.netto || 0));
+                p.auszahlung = lohnRund(p.auszahlung + (s.auszahlung || 0));
+            });
+            if (!r.personen.length) r.fehler.push('Lohnzettel: keine Seite erkannt');
+            return r;
+        }
+        // Alle Pruefungen aus Spec 2.3; jede muss ok sein, sonst kein Speichern
+        function lohnPruefen(aj, lz) {
+            const out = [];
+            const ajMap = {};
+            aj.personen.forEach(function (p) { ajMap[p.ma_nr] = lohnRund((ajMap[p.ma_nr] || 0) + p.betrag); });
+            const lzMap = {};
+            lz.personen.forEach(function (p) { lzMap[p.ma_nr] = p.auszahlung; });
+            const ajNr = Object.keys(ajMap), lzNr = Object.keys(lzMap);
+            const fehlt = function (a, b) { return a.filter(function (k) { return !Object.prototype.hasOwnProperty.call(b, k); }); };
+            const nurLz = fehlt(lzNr, ajMap), nurAj = fehlt(ajNr, lzMap);
+            const lzSumme = lohnRund(lz.personen.reduce(function (s, p) { return s + p.auszahlung; }, 0));
+            const abw = lzNr.filter(function (k) { return ajMap[k] != null && Math.abs(ajMap[k] - lzMap[k]) > 0.05; });
+            const fehler = aj.fehler.concat(lz.fehler);
+            out.push({ text: 'Beide Dateien vollständig gelesen', ok: !fehler.length, detail: fehler.slice(0, 5).join(' · ') + (fehler.length > 5 ? ' …' : '') });
+            out.push({ text: 'Gleiche Firma', ok: !!aj.firma_nr && aj.firma_nr === lz.firma_nr,
+                detail: 'AJ ' + (aj.firma_nr || '?') + ' · LZ ' + (lz.firma_nr || '?') });
+            out.push({ text: 'Gleicher Monat', ok: !!aj.monat && aj.monat === lz.monat,
+                detail: 'AJ ' + (aj.monat ? lohnMonatText(aj.monat) : '?') + ' · LZ ' + (lz.monat ? lohnMonatText(lz.monat) : '?') });
+            out.push({ text: 'Ma-Nr gleich in AJ und LZ', ok: lzNr.length > 0 && !nurLz.length && !nurAj.length,
+                detail: (nurLz.length ? 'nur im LZ: ' + nurLz.join(', ') : '') + (nurLz.length && nurAj.length ? ' · ' : '') + (nurAj.length ? 'nur im AJ: ' + nurAj.join(', ') : '') });
+            out.push({ text: 'Beträge je Ma-Nr (LZ = AJ)', ok: lzNr.length > 0 && !abw.length,
+                detail: abw.map(function (k) { return 'Nr. ' + k + ': LZ ' + fmt(lzMap[k]) + ' / AJ ' + fmt(ajMap[k]); }).join(' · ') });
+            out.push({ text: 'Summe Auszahlung = Summe Dienstnehmer', ok: aj.summe != null && Math.abs(lzSumme - aj.summe) <= 0.05,
+                detail: 'LZ ' + fmt(lzSumme) + ' · AJ ' + fmt(aj.summe) });
+            out.push({ text: 'Anzahl Dienstnehmer', ok: aj.anzahl != null && aj.anzahl === lzNr.length && aj.anzahl === ajNr.length,
+                detail: 'AJ ' + (aj.anzahl == null ? '?' : aj.anzahl) + ' · LZ ' + lzNr.length + ' Ma-Nr (' + lz.seiten.length + ' Seiten)' });
+            return out;
+        }
+        function lohnMonatText(monat) { return monat ? monat.slice(5, 7) + '/' + monat.slice(0, 4) : '–'; }
+        function lohnMonatKurz(monat) { return monat ? monat.slice(5, 7) + '/' + monat.slice(2, 4) : '–'; }
+        // Nutzlast fuer lohn_lauf_speichern (Kontrakt in der Migration)
+        function lohnLaufDaten(aj, lz) {
+            const ym = aj.monat.slice(0, 7), basis = aj.firma_nr + '/' + ym + '/';
+            const ajMap = {};
+            aj.personen.forEach(function (p) { ajMap[p.ma_nr] = lohnRund((ajMap[p.ma_nr] || 0) + p.betrag); });
+            return {
+                firma_nr: aj.firma_nr, firma_name: aj.firma_name, monat: aj.monat, journal_datum: aj.journal_datum,
+                anzahl_dienstnehmer: aj.anzahl, summe_dienstnehmer: aj.summe, koerperschaften: aj.koerperschaften,
+                gesamt_summe: aj.gesamt_summe, aj_pfad: basis + 'journal.pdf',
+                zettel: lz.personen.map(function (p) {
+                    return { ma_nr: p.ma_nr, name: p.name, seiten: p.seiten.length, brutto: p.brutto, netto: p.netto,
+                        auszahlung: p.auszahlung, journal_betrag: ajMap[p.ma_nr] == null ? null : ajMap[p.ma_nr], pfad: basis + p.ma_nr + '.pdf' };
+                })
+            };
+        }
+        // LZ in ein PDF je Ma-Nr schneiden (alle DV-Seiten einer Person) -> [{ma_nr, bytes}]
+        async function lohnSchneiden(PDFLib, lzBytes, personen) {
+            const src = await PDFLib.PDFDocument.load(lzBytes);
+            const out = [];
+            for (let i = 0; i < personen.length; i++) {
+                const doc = await PDFLib.PDFDocument.create();
+                const pages = await doc.copyPages(src, personen[i].seiten);
+                pages.forEach(function (p) { doc.addPage(p); });
+                out.push({ ma_nr: personen[i].ma_nr, bytes: await doc.save() });
+            }
+            return out;
+        }
+        /* LOHN-PARSER END */
+
+        let LOHN_LIBS = null;
+        const LOHN_PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/legacy/build/';
+        // pdf.js + pdf-lib erst laden, wenn eine Datei kommt
+        function lohnLibs() {
+            if (!LOHN_LIBS) {
+                LOHN_LIBS = Promise.all([
+                    import(LOHN_PDFJS + 'pdf.min.mjs').then(function (m) { m.GlobalWorkerOptions.workerSrc = LOHN_PDFJS + 'pdf.worker.min.mjs'; return m; }),
+                    new Promise(function (res, rej) {
+                        if (window.PDFLib) { res(window.PDFLib); return; }
+                        const s = document.createElement('script');
+                        s.src = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+                        s.onload = function () { res(window.PDFLib); };
+                        s.onerror = function () { rej(new Error('pdf-lib konnte nicht geladen werden')); };
+                        document.head.appendChild(s);
+                    })
+                ]).then(function (x) { return { pdfjs: x[0], PDFLib: x[1] }; })
+                  .catch(function (e) { LOHN_LIBS = null; throw e; });
+            }
+            return LOHN_LIBS;
+        }
+        async function lohnTextSeiten(pdfjs, bytes) {
+            const doc = await pdfjs.getDocument({ data: bytes.slice(), verbosity: 0 }).promise;
+            const out = [];
+            for (let i = 1; i <= doc.numPages; i++) {
+                const p = await doc.getPage(i);
+                out.push(lohnZeilen((await p.getTextContent()).items));
+            }
+            try { doc.destroy(); } catch (e) {}
+            return out;
+        }
+        function lohnFehlerText(e) { return (e && (e.message || e.error_description || e.error)) || String(e); }
+        function lohnAbgaben(l) {
+            const ks = Array.isArray(l.koerperschaften) ? l.koerperschaften : [];
+            if (ks.length) return ks.reduce(function (s, k) { return s + (parseFloat(k.betrag) || 0); }, 0);
+            if (l.gesamt_summe != null) return (parseFloat(l.gesamt_summe) || 0) - (parseFloat(l.summe_dienstnehmer) || 0);
+            return null;
+        }
+        function tagMonat(ts) { const d = new Date(ts); return isNaN(d) ? '?' : ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + '.'; }
+        function lohnPdfOeffnen(pfad, titel) { return pdfAnsicht('lohnzettel', pfad, titel); }
+
+        /* === Zustand === */
+        let DATEIEN = [];          // {id, name, size, status:'lese'|'ok'|'fehler', art, p, bytes, fehler}
+        let dateiNr = 0, leseLaeuft = false;
+        const SPEICHER = {};       // key -> {st:'lauf'|'ok'|'err', text}
+        const NEU_OFFEN = {};      // key -> true (Pruefungen aufgeklappt)
+        let speichertGerade = false;
+        let LAEUFE = [], LAEUFE_FEHLER = '';
+        let FAHRER = [];           // aktive Fahrer {fahrer_id, name, notion_fahrer_id}
+        const ZETTEL = {};         // lauf_id -> {rows, fehler} | 'lade'
+        const LAUF_OFFEN = {};     // lauf_id -> true
+        const Z_OFFEN = {};        // zettel id -> true (nur Handy)
+        let OHNE = null, OHNE_FEHLER = '';
+        let filter = { firma: '', monat: '', ohne: false };
+        let busy = false;
+        let sel = null;            // gewaehlter Lauf bzw. Zettel (Seitenpanel)
+        let monatGesetzt = false, bereit = false;
+
+        /* === Upload: Dateien sammeln, lesen, zu Paaren gruppieren === */
+        function dateienHinzu(files) {
+            files.forEach(function (f) {
+                if (DATEIEN.some(function (d) { return d.name === f.name && d.size === f.size; })) return;
+                DATEIEN.push({ id: ++dateiNr, name: f.name, size: f.size, status: 'lese', file: f });
+            });
+            renderNeu();
+            leseAlle();
+        }
+        async function leseAlle() {
+            if (leseLaeuft) return;
+            leseLaeuft = true;
+            try {
+                let d;
+                while ((d = DATEIEN.filter(function (x) { return x.status === 'lese'; })[0])) {
+                    try {
+                        const libs = await lohnLibs();
+                        const bytes = new Uint8Array(await d.file.arrayBuffer());
+                        const seiten = await lohnTextSeiten(libs.pdfjs, bytes);
+                        const art = lohnArt(seiten);
+                        if (!art) throw new Error('weder Auszahlungsjournal noch Lohnzettel');
+                        d.art = art; d.bytes = bytes;
+                        d.p = art === 'AJ' ? parseJournal(seiten) : parseLohnzettel(seiten);
+                        d.status = 'ok';
+                    } catch (e) { d.status = 'fehler'; d.fehler = lohnFehlerText(e); }
+                    delete d.file;
+                    renderNeu();
+                }
+            } finally { leseLaeuft = false; }
+        }
+        // Gelesene Dateien -> Paare je Firma + Monat (reine Funktion)
+        function lohnPaare(dateien) {
+            const map = {}, paare = [], lose = [];
+            dateien.forEach(function (d) {
+                if (d.status !== 'ok') { lose.push(d); return; }
+                const key = (d.p.firma_nr || '?') + '|' + (d.p.monat || '?');
+                let g = map[key];
+                if (!g) { g = map[key] = { key: key, firma_nr: d.p.firma_nr, firma_name: d.p.firma_name, monat: d.p.monat, aj: [], lz: [] }; paare.push(g); }
+                if (!g.firma_name && d.p.firma_name) g.firma_name = d.p.firma_name;
+                g[d.art === 'AJ' ? 'aj' : 'lz'].push(d);
+            });
+            paare.forEach(function (g) {
+                g.fehlt = !g.aj.length ? 'AJ fehlt' : !g.lz.length ? 'LZ fehlt'
+                    : g.aj.length > 1 ? g.aj.length + ' AJ – eins entfernen' : g.lz.length > 1 ? g.lz.length + ' LZ – eins entfernen' : '';
+                g.pruef = g.fehlt ? [] : lohnPruefen(g.aj[0].p, g.lz[0].p);
+                g.nFehler = g.pruef.filter(function (p) { return !p.ok; }).length;
+                g.ok = !g.fehlt && !g.nFehler && !!g.firma_nr && !!g.monat;
+                g.personen = g.lz.length ? g.lz[0].p.personen.length : (g.aj.length ? g.aj[0].p.personen.length : 0);
+                g.summe = g.aj.length ? g.aj[0].p.summe : null;
+            });
+            paare.sort(function (a, b) { return String(a.firma_nr).localeCompare(String(b.firma_nr)) || String(a.monat).localeCompare(String(b.monat)); });
+            return { paare: paare, lose: lose };
+        }
+        function speicherbar(g) { return g.ok && !(SPEICHER[g.key] && SPEICHER[g.key].st === 'ok'); }
+
+            function renderNeu() {
+                const box = document.getElementById('loNeu');
+                const lesend = DATEIEN.filter(function (d) { return d.status === 'lese'; }).length;
+                document.getElementById('loDropInfo').textContent = !DATEIEN.length ? '' : DATEIEN.length + ' Datei' + (DATEIEN.length === 1 ? '' : 'en') + (lesend ? ' · lese ' + lesend + ' …' : '');
+                box.hidden = !DATEIEN.length;
+                if (!DATEIEN.length) return;
+                const m = isMobile(), sp = m ? 3 : 7;
+                const r = lohnPaare(DATEIEN);
+                const n = r.paare.filter(speicherbar).length;
+                const btn = document.getElementById('loSpeichern');
+                btn.textContent = 'Alle speichern (' + n + ')';
+                btn.disabled = !n || speichertGerade || lesend > 0;
+                let h = '<thead><tr>' + (m
+                    ? '<th class="l">Firma · Monat</th><th style="width:96px">Summe</th><th style="width:96px">Prüfung</th>'
+                    : '<th class="l">Firma</th><th style="width:84px">Monat</th><th style="width:80px">Personen</th><th style="width:110px">Summe</th>' +
+                      '<th style="width:80px">Prüfung</th><th class="l" style="width:34%">Hinweis</th><th style="width:56px"></th>') + '</tr></thead><tbody>';
+                r.paare.forEach(function (g) {
+                    const sv = SPEICHER[g.key];
+                    const alt = LAEUFE.filter(function (l) { return l.firma_nr === g.firma_nr && String(l.monat).slice(0, 10) === g.monat; })[0];
+                    const pr = g.fehlt ? '<span class="lo-err">' + esc(g.fehlt) + '</span>'
+                        : '<button class="lo-lnk ' + (g.nFehler ? 'lo-err' : 'lo-ok') + '" data-pruef="' + esc(g.key) + '">' + (g.nFehler ? '✗ ' + g.nFehler : '✓') + '</button>';
+                    let hin = alt ? '<span class="lo-warn">ersetzt Stand vom ' + tagMonat(alt.hochgeladen_am) + '</span>' : '<span class="lo-mut">neu</span>';
+                    if (sv) hin = sv.st === 'ok' ? '<span class="lo-ok">' + esc(sv.text) + '</span>' : sv.st === 'err' ? '<span class="lo-err" title="' + esc(sv.text) + '">' + esc(sv.text) + '</span>' : '<span class="lo-info">' + esc(sv.text) + '</span>';
+                    const firma = esc(g.firma_name || g.firma_nr || '?');
+                    const x = '<button class="lo-x" data-weg="' + esc(g.key) + '" title="Entfernen" aria-label="Entfernen">✕</button>';
+                    if (m) {
+                        h += '<tr data-neu="' + esc(g.key) + '"><td class="l">' + firma + '<small>' + lohnMonatText(g.monat) + '</small></td>' +
+                            '<td>' + (g.summe == null ? '–' : betrag(g.summe)) + '</td><td>' + (sv && sv.st !== 'lauf' ? hin : pr) + '</td></tr>';
+                    } else {
+                        h += '<tr><td class="l">' + firma + '</td><td>' + lohnMonatText(g.monat) + '</td><td>' + (g.personen || '–') + '</td>' +
+                            '<td>' + (g.summe == null ? '–' : betrag(g.summe)) + '</td><td>' + pr + '</td><td class="l">' + hin + '</td><td>' + x + '</td></tr>';
+                    }
+                    if (NEU_OFFEN[g.key]) {
+                        h += '<tr class="detail-row"><td colspan="' + sp + '">' +
+                            (m ? '<div class="lo-zeile"><span>' + (g.personen || '–') + ' Personen</span><span>' + hin + '</span></div>' : '') +
+                            (g.fehlt ? '<div class="lo-mut">' + esc(g.fehlt) + ' – Datei dazu wählen.</div>' :
+                            '<ul class="lo-pruef">' + g.pruef.map(function (p) {
+                                return '<li><span class="' + (p.ok ? 'lo-ok' : 'lo-err') + '">' + (p.ok ? '✓' : '✗') + '</span><span>' + esc(p.text) +
+                                    (p.detail ? ' <small>' + esc(p.detail) + '</small>' : '') + '</span></li>';
+                            }).join('') + '</ul>') +
+                            '<div class="lo-mut" style="margin-top:6px">' + g.aj.concat(g.lz).map(function (d) { return esc(d.art + ': ' + d.name); }).join(' · ') + '</div>' +
+                            (m ? '<div style="margin-top:8px"><button class="btn" data-weg="' + esc(g.key) + '">Entfernen</button></div>' : '') +
+                        '</td></tr>';
+                    }
+                });
+                r.lose.forEach(function (d) {
+                    const txt = d.status === 'lese' ? '<span class="lo-info">lese …</span>' : '<span class="lo-err">' + esc(d.fehler || 'Fehler') + '</span>';
+                    const x = '<button class="lo-x" data-wegdatei="' + d.id + '" title="Entfernen" aria-label="Entfernen">✕</button>';
+                    h += m ? '<tr><td class="l" colspan="2">' + esc(d.name) + '<small>' + txt + '</small></td><td>' + x + '</td></tr>'
+                           : '<tr><td class="l" colspan="5">' + esc(d.name) + '</td><td class="l">' + txt + '</td><td>' + x + '</td></tr>';
+                });
+                document.getElementById('loNeuTab').innerHTML = h + '</tbody>';
+            }
+
+        async function paarSpeichern(g, libs) {
+            const sb = getSupabase();
+            const aj = g.aj[0], lz = g.lz[0];
+            const lauf = lohnLaufDaten(aj.p, lz.p);
+            const st = function (s, t) { SPEICHER[g.key] = { st: s, text: t }; renderNeu(); };
+            try {
+                st('lauf', 'schneide …');
+                const teile = await lohnSchneiden(libs.PDFLib, lz.bytes, lz.p.personen);
+                const uploads = [{ pfad: lauf.aj_pfad, bytes: aj.bytes }].concat(teile.map(function (t) {
+                    return { pfad: lauf.zettel.filter(function (z) { return z.ma_nr === t.ma_nr; })[0].pfad, bytes: t.bytes };
+                }));
+                for (let i = 0; i < uploads.length; i++) {
+                    st('lauf', 'lade hoch ' + (i + 1) + '/' + uploads.length + ' …');
+                    const blob = new Blob([uploads[i].bytes], { type: 'application/pdf' });
+                    const { error } = await sb.storage.from('lohnzettel').upload(uploads[i].pfad, blob, { upsert: true, contentType: 'application/pdf' });
+                    if (error) throw new Error('Hochladen fehlgeschlagen (' + uploads[i].pfad.split('/').pop() + '): ' + lohnFehlerText(error) + ' – nicht gespeichert');
+                }
+                st('lauf', 'speichere …');
+                const { data, error } = await sb.rpc('lohn_lauf_speichern', { p_lauf: lauf });
+                if (error) throw new Error('Speichern fehlgeschlagen: ' + lohnFehlerText(error));
+                const alt = (data && data.alte_pfade) || [];
+                let hinweis = '';
+                if (alt.length) {
+                    st('lauf', 'räume ' + alt.length + ' alte Datei' + (alt.length === 1 ? '' : 'en') + ' auf …');
+                    const rm = await sb.storage.from('lohnzettel').remove(alt);
+                    if (rm.error) hinweis = ' (alte Dateien nicht gelöscht: ' + lohnFehlerText(rm.error) + ')';
+                }
+                st('ok', '✓ gespeichert' + hinweis);
+                return true;
+            } catch (e) { st('err', lohnFehlerText(e)); return false; }
+        }
+        async function alleSpeichern() {
+            if (speichertGerade) return;
+            const paare = lohnPaare(DATEIEN).paare.filter(speicherbar);
+            if (!paare.length) return;
+            speichertGerade = true; renderNeu();
+            let ok = 0;
+            try {
+                const libs = await lohnLibs();
+                for (let i = 0; i < paare.length; i++) { if (await paarSpeichern(paare[i], libs)) ok++; }
+            } catch (e) { alert('Bibliotheken nicht geladen: ' + lohnFehlerText(e)); }
+            finally {
+                speichertGerade = false;
+                toast(ok + ' von ' + paare.length + ' gespeichert');
+                await ladeAlles();
+                renderNeu();
+            }
+        }
+
+        /* === Uebersicht === */
+        async function ladeLaeufe() {
+            const res = await getSupabase().from('lohn_laeufe_uebersicht').select('*').order('monat', { ascending: false }).order('firma_name')
+                .then(function (r) { return r; }, function (e) { return { error: e }; });
+            LAEUFE_FEHLER = res.error ? lohnFehlerText(res.error) : '';
+            LAEUFE = res.error ? [] : (res.data || []);
+        }
+        async function ladeFahrerListe() {
+            const res = await getSupabase().from('fahrer_uebersicht').select('fahrer_id,name,aktiv,notion_fahrer_id').eq('aktiv', true)
+                .then(function (r) { return r; }, function (e) { return { error: e }; });
+            FAHRER = res.error ? [] : (res.data || []).slice().sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'de'); });
+        }
+        async function ladeZettel(laufId) {
+            const res = await getSupabase().from('lohn_zettel_uebersicht').select('*').eq('lauf_id', laufId).order('name')
+                .then(function (r) { return r; }, function (e) { return { error: e }; });
+            ZETTEL[laufId] = { rows: res.error ? [] : (res.data || []), fehler: res.error ? lohnFehlerText(res.error) : '' };
+        }
+        async function ladeOhne() {
+            const res = await getSupabase().from('lohn_zettel_uebersicht').select('*').is('fahrer_id', null)
+                .order('monat', { ascending: false }).order('firma_name').order('name')
+                .then(function (r) { return r; }, function (e) { return { error: e }; });
+            OHNE_FEHLER = res.error ? lohnFehlerText(res.error) : '';
+            OHNE = res.error ? [] : (res.data || []);
+        }
+            // Nach jeder Aenderung: Laeufe, "ohne Fahrer" und der gewaehlte Lauf neu
+            async function ladeAlles() {
+                await Promise.all([ladeLaeufe(), ladeOhne()]);
+                if (!monatGesetzt && LAEUFE.length) { filter.monat = String(LAEUFE[0].monat).slice(0, 7); monatGesetzt = true; }
+                if (sel && !filter.ohne) {
+                    if (!LAEUFE.some(function (l) { return l.id === sel; })) sel = null; else await ladeZettel(sel);
+                }
+                renderFilter(); renderLaeufe();
+            }
+
+            function fahrerName(id) { const f = FAHRER.filter(function (x) { return x.fahrer_id === id; })[0]; return f ? f.name : 'Fahrer ' + id; }
+            function passt(x) { return (!filter.firma || x.firma_nr === filter.firma) && (!filter.monat || String(x.monat).slice(0, 7) === filter.monat); }
+
+            // Kopf: Auswahl Firma/Monat, Kacheln, Umschalter
+            function renderFilter() {
+                const fs = document.getElementById('loFirma'), ms = document.getElementById('loMonat');
+                const firmen = {}, monate = {};
+                LAEUFE.forEach(function (l) { firmen[l.firma_nr] = l.firma_name; monate[String(l.monat).slice(0, 7)] = 1; });
+                if (filter.firma && !firmen[filter.firma]) filter.firma = '';
+                if (filter.monat && !monate[filter.monat]) filter.monat = '';
+                fs.innerHTML = '<option value="">Alle Firmen</option>' + Object.keys(firmen).sort().map(function (k) {
+                    return '<option value="' + esc(k) + '"' + (k === filter.firma ? ' selected' : '') + '>' + esc(firmen[k] || k) + '</option>';
+                }).join('');
+                ms.innerHTML = '<option value="">Alle Monate</option>' + Object.keys(monate).sort().reverse().map(function (k) {
+                    return '<option value="' + k + '"' + (k === filter.monat ? ' selected' : '') + '>' + lohnMonatText(k + '-01') + '</option>';
+                }).join('');
+                const rows = LAEUFE.filter(passt);
+                const summe = function (f) { return rows.reduce(function (s, l) { return s + (parseFloat(f(l)) || 0); }, 0); };
+                const ausz = summe(function (l) { return l.summe_dienstnehmer; });
+                const abgaben = rows.map(lohnAbgaben).filter(function (a) { return a != null; });
+                const abg = abgaben.reduce(function (s, a) { return s + a; }, 0);
+                const ohne = summe(function (l) { return l.ohne_fahrer; });
+                document.getElementById('loBig').textContent = LAEUFE_FEHLER ? '--' : fmt(ausz);
+                document.getElementById('loSub').textContent = (filter.monat ? lohnMonatText(filter.monat + '-01') : 'alle Monate') + (filter.firma ? ' · ' + (firmen[filter.firma] || filter.firma) : '');
+                const k = function (titel, wert, cls) { return '<div class="kpi-item"><small>' + titel + '</small><b' + (cls ? ' class="' + cls + '"' : '') + '>' + wert + '</b></div>'; };
+                document.getElementById('loKpi').innerHTML = LAEUFE_FEHLER ? '' :
+                    k(rows.length === 1 ? 'Firma' : 'Firmen', rows.length) + k('Personen', summe(function (l) { return l.anzahl_dienstnehmer; })) +
+                    k('Auszahlung', betrag(ausz), 'ok') + k('Abgaben', abgaben.length ? betrag(abg) : '–') +
+                    '<div class="kpi-item lo-kachel' + (filter.ohne ? ' active' : '') + '" data-lo-sicht="' + (filter.ohne ? 'laeufe' : 'ohne') + '" title="Lohnzettel ohne zugeordneten Fahrer zeigen"><small>Ohne Fahrer</small><b' + (ohne ? ' class="warn"' : ' class="ok"') + '>' + (ohne || '✓') + '</b></div>';
+                document.getElementById('loChips').innerHTML =
+                    '<button class="chip' + (!filter.ohne ? ' active' : '') + '" data-lo-sicht="laeufe">Läufe <span class="cnt">' + rows.length + '</span></button>' +
+                    '<button class="chip' + (filter.ohne ? ' active' : '') + '" data-lo-sicht="ohne">Ohne Fahrer <span class="cnt">' + ohne + '</span></button>';
+            }
+
+            // Fahrer-Zeile: Name + "lösen" oder Auswahl mit Vorschlag + "zuordnen"
+            function fahrerHtml(z) {
+                const d = ' data-firma="' + esc(z.firma_nr) + '" data-manr="' + z.ma_nr + '"', dis = busy ? ' disabled' : '';
+                if (z.fahrer_id != null) {
+                    return '<div class="zbox fest"><span>' + esc(z.fahrer_name || fahrerName(z.fahrer_id)) + '</span>' +
+                        '<button class="lo-lnk lo-mut" data-loesen="1"' + d + dis + '>lösen</button></div>';
+                }
+                const vorOk = FAHRER.some(function (f) { return f.fahrer_id === z.vorschlag_fahrer_id && f.notion_fahrer_id != null; });
+                return '<div class="zbox"><select data-fsel="1" aria-label="Fahrer wählen"' + dis + '>' + (!vorOk ? '<option value="">Fahrer wählen …</option>' : '') +
+                    FAHRER.map(function (f) {
+                        const ohneNr = f.notion_fahrer_id == null;
+                        return '<option value="' + f.fahrer_id + '"' + (vorOk && f.fahrer_id === z.vorschlag_fahrer_id ? ' selected' : '') + (ohneNr ? ' disabled' : '') + '>' +
+                            esc(f.name) + (ohneNr ? ' (ohne Fahrer-ID)' : '') + '</option>';
+                    }).join('') + '</select><button class="btn" data-zuordnen="1"' + d + dis + '>zuordnen</button></div>';
+            }
+            function statusHtml(z) {
+                if (z.fahrer_id != null) return '<span class="ps-status ok">zugeordnet</span>';
+                return z.vorschlag_fahrer_id != null ? '<span class="ps-status todo">Vorschlag</span>' : '<span class="ps-status err">offen</span>';
+            }
+            function pdfAttr(z) { return ' data-pdf="' + esc(z.pfad) + '" data-titel="' + esc('Lohnzettel ' + lohnMonatText(String(z.monat)) + ' · ' + z.name) + '"'; }
+            function vorschlagZahl(rows) {
+                // Personen zaehlen (Firma + Ma-Nr), nicht Zettel - wie im Bestaetigungsdialog
+                return new Set(rows.filter(function (z) { return z.fahrer_id == null && z.vorschlag_fahrer_id != null; })
+                    .map(function (z) { return z.firma_nr + '|' + z.ma_nr; })).size;
+            }
+            function kv(k, v, cls) { return '<div class="detail-kv' + (cls ? ' ' + cls : '') + '"><span>' + k + '</span><span>' + v + '</span></div>'; }
+
+            // Seitenpanel: ein Lauf mit seinen Lohnzetteln
+            function laufDetail(l) {
+                const z = ZETTEL[l.id], abg = lohnAbgaben(l);
+                const rows = (z && z !== 'lade' && z.rows) || [];
+                const n = vorschlagZahl(rows);
+                let h = '<div class="detail"><h4>' + esc(l.firma_name) + '</h4>'
+                    + '<div class="sub">Firma ' + esc(l.firma_nr) + ' · ' + lohnMonatText(String(l.monat)) + ' · hochgeladen ' + tagMonat(l.hochgeladen_am) + ' von ' + esc(l.hochgeladen_von || '?') + '</div>'
+                    + '<div class="pay">' + fmt(l.summe_dienstnehmer) + '</div>'
+                    + kv('Personen', l.anzahl_dienstnehmer || 0) + kv('Abgaben', abg == null ? '–' : fmt(abg))
+                    + (l.gesamt_summe != null ? kv('Gesamt', fmt(l.gesamt_summe), 'strong') : '')
+                    + (!l.firma_adresse ? '<div class="ps-warn">Adresse fehlt – Firma unter Rechnungen anlegen</div>' : '')
+                    + '<div class="detail-acts"><button class="btn-ghost" data-pdf="' + esc(l.aj_pfad) + '" data-titel="' + esc('Auszahlungsjournal ' + lohnMonatText(String(l.monat)) + ' · ' + l.firma_name) + '">Journal öffnen</button>'
+                    + (n ? '<button class="btn-primary" data-alle="' + esc(l.id) + '"' + (busy ? ' disabled' : '') + '>' + n + ' Vorschläge zuordnen</button>' : '') + '</div>'
+                    + '<div class="detail-sec">Lohnzettel' + (rows.length ? ' · ' + rows.length : '') + '</div>';
+                if (!z || z === 'lade') h += '<div class="lo-mut">Lade …</div>';
+                else if (z.fehler) h += '<div class="lo-err">' + esc(z.fehler) + '</div>';
+                else h += rows.map(function (r) {
+                    return '<div class="lo-z' + (r.fahrer_id == null ? ' offen' : '') + '"><div class="lo-zeile"><button class="lo-lnk"' + pdfAttr(r) + ' title="PDF öffnen">' + esc(r.name) + '</button>'
+                        + '<span class="num">' + betrag(r.auszahlung) + '</span></div>' + fahrerHtml(r) + '</div>';
+                }).join('');
+                return h + '</div>';
+            }
+            // Seitenpanel: ein Lohnzettel ohne Fahrer
+            function zettelDetail(z) {
+                return '<div class="detail"><h4>' + esc(z.name) + '</h4>'
+                    + '<div class="sub">' + esc(z.firma_name) + ' · ' + lohnMonatText(String(z.monat)) + ' · Ma-Nr ' + z.ma_nr + '</div>'
+                    + '<div class="pay">' + fmt(z.auszahlung) + '</div>'
+                    + kv('Brutto', fmt(z.brutto)) + kv('Netto', fmt(z.netto)) + kv('Auszahlung', fmt(z.auszahlung), 'strong')
+                    + '<div class="detail-sec">Fahrer</div>' + fahrerHtml(z)
+                    + '<div class="detail-acts"><button class="btn-ghost"' + pdfAttr(z) + '>Lohnzettel öffnen</button></div></div>';
+            }
+
+            function renderLaeufe() {
+                const head = document.getElementById('loHead'), body = document.getElementById('loBody'), panel = document.getElementById('loPanel');
+                const m = isMobile(), sp = m ? 3 : 6;
+                const leer = function (t) { return '<tr><td class="empty" colspan="' + sp + '">' + t + '</td></tr>'; };
+                if (filter.ohne) {
+                    const rows = (OHNE || []).filter(passt);
+                    const n = vorschlagZahl(rows);
+                    const leiste = document.getElementById('loLeiste');
+                    leiste.hidden = !n;
+                    leiste.innerHTML = '<b>' + n + '</b>&nbsp;mit Vorschlag<span class="sp"></span><button class="btn-primary" style="flex:none" data-alle="ohne"' + (busy ? ' disabled' : '') + '>Vorschläge zuordnen …</button>';
+                    head.innerHTML = m ? '<tr><th class="l">Name</th><th style="width:88px">Betrag</th><th class="l" style="width:96px">Status</th></tr>'
+                        : '<tr><th class="l">Name</th><th class="l">Firma</th><th style="width:90px">Monat</th><th style="width:80px">Ma-Nr</th><th style="width:120px">Auszahlung</th><th class="l" style="width:120px">Status</th></tr>';
+                    const z = sel && rows.filter(function (r) { return r.id === sel; })[0];
+                    body.innerHTML = OHNE == null ? leer('Lade …') : OHNE_FEHLER ? leer('Fehler: ' + esc(OHNE_FEHLER))
+                        : !rows.length ? leer('Alle Lohnzettel sind einem Fahrer zugeordnet.')
+                        : rows.map(function (r) {
+                            const an = r.id === sel;
+                            return '<tr' + (an ? ' class="selected"' : '') + ' data-lo-zettel="' + esc(r.id) + '">' + (m
+                                ? '<td class="l">' + esc(r.name) + '<small>' + esc(r.firma_name) + ' · ' + lohnMonatText(String(r.monat)) + '</small></td><td>' + betrag(r.auszahlung) + '</td><td class="l">' + statusHtml(r) + '</td>'
+                                : '<td class="l">' + esc(r.name) + '</td><td class="l">' + esc(r.firma_name) + '</td><td>' + lohnMonatText(String(r.monat)) + '</td><td>' + r.ma_nr + '</td><td class="pay">' + betrag(r.auszahlung) + '</td><td class="l">' + statusHtml(r) + '</td>')
+                                + '</tr>' + (m && an ? '<tr class="detail-row"><td colspan="3">' + zettelDetail(r) + '</td></tr>' : '');
+                        }).join('');
+                    panel.innerHTML = m ? '' : z ? zettelDetail(z) : '<div class="placeholder">Lohnzettel anklicken zum Zuordnen</div>';
+                    return;
+                }
+                document.getElementById('loLeiste').hidden = true;
+                head.innerHTML = m ? '<tr><th class="l">Firma · Monat</th><th style="width:96px">Auszahlung</th><th style="width:78px">Fahrer</th></tr>'
+                    : '<tr><th class="l">Firma</th><th style="width:90px">Monat</th><th style="width:90px">Personen</th><th style="width:130px">Auszahlung</th><th style="width:120px">Abgaben</th><th style="width:110px">Ohne Fahrer</th></tr>';
+                if (LAEUFE_FEHLER) { body.innerHTML = leer('Noch nicht verfügbar: ' + esc(LAEUFE_FEHLER)); panel.innerHTML = ''; return; }
+                const rows = LAEUFE.filter(passt);
+                const l0 = sel && rows.filter(function (l) { return l.id === sel; })[0];
+                body.innerHTML = !rows.length ? leer(LAEUFE.length ? 'Keine Läufe für diesen Filter.' : 'Noch keine Lohnläufe hochgeladen.')
+                    : rows.map(function (l) {
+                        const an = l.id === sel, abg = lohnAbgaben(l);
+                        const ohne = l.ohne_fahrer ? '<span class="lo-warn">' + l.ohne_fahrer + '</span>' : '<span class="lo-ok">✓</span>';
+                        return '<tr' + (an ? ' class="selected"' : '') + ' data-lo-lauf="' + esc(l.id) + '">' + (m
+                            ? '<td class="l">' + esc(l.firma_name) + '<small>' + lohnMonatText(String(l.monat)) + ' · ' + (l.anzahl_dienstnehmer || 0) + ' Pers.</small></td><td class="pay">' + betrag(l.summe_dienstnehmer) + '</td><td>' + ohne + '</td>'
+                            : '<td class="l">' + esc(l.firma_name) + '</td><td>' + lohnMonatText(String(l.monat)) + '</td><td>' + (l.anzahl_dienstnehmer || 0) + '</td><td class="pay">' + betrag(l.summe_dienstnehmer) + '</td><td>' + (abg == null ? '–' : betrag(abg)) + '</td><td>' + ohne + '</td>')
+                            + '</tr>' + (m && an ? '<tr class="detail-row"><td colspan="3">' + laufDetail(l) + '</td></tr>' : '');
+                    }).join('');
+                panel.innerHTML = m ? '' : l0 ? laufDetail(l0) : '<div class="placeholder">Firma anklicken für Lohnzettel und Zuordnung</div>';
+            }
+
+        /* === Zuordnen === */
+        async function zuordnen(btn, loesen) {
+            if (busy) return;
+            let fid = null;
+            if (!loesen) {
+                const sel = btn.closest('.zbox').querySelector('[data-fsel]');
+                fid = sel ? parseInt(sel.value, 10) : NaN;
+                if (!fid) { alert('Bitte einen Fahrer wählen.'); return; }
+            } else if (!confirm('Zuordnung von Ma-Nr ' + btn.dataset.manr + ' lösen?')) return;
+            busy = true; renderLaeufe();
+            try {
+                const { error } = await getSupabase().rpc('lohn_person_zuordnen', { p_firma_nr: btn.dataset.firma, p_ma_nr: parseInt(btn.dataset.manr, 10), p_fahrer_id: fid });
+                if (error) throw error;
+                toast(loesen ? 'Zuordnung gelöst' : 'Zugeordnet: ' + fahrerName(fid));
+            } catch (e) { alert((loesen ? 'Lösen' : 'Zuordnen') + ' fehlgeschlagen: ' + lohnFehlerText(e)); }
+            finally { busy = false; await ladeAlles(); }
+        }
+        // Auswahldialog: alle vorausgewaehlt, einzelne abwaehlbar; liefert die gewaehlten Personen oder null
+        function vorschlagAuswahl(personen) {
+            return new Promise(function (fertig) {
+                const d = document.createElement('dialog');
+                d.className = 'lo-wahl';
+                d.innerHTML = '<h3>Vorschläge zuordnen</h3>' +
+                    '<label><input type="checkbox" data-alle checked> <b>Alle auswählen</b></label>' +
+                    '<div class="wliste">' + personen.map(function (z, i) {
+                        return '<label><input type="checkbox" data-i="' + i + '" checked><span>' + esc(z.name) + ' <small>' + esc(z.firma_name || z.firma_nr) + ' · Ma-Nr ' + z.ma_nr + '</small></span>' +
+                            '<span style="margin-left:auto">→ ' + esc(fahrerName(z.vorschlag_fahrer_id)) + '</span></label>';
+                    }).join('') + '</div>' +
+                    '<div class="wfuss"><span class="sp"></span><button class="btn" data-ab>Abbrechen</button><button class="btn-primary" data-ok></button></div>';
+                const boxen = Array.prototype.slice.call(d.querySelectorAll('[data-i]')), alle = d.querySelector('[data-alle]'), ok = d.querySelector('[data-ok]');
+                function zaehlen() {
+                    const n = boxen.filter(function (b) { return b.checked; }).length;
+                    ok.textContent = n + ' zuordnen'; ok.disabled = !n;
+                    d.querySelector('.sp').textContent = n + ' von ' + boxen.length + ' ausgewählt';
+                    alle.checked = n === boxen.length; alle.indeterminate = n > 0 && n < boxen.length;
+                }
+                alle.addEventListener('change', function () { boxen.forEach(function (b) { b.checked = alle.checked; }); zaehlen(); });
+                boxen.forEach(function (b) { b.addEventListener('change', zaehlen); });
+                let ergebnis = null;
+                ok.addEventListener('click', function () { ergebnis = personen.filter(function (_, i) { return boxen[i].checked; }); d.close(); });
+                d.querySelector('[data-ab]').addEventListener('click', function () { d.close(); });
+                d.addEventListener('close', function () { d.remove(); fertig(ergebnis); });
+                document.body.appendChild(d); zaehlen(); d.showModal();
+            });
+        }
+        // Alle Vorschlaege einer Liste; gleiche Firma + Ma-Nr nur einmal
+        async function alleVorschlaege(quelle) {
+            if (busy) return;
+            const rows = quelle === 'ohne' ? (OHNE || []).filter(passt) : ((ZETTEL[quelle] && ZETTEL[quelle].rows) || []);
+            const mit = rows.filter(function (z) { return z.fahrer_id == null && z.vorschlag_fahrer_id != null; });
+            if (!mit.length) return;
+            let personen = []; const gesehen = {};
+            mit.forEach(function (z) {
+                const k = z.firma_nr + '|' + z.ma_nr;
+                if (gesehen[k]) return;
+                gesehen[k] = 1; personen.push(z);
+            });
+            personen = await vorschlagAuswahl(personen);
+            if (!personen || !personen.length) return;
+            busy = true; renderLaeufe();
+            let ok = 0; const fehler = [];
+            for (let i = 0; i < personen.length; i++) {
+                const z = personen[i];
+                try {
+                    const { error } = await getSupabase().rpc('lohn_person_zuordnen', { p_firma_nr: z.firma_nr, p_ma_nr: z.ma_nr, p_fahrer_id: z.vorschlag_fahrer_id });
+                    if (error) throw error;
+                    ok++;
+                } catch (e) { fehler.push(z.name + ': ' + lohnFehlerText(e)); }
+            }
+            busy = false;
+            const text = ok + ' zugeordnet' + (fehler.length ? ', ' + fehler.length + ' Fehler' : '');
+            if (fehler.length) alert(text + ':\n\n' + fehler.join('\n')); else toast(text);
+            await ladeAlles();
+        }
+
+            /* === Ereignisse === */
+            function sicht(ohne) { filter.ohne = ohne; sel = null; renderFilter(); renderLaeufe(); }
+            function klick(e) {
+                const t = e.target;
+                let b;
+                if ((b = t.closest('[data-pdf]'))) { e.stopPropagation(); lohnPdfOeffnen(b.dataset.pdf, b.dataset.titel || b.textContent); return; }
+                if ((b = t.closest('[data-weg]'))) {
+                    if (speichertGerade) return;
+                    const key = b.dataset.weg;
+                    DATEIEN = DATEIEN.filter(function (d) { return d.status !== 'ok' || ((d.p.firma_nr || '?') + '|' + (d.p.monat || '?')) !== key; });
+                    delete SPEICHER[key]; delete NEU_OFFEN[key]; renderNeu(); return;
+                }
+                if ((b = t.closest('[data-wegdatei]'))) { const id = parseInt(b.dataset.wegdatei, 10); DATEIEN = DATEIEN.filter(function (d) { return d.id !== id; }); renderNeu(); return; }
+                if ((b = t.closest('[data-pruef]'))) { e.stopPropagation(); NEU_OFFEN[b.dataset.pruef] = !NEU_OFFEN[b.dataset.pruef]; renderNeu(); return; }
+                if ((b = t.closest('[data-alle]'))) { alleVorschlaege(b.dataset.alle); return; }
+                if ((b = t.closest('[data-zuordnen]'))) { zuordnen(b, false); return; }
+                if ((b = t.closest('[data-loesen]'))) { zuordnen(b, true); return; }
+                if ((b = t.closest('[data-lo-sicht]'))) { sicht(b.dataset.loSicht === 'ohne'); return; }
+                if (t.closest('select, button, a, input, label, .detail-row')) return;
+                if ((b = t.closest('[data-neu]'))) { NEU_OFFEN[b.dataset.neu] = !NEU_OFFEN[b.dataset.neu]; renderNeu(); return; }
+                if ((b = t.closest('[data-lo-zettel]'))) { sel = sel === b.dataset.loZettel ? null : b.dataset.loZettel; renderLaeufe(); return; }
+                if ((b = t.closest('[data-lo-lauf]'))) {
+                    const id = b.dataset.loLauf;
+                    if (sel === id) { sel = null; renderLaeufe(); return; }
+                    sel = id;
+                    if (!ZETTEL[id]) ZETTEL[id] = 'lade';
+                    renderLaeufe();
+                    ladeZettel(id).then(renderLaeufe);
+                }
+            }
+            function init() {
+                if (bereit) return;
+                bereit = true;
+                const seite = document.getElementById('contentLohn');
+                const inp = document.getElementById('loDatei');
+                inp.addEventListener('change', function () { const f = Array.prototype.slice.call(inp.files || []); inp.value = ''; if (f.length) dateienHinzu(f); });
+                const drop = document.getElementById('loDrop');
+                ['dragenter', 'dragover'].forEach(function (ev) { seite.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); }); });
+                ['dragleave', 'drop'].forEach(function (ev) { seite.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); }); });
+                seite.addEventListener('drop', function (e) { const f = Array.prototype.slice.call((e.dataTransfer && e.dataTransfer.files) || []); if (f.length) dateienHinzu(f); });
+                seite.addEventListener('click', klick);
+                document.getElementById('loSpeichern').addEventListener('click', alleSpeichern);
+                document.getElementById('loRefresh').addEventListener('click', ladeAlles);
+                document.getElementById('loFirma').addEventListener('change', function (e) { filter.firma = e.target.value; sel = null; renderFilter(); renderLaeufe(); });
+                document.getElementById('loMonat').addEventListener('change', function (e) { filter.monat = e.target.value; sel = null; renderFilter(); renderLaeufe(); });
+                window.matchMedia('(max-width: 768px)').addEventListener('change', function () { renderNeu(); renderLaeufe(); });
+                Promise.all([ladeFahrerListe(), ladeAlles()]).then(function () { renderLaeufe(); renderNeu(); });
+            }
+            return { init: init };
+        })();
+
         /* Reiter-Gruppen: oben die Gruppe, daneben ihre Unterreiter */
         const GRUPPEN = {
-            abrechnung: [['abrechnungen', 'Übersicht'], ['api', 'API'], ['abrbot', 'Upload'], ['muessenzahlen', 'Kassieren'], ['lohn.html', 'Löhne']],
-            fahrer: [['fahrer', 'App'], ['fuhrpark', 'Fuhrpark'], ['post', 'Post']],
-            verbindungen: [['verbindungen']],
-            rechnungen: [['rechnungen']]
+            abrechnung: [['abrechnungen', 'Übersicht'], ['abrbot', 'Upload'], ['muessenzahlen', 'Kassieren'], ['lohn', 'Löhne']],
+            fahrer: [['fahrer', 'App'], ['post', 'Post']],
+            rechnungen: [['rechnungen']],
+            experimentell: [['api', 'API-Abrechnung'], ['fuhrpark', 'Fuhrpark'], ['verbindungen', 'Verbindungen']]
         };
         function gruppeVon(tab) {
             for (const g in GRUPPEN) if (GRUPPEN[g].some(function (r) { return r[0] === tab; })) return g;
@@ -3416,7 +4353,7 @@
         }
         function switchTab(tab) {
             menueZu();
-            const inhalt = { abrechnungen: 'contentAbrechnungen', api: 'contentApi', abrbot: 'contentAbrBot', muessenzahlen: 'contentMuessenZahlen',
+            const inhalt = { abrechnungen: 'contentAbrechnungen', api: 'contentApi', abrbot: 'contentAbrBot', muessenzahlen: 'contentMuessenZahlen', lohn: 'contentLohn',
                 fahrer: 'contentFahrer', fuhrpark: 'contentFuhrpark', post: 'contentPost', verbindungen: 'contentVerbindungen', rechnungen: 'contentRechnungen' };
             if (!inhalt[tab]) tab = 'abrechnungen';
             const g = gruppeVon(tab);
@@ -3435,6 +4372,7 @@
             else if (tab === 'api') initApi();
             else if (tab === 'fahrer') initFahrer();
             else if (tab === 'post') initPost();
+            else if (tab === 'lohn') Lohn.init();
             else if (tab === 'muessenzahlen') initMuessenZahlen();
             localStorage.setItem('hydralink_tab', tab);
             try { localStorage.setItem('hydralink_tab_' + g, tab); } catch (e) {}

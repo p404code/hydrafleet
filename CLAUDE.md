@@ -45,6 +45,17 @@ die Tab-Leiste; Tabellen werden dort zu 3 Spalten + aufklappbarer `detail-row`.
 6. **CSV Upload** (AbrBot) — Bolt/Uber/myPOS-CSVs je Woche an n8n. **Bleibt als Notfallweg, nie entfernen.**
 7. **Rechnungen** — Rechnungserstellung und Archiv, fortlaufende Nummer (HF-YYYY-NNNN), PDF in Supabase Storage.
 
+**Kopfleiste seit 2026-10-03:** Abrechnung (Übersicht, Upload, Kassieren, Löhne) · Fahrer (App, Post) ·
+Rechnungen · **Experimentell** (API-Abrechnung, Fuhrpark, Verbindungen — funktionieren noch nicht verlässlich,
+bewusst abgestellt). **Löhne** ist ein Reiter (`contentLohn`, JS in der Hülle `Lohn`, IDs/Klassen `lo…`);
+`lohn.html` leitet nur noch weiter.
+
+**Zu-/Abschläge (seit 2026-10-03):** Posten je Fahrer und Woche in `abrechnung_posten` („Pickerl selbst
+bezahlt +70“), Eingabe im Seitenpanel der Abrechnung. Geschrieben wird nur über `posten_anlegen` /
+`posten_loeschen`; die Summe landet in `settlements.korrektur` (+ Notiz) und steckt in `auszahlung`.
+Rechnet der AbrechnungsBot die Woche neu, fällt sie heraus: `abrechnung_posten_offen` zeigt das, das
+Dashboard bietet „Wieder einrechnen“ (`posten_neu_anwenden`). `korrektur` nie von Hand setzen.
+
 ## Plattform-Sync (seit 2026-09-22)
 
 Grundsatz: **HYDRAlink ist der Spiegel.** Die Syncs schreiben ausschliesslich in

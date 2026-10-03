@@ -57,9 +57,16 @@ Rechnet der AbrechnungsBot die Woche neu, fällt sie heraus: `abrechnung_posten_
 Dashboard bietet „Wieder einrechnen“ (`posten_neu_anwenden`). `korrektur` nie von Hand setzen.
 
 **Kassabuch (seit 2026-10-03):** Reiter Abrechnung → Kassabuch (`contentKassabuch`, Hülle `Kassa`, Präfix `kb`).
-Eine Bargeldkassa in `kassabuch`: `anfang` (einmal), `ein`, `aus`, je mit Name und Text. Bestand rechnet das
-Dashboard. Nie ändern oder löschen – Storno ist eine Gegenbuchung (`kassa_storno`); schreiben nur über
-`kassa_buchen` / `kassa_storno` / `kassa_anfang`. Hängt bewusst nicht an Kassieren.
+Eine Bargeldkassa in `kassabuch`, geführt **je Kalenderwoche** wie die Abrechnung (ISO-Woche `JJJJ-Wnn`):
+`anfang` (genau einmal), `ein`, `aus`. Hängt bewusst nicht an Kassieren. Absicherung – nicht aufweichen:
+- **Wer** (`name`) ist immer der angemeldete Benutzer (`app_metadata.app_name`), nie ein Eingabefeld.
+- Schreiben nur über `kassa_buchen` / `kassa_storno` / `kassa_anfang` / `kassa_abschliessen`.
+  UPDATE, DELETE, TRUNCATE sperrt ein Trigger (`kassa_gesperrt`) – auch im SQL-Fenster. Storno = Gegenbuchung.
+- Jede Buchung trägt `nr` (lückenlos) und `pruefsumme` (sha256 inkl. der Summe davor). `kassa_pruefen()` rechnet
+  die Kette und die Abschlüsse nach; das Dashboard zeigt „Unverändert“ bzw. die erste auffällige Nummer.
+- **Wochenabschluss** (`kassa_abschluss`): hält Anfangsbestand/Übertrag, Einnahmen, Ausgaben, Endbestand und den
+  gezählten Betrag samt Differenz fest. Erst ab Sonntag der Woche, Wochen der Reihe nach. Danach nimmt die Woche
+  keine Buchung mehr an; der Endbestand ist der Übertrag in die nächste KW.
 
 ## Plattform-Sync (seit 2026-09-22)
 

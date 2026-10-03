@@ -712,6 +712,25 @@
             #apTable td:last-child { padding-right: 12px; }
             #apTable .zeile-sub { display: block; font-family: var(--mono); font-size: 11px; color: var(--text-mut); margin-top: 2px; }
         }
+        /* Kassabuch */
+        #contentKassabuch .kpi { grid-template-columns: repeat(4, 1fr); }
+        #contentKassabuch td.l, #contentKassabuch th.l { text-align: left; font-family: var(--sans); }
+        #contentKassabuch .data-table td small { display: block; font-size: 10.5px; color: var(--text-mut); font-weight: 400; overflow: hidden; text-overflow: ellipsis; }
+        #kbTable tbody tr:not(.detail-row) { cursor: pointer; }
+        #kbTable td.kb-name { color: var(--text); font-weight: 500; }
+        #kbTable td.kb-ein { color: var(--accent); }
+        #kbTable tr.kb-storno td { color: var(--text-dim) !important; text-decoration: line-through; }
+        #kbTable tr.kb-storno td.pay { text-decoration: none; }
+        #kbToolbar .kb-neu { flex: none; padding: 7px 12px; }
+        #kbAnfangBtn[hidden] { display: none; }
+        .kb-dlg { width: min(400px, calc(100vw - 24px)); }
+        .kb-art { display: flex; gap: 6px; margin: 4px 0 2px; }
+        .kb-art label { flex: 1; cursor: pointer; }
+        .kb-art input { position: absolute; opacity: 0; pointer-events: none; }
+        .kb-art span { display: block; text-align: center; padding: 8px; border: 1px solid var(--border-strong); border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--text-mut); }
+        .kb-art input:checked + span { background: var(--text); color: var(--bg); border-color: var(--text); }
+        .kb-art input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 1px; }
+        @media (max-width: 768px) { #contentKassabuch .kpi { grid-template-columns: repeat(2, 1fr); } }
         /* Loehne-Reiter */
         #contentLohn .kpi { grid-template-columns: repeat(5, 1fr); }
         #loKpi .lo-kachel { cursor: pointer; border: 1px solid transparent; }
@@ -1262,6 +1281,37 @@
         <dialog class="ps-dlg" id="psDlg"></dialog>
     </div>
 
+    <div class="tab-content" id="contentKassabuch">
+        <div class="hero">
+            <div class="hero-top">
+                <div class="week-pick"><span style="font-size:18px;font-weight:700">Kassabuch</span><select class="chip" id="kbMonat" aria-label="Monat"></select></div>
+                <div class="hero-big" id="kbHero"><b id="kbBig">--</b><small>jetzt in der Kassa</small></div>
+            </div>
+            <div class="kpi" id="kbKpi"></div>
+        </div>
+        <div class="toolbar" id="kbToolbar">
+            <button class="btn-primary ok kb-neu" data-kb-neu="ein">+ Einnahme</button>
+            <button class="btn-primary kb-neu" data-kb-neu="aus">− Ausgabe</button>
+            <input type="text" class="search" id="kbSuche" placeholder="Name oder Text">
+            <button class="chip active" data-kb-art="alle">Alle</button>
+            <button class="chip" data-kb-art="ein">Ein</button>
+            <button class="chip" data-kb-art="aus">Aus</button>
+            <div class="sp"></div>
+            <button class="btn" id="kbAnfangBtn">Anfangsbestand setzen</button>
+            <button class="btn desktop-only" id="kbExport">Export</button>
+            <button class="btn" id="kbRefresh" title="Neu laden">↺</button>
+        </div>
+        <div class="split">
+            <div class="split-main">
+                <table class="data-table" id="kbTable">
+                    <thead id="kbHead"></thead>
+                    <tbody id="kbBody"><tr><td colspan="6" class="empty">Laden…</td></tr></tbody>
+                </table>
+            </div>
+            <aside class="side-panel" id="kbPanel"><div class="placeholder">Buchung anklicken für Details und Storno</div></aside>
+        </div>
+    </div>
+
     <div class="tab-content" id="contentLohn">
         <div class="hero">
             <div class="hero-top">
@@ -1341,6 +1391,7 @@
             <button onclick="switchTab('abrechnungen')" data-menue="abrechnungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Abrechnung</button>
             <button onclick="switchTab('abrbot')" data-menue="abrbot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload</button>
             <button onclick="switchTab('muessenzahlen')" data-menue="muessenzahlen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Kassieren</button>
+            <button onclick="switchTab('kassabuch')" data-menue="kassabuch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h13a3 3 0 013 3v13H7a3 3 0 01-3-3V4z"/><path d="M8 9h8M8 13h5"/></svg>Kassabuch</button>
             <button onclick="switchTab('lohn')" data-menue="lohn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M7 12h.01M17 12h.01"/></svg>Löhne</button>
             <div class="menue-gruppe">Fahrer</div>
             <button onclick="switchTab('fahrer')" data-menue="fahrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg>Fahrer/App</button>
@@ -4333,9 +4384,213 @@
             return { init: init };
         })();
 
+        /* === KASSABUCH: eine Bargeldkassa (Tabelle kassabuch) ===
+           Bestand = Anfangsbestand + Einnahmen - Ausgaben. Nichts wird geaendert oder
+           geloescht, Fehler werden storniert (Gegenbuchung). Geschrieben wird nur ueber
+           kassa_buchen / kassa_storno / kassa_anfang. */
+        const Kassa = (function () {
+            let ROWS = [], fehler = '', bereit = false, monat = null, art = 'alle', suche = '', sel = null, busy = false;
+            const MONATE = ['Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+            function heute() { return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' }); }
+            function datumText(d) { return d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : '–'; }
+            function monatText(ym) { return MONATE[parseInt(ym.slice(5, 7), 10) - 1] + ' ' + ym.slice(0, 4); }
+            function wert(r) { const b = parseFloat(r.betrag) || 0; return r.art === 'aus' ? -b : b; }
+            function mitVz(n) { return (n < 0 ? '−' : '+') + fmt(Math.abs(n)); }
+            function fehlerText(e) { return e && e.code === '42501' ? 'Keine Berechtigung.' : (e && e.message) || String(e); }
+
+            async function laden() {
+                const res = await getSupabase().from('kassabuch').select('*').order('datum').order('id').then(function (r) { return r; }, function (e) { return { error: e }; });
+                fehler = res.error ? fehlerText(res.error) : '';
+                ROWS = res.error ? [] : (res.data || []);
+                const storniert = {};
+                ROWS.forEach(function (r) { if (r.storno_von != null) storniert[r.storno_von] = r.id; });
+                let b = 0;
+                ROWS.forEach(function (r) { b = Math.round((b + wert(r)) * 100) / 100; r.bestand = b; r.storniert = storniert[r.id] != null; });
+                render();
+            }
+            function bestandJetzt() { return ROWS.length ? ROWS[ROWS.length - 1].bestand : 0; }
+            function anfangZeile() { return ROWS.filter(function (r) { return r.art === 'anfang'; })[0] || null; }
+
+            function render() {
+                const jetzt = heute().slice(0, 7);
+                if (!monat) monat = jetzt;
+                const monate = {}; monate[jetzt] = 1;
+                ROWS.forEach(function (r) { monate[r.datum.slice(0, 7)] = 1; });
+                document.getElementById('kbMonat').innerHTML = Object.keys(monate).sort().reverse().map(function (k) {
+                    return '<option value="' + k + '"' + (k === monat ? ' selected' : '') + '>' + monatText(k) + '</option>';
+                }).join('');
+                const imMonat = ROWS.filter(function (r) { return r.datum.slice(0, 7) === monat; });
+                const summe = function (rows) { return rows.reduce(function (a, r) { return a + wert(r); }, 0); };
+                // Der Anfangsbestand zaehlt nicht als Einnahme, auch wenn er in diesem Monat liegt
+                const anfang = summe(ROWS.filter(function (r) { return r.datum.slice(0, 7) < monat || (r.art === 'anfang' && r.datum.slice(0, 7) === monat); }));
+                const ein = summe(imMonat.filter(function (r) { return r.art === 'ein'; }));
+                const aus = -summe(imMonat.filter(function (r) { return r.art === 'aus'; }));
+                document.getElementById('kbBig').textContent = fehler ? '--' : fmt(bestandJetzt());
+                document.getElementById('kbHero').classList.toggle('err', bestandJetzt() < 0);
+                const k = function (t, w, c) { return '<div class="kpi-item"><small>' + t + '</small><b' + (c ? ' class="' + c + '"' : '') + '>' + w + '</b></div>'; };
+                document.getElementById('kbKpi').innerHTML = k('Anfangsbestand', fmt(anfang)) + k('Einnahmen', fmt(ein), 'ok') + k('Ausgaben', fmt(aus), aus ? 'err' : '')
+                    + k('Endbestand ' + monatText(monat).split(' ')[0], fmt(anfang + ein - aus));
+                document.querySelectorAll('#kbToolbar [data-kb-art]').forEach(function (b) { b.classList.toggle('active', b.dataset.kbArt === art); });
+                const a0 = anfangZeile();
+                document.getElementById('kbAnfangBtn').hidden = !!a0 && ROWS.length > 1;
+                document.getElementById('kbAnfangBtn').textContent = a0 ? 'Anfangsbestand ändern' : 'Anfangsbestand setzen';
+
+                const m = isMobile(), sp = m ? 3 : 6;
+                document.getElementById('kbHead').innerHTML = m ? '<tr><th class="l">Datum · Name</th><th style="width:100px">Betrag</th><th style="width:100px">Bestand</th></tr>'
+                    : '<tr><th class="l" style="width:100px">Datum</th><th class="l" style="width:22%">Name</th><th class="l">Text</th><th style="width:120px">Ein</th><th style="width:120px">Aus</th><th style="width:130px">Bestand</th></tr>';
+                const rows = imMonat.filter(function (r) {
+                    return (art === 'alle' || r.art === art) && (!suche || (r.name + ' ' + (r.text || '')).toLowerCase().indexOf(suche) >= 0);
+                }).slice().reverse();
+                const body = document.getElementById('kbBody');
+                body.innerHTML = fehler ? '<tr><td class="empty" colspan="' + sp + '">Fehler: ' + esc(fehler) + '</td></tr>'
+                    : !rows.length ? '<tr><td class="empty" colspan="' + sp + '">' + (imMonat.length ? 'Nichts gefunden.' : 'Keine Buchungen im ' + monatText(monat) + '.') + '</td></tr>'
+                    : rows.map(function (r) {
+                        const an = r.id === sel, grau = r.storniert || r.storno_von != null;
+                        const b = fmt(parseFloat(r.betrag));
+                        const cls = (an ? 'selected ' : '') + (grau ? 'kb-storno' : '');
+                        const text = r.art === 'anfang' ? '' : esc(r.text || '');
+                        return '<tr class="' + cls + '" data-kb-zeile="' + r.id + '">' + (m
+                            ? '<td class="l">' + esc(r.name) + '<small>' + datumText(r.datum).slice(0, 6) + (text ? ' · ' + text : '') + '</small></td>'
+                              + '<td class="' + (r.art === 'aus' ? 'neg' : 'kb-ein') + '">' + (r.art === 'anfang' ? '' : mitVz(wert(r))) + '</td><td class="pay">' + fmt(r.bestand) + '</td>'
+                            : '<td class="l">' + datumText(r.datum) + '</td><td class="l kb-name">' + esc(r.name) + '</td><td class="l">' + text + '</td>'
+                              + '<td class="kb-ein">' + (r.art === 'ein' ? b : '') + '</td><td class="neg">' + (r.art === 'aus' ? b : '') + '</td><td class="pay">' + fmt(r.bestand) + '</td>')
+                            + '</tr>' + (m && an ? '<tr class="detail-row"><td colspan="3">' + detail(r) + '</td></tr>' : '');
+                    }).join('');
+                const r0 = sel != null && ROWS.filter(function (r) { return r.id === sel; })[0];
+                document.getElementById('kbPanel').innerHTML = m ? '' : r0 ? detail(r0)
+                    : '<div class="placeholder">Buchung anklicken für Details und Storno</div>';
+            }
+            function detail(r) {
+                const kv = function (k, v) { return '<div class="detail-kv"><span>' + k + '</span><span>' + v + '</span></div>'; };
+                const zeit = new Date(r.angelegt_am);
+                const gegen = r.storniert ? ROWS.filter(function (x) { return x.storno_von === r.id; })[0] : null;
+                const darf = r.art !== 'anfang' && r.storno_von == null && !r.storniert;
+                return '<div class="detail"><h4>' + esc(r.name) + '</h4>'
+                    + '<div class="sub">' + datumText(r.datum) + ' · ' + (r.art === 'anfang' ? 'Anfangsbestand' : r.art === 'ein' ? 'Einnahme' : 'Ausgabe') + '</div>'
+                    + '<div class="pay' + (r.art === 'aus' ? ' neg' : '') + '">' + (r.art === 'anfang' ? fmt(parseFloat(r.betrag)) : mitVz(wert(r))) + '</div>'
+                    + (r.text ? kv('Text', esc(r.text)) : '') + kv('Bestand danach', fmt(r.bestand))
+                    + kv('Eingetragen', esc(r.angelegt_von) + ' · ' + (isNaN(zeit) ? '' : fgDatum(r.angelegt_am)))
+                    + (gegen ? '<div class="ps-warn">Storniert am ' + datumText(gegen.datum) + ' von ' + esc(gegen.angelegt_von) + '</div>' : '')
+                    + (r.storno_von != null ? '<div class="ps-warn">Gegenbuchung zu einer stornierten Buchung</div>' : '')
+                    + (darf ? '<div class="detail-acts"><button class="btn-ghost danger" data-kb-storno="' + r.id + '"' + (busy ? ' disabled' : '') + '>Stornieren</button></div>' : '')
+                    + '</div>';
+            }
+
+            // Eingabefenster: Einnahme/Ausgabe oder Anfangsbestand
+            function fenster(html, fertig) {
+                const d = document.createElement('dialog');
+                d.className = 'ps-dlg kb-dlg';
+                d.innerHTML = '<form method="dialog">' + html + '</form>';
+                d.addEventListener('click', function (e) { if (e.target === d || e.target.closest('[data-ab]')) d.close(); });
+                d.addEventListener('close', function () { d.remove(); });
+                d.querySelector('form').addEventListener('submit', function (e) { e.preventDefault(); fertig(d); });
+                document.body.appendChild(d); d.showModal();
+                return d;
+            }
+            function betragLesen(v) {
+                const roh = String(v).trim().replace(/[€\s]/g, '').replace(',', '.');
+                return /^\d+(\.\d{1,2})?$/.test(roh) ? parseFloat(roh) : NaN;
+            }
+            function buchenFenster(a) {
+                const namen = {};
+                try { const n = JSON.parse(localStorage.getItem('hydralink_session') || 'null'); if (n && n.name) namen[n.name] = 1; } catch (e) {}
+                ROWS.forEach(function (r) { if (r.art !== 'anfang') namen[r.name] = 1; });
+                (typeof FAHRER_LIST !== 'undefined' ? FAHRER_LIST : []).forEach(function (f) { if (f.name) namen[f.name] = 1; });
+                const d = fenster('<h3>Neue Buchung</h3>'
+                    + '<div class="kb-art"><label><input type="radio" name="art" value="ein"' + (a === 'ein' ? ' checked' : '') + '><span>+ Einnahme</span></label>'
+                    + '<label><input type="radio" name="art" value="aus"' + (a === 'aus' ? ' checked' : '') + '><span>− Ausgabe</span></label></div>'
+                    + '<label class="ps-feld">Betrag €<input name="betrag" inputmode="decimal" placeholder="0,00" autocomplete="off" required></label>'
+                    + '<label class="ps-feld">Name – wer gibt oder nimmt<input name="name" list="kbNamen" maxlength="60" autocomplete="off" required></label>'
+                    + '<datalist id="kbNamen">' + Object.keys(namen).sort(function (x, y) { return x.localeCompare(y, 'de'); }).map(function (n) { return '<option value="' + esc(n) + '">'; }).join('') + '</datalist>'
+                    + '<label class="ps-feld">Text – wofür<input name="text" maxlength="120" autocomplete="off" placeholder="z. B. Pauschale bar, Tanken, Bank"></label>'
+                    + '<label class="ps-feld">Datum<input type="date" name="datum" value="' + heute() + '" max="' + heute() + '" required></label>'
+                    + '<div class="ps-fuss" style="margin-top:14px"><span class="sp"></span><button type="button" class="btn" data-ab>Abbrechen</button><button class="btn-primary ok" style="flex:none">Buchen</button></div>',
+                    async function (dlg) {
+                        const f = dlg.querySelector('form'), b = betragLesen(f.betrag.value);
+                        if (!(b > 0)) { alert('Bitte einen Betrag eintragen, z. B. 70 oder 70,50.'); return; }
+                        if (busy) return;
+                        busy = true;
+                        try {
+                            const { data, error } = await getSupabase().rpc('kassa_buchen', { p_datum: f.datum.value, p_art: f.art.value, p_betrag: b, p_name: f.name.value, p_text: f.text.value });
+                            if (error) throw error;
+                            const row = Array.isArray(data) ? data[0] : data;
+                            dlg.close();
+                            if (row) { monat = row.datum.slice(0, 7); sel = row.id; }
+                            showReToast((f.art.value === 'ein' ? 'Einnahme ' : 'Ausgabe ') + fmt(b) + ' gebucht', 'success');
+                            await laden();
+                        } catch (e) { alert('Buchen fehlgeschlagen: ' + fehlerText(e)); }
+                        finally { busy = false; }
+                    });
+                d.querySelector('[name=betrag]').focus();
+            }
+            function anfangFenster() {
+                const a0 = anfangZeile();
+                fenster('<h3>Anfangsbestand</h3><div class="sub" style="font-size:12px;color:var(--text-mut)">Was liegt zum Start in der Kassa? Lässt sich nur ändern, solange noch nichts gebucht ist.</div>'
+                    + '<label class="ps-feld">Betrag €<input name="betrag" inputmode="decimal" placeholder="0,00" autocomplete="off" required value="' + (a0 ? String(a0.betrag).replace('.', ',') : '') + '"></label>'
+                    + '<label class="ps-feld">Stand vom<input type="date" name="datum" value="' + (a0 ? a0.datum : heute()) + '" max="' + heute() + '" required></label>'
+                    + '<div class="ps-fuss" style="margin-top:14px"><span class="sp"></span><button type="button" class="btn" data-ab>Abbrechen</button><button class="btn-primary ok" style="flex:none">Speichern</button></div>',
+                    async function (dlg) {
+                        const f = dlg.querySelector('form'), b = betragLesen(f.betrag.value);
+                        if (isNaN(b)) { alert('Bitte einen Betrag eintragen (0 ist erlaubt).'); return; }
+                        try {
+                            const { error } = await getSupabase().rpc('kassa_anfang', { p_datum: f.datum.value, p_betrag: b });
+                            if (error) throw error;
+                            dlg.close(); monat = f.datum.value.slice(0, 7);
+                            await laden();
+                        } catch (e) { alert('Speichern fehlgeschlagen: ' + fehlerText(e)); }
+                    });
+            }
+            async function storno(id) {
+                const r = ROWS.filter(function (x) { return x.id === id; })[0];
+                if (!r || busy) return;
+                if (!confirm('„' + r.name + (r.text ? ' · ' + r.text : '') + ' ' + mitVz(wert(r)) + '“ vom ' + datumText(r.datum) + ' stornieren?\n\nEs wird eine Gegenbuchung mit heutigem Datum eingetragen.')) return;
+                busy = true;
+                try {
+                    const { error } = await getSupabase().rpc('kassa_storno', { p_id: id });
+                    if (error) throw error;
+                    showReToast('Storniert', 'success');
+                } catch (e) { alert('Storno fehlgeschlagen: ' + fehlerText(e)); }
+                finally { busy = false; await laden(); }
+            }
+            function exportCsv() {
+                const rows = ROWS.filter(function (r) { return r.datum.slice(0, 7) === monat; });
+                const z = function (n) { return String(n.toFixed(2)).replace('.', ','); };
+                const f = function (t) { return '"' + String(t == null ? '' : t).replace(/"/g, '""') + '"'; };
+                const csv = [['Datum', 'Name', 'Text', 'Ein', 'Aus', 'Bestand', 'Eingetragen von'].join(';')].concat(rows.map(function (r) {
+                    const b = parseFloat(r.betrag) || 0;
+                    return [datumText(r.datum), f(r.name), f(r.text), r.art === 'aus' ? '' : z(b), r.art === 'aus' ? z(b) : '', z(r.bestand), f(r.angelegt_von)].join(';');
+                })).join('\n');
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' }));
+                a.download = 'kassabuch_' + monat + '.csv'; a.click();
+            }
+            function init() {
+                if (bereit) { laden(); return; }
+                bereit = true;
+                const seite = document.getElementById('contentKassabuch');
+                seite.addEventListener('click', function (e) {
+                    let b;
+                    if ((b = e.target.closest('[data-kb-neu]'))) { buchenFenster(b.dataset.kbNeu); return; }
+                    if ((b = e.target.closest('[data-kb-art]'))) { art = b.dataset.kbArt; render(); return; }
+                    if ((b = e.target.closest('[data-kb-storno]'))) { storno(parseInt(b.dataset.kbStorno, 10)); return; }
+                    if (e.target.closest('#kbAnfangBtn')) { anfangFenster(); return; }
+                    if (e.target.closest('#kbExport')) { exportCsv(); return; }
+                    if (e.target.closest('#kbRefresh')) { laden(); return; }
+                    if (e.target.closest('.detail-row')) return;
+                    if ((b = e.target.closest('[data-kb-zeile]'))) { const id = parseInt(b.dataset.kbZeile, 10); sel = sel === id ? null : id; render(); }
+                });
+                document.getElementById('kbMonat').addEventListener('change', function (e) { monat = e.target.value; sel = null; render(); });
+                let t = null;
+                document.getElementById('kbSuche').addEventListener('input', function (e) { clearTimeout(t); t = setTimeout(function () { suche = e.target.value.trim().toLowerCase(); render(); }, 150); });
+                window.matchMedia('(max-width: 768px)').addEventListener('change', render);
+                laden();
+            }
+            return { init: init };
+        })();
+
         /* Reiter-Gruppen: oben die Gruppe, daneben ihre Unterreiter */
         const GRUPPEN = {
-            abrechnung: [['abrechnungen', 'Übersicht'], ['abrbot', 'Upload'], ['muessenzahlen', 'Kassieren'], ['lohn', 'Löhne']],
+            abrechnung: [['abrechnungen', 'Übersicht'], ['abrbot', 'Upload'], ['muessenzahlen', 'Kassieren'], ['kassabuch', 'Kassabuch'], ['lohn', 'Löhne']],
             fahrer: [['fahrer', 'App'], ['post', 'Post']],
             rechnungen: [['rechnungen']],
             experimentell: [['api', 'API-Abrechnung'], ['fuhrpark', 'Fuhrpark'], ['verbindungen', 'Verbindungen']]
@@ -4353,7 +4608,7 @@
         }
         function switchTab(tab) {
             menueZu();
-            const inhalt = { abrechnungen: 'contentAbrechnungen', api: 'contentApi', abrbot: 'contentAbrBot', muessenzahlen: 'contentMuessenZahlen', lohn: 'contentLohn',
+            const inhalt = { abrechnungen: 'contentAbrechnungen', api: 'contentApi', abrbot: 'contentAbrBot', muessenzahlen: 'contentMuessenZahlen', lohn: 'contentLohn', kassabuch: 'contentKassabuch',
                 fahrer: 'contentFahrer', fuhrpark: 'contentFuhrpark', post: 'contentPost', verbindungen: 'contentVerbindungen', rechnungen: 'contentRechnungen' };
             if (!inhalt[tab]) tab = 'abrechnungen';
             const g = gruppeVon(tab);
@@ -4373,6 +4628,7 @@
             else if (tab === 'fahrer') initFahrer();
             else if (tab === 'post') initPost();
             else if (tab === 'lohn') Lohn.init();
+            else if (tab === 'kassabuch') Kassa.init();
             else if (tab === 'muessenzahlen') initMuessenZahlen();
             localStorage.setItem('hydralink_tab', tab);
             try { localStorage.setItem('hydralink_tab_' + g, tab); } catch (e) {}

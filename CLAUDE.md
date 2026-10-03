@@ -45,7 +45,7 @@ die Tab-Leiste; Tabellen werden dort zu 3 Spalten + aufklappbarer `detail-row`.
 6. **CSV Upload** (AbrBot) — Bolt/Uber/myPOS-CSVs je Woche an n8n. **Bleibt als Notfallweg, nie entfernen.**
 7. **Rechnungen** — Rechnungserstellung und Archiv, fortlaufende Nummer (HF-YYYY-NNNN), PDF in Supabase Storage.
 
-**Kopfleiste seit 2026-10-03:** Abrechnung (Übersicht, Upload, Kassieren, Löhne) · Fahrer (App, Post) ·
+**Kopfleiste seit 2026-10-03:** Abrechnung (Übersicht, Upload, Kassieren, Kassabuch, Löhne) · Fahrer (App, Post) ·
 Rechnungen · **Experimentell** (API-Abrechnung, Fuhrpark, Verbindungen — funktionieren noch nicht verlässlich,
 bewusst abgestellt). **Löhne** ist ein Reiter (`contentLohn`, JS in der Hülle `Lohn`, IDs/Klassen `lo…`);
 `lohn.html` leitet nur noch weiter.
@@ -55,6 +55,11 @@ bezahlt +70“), Eingabe im Seitenpanel der Abrechnung. Geschrieben wird nur üb
 `posten_loeschen`; die Summe landet in `settlements.korrektur` (+ Notiz) und steckt in `auszahlung`.
 Rechnet der AbrechnungsBot die Woche neu, fällt sie heraus: `abrechnung_posten_offen` zeigt das, das
 Dashboard bietet „Wieder einrechnen“ (`posten_neu_anwenden`). `korrektur` nie von Hand setzen.
+
+**Kassabuch (seit 2026-10-03):** Reiter Abrechnung → Kassabuch (`contentKassabuch`, Hülle `Kassa`, Präfix `kb`).
+Eine Bargeldkassa in `kassabuch`: `anfang` (einmal), `ein`, `aus`, je mit Name und Text. Bestand rechnet das
+Dashboard. Nie ändern oder löschen – Storno ist eine Gegenbuchung (`kassa_storno`); schreiben nur über
+`kassa_buchen` / `kassa_storno` / `kassa_anfang`. Hängt bewusst nicht an Kassieren.
 
 ## Plattform-Sync (seit 2026-09-22)
 

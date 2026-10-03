@@ -68,6 +68,13 @@ Eine Bargeldkassa in `kassabuch`, geführt **je Kalenderwoche** wie die Abrechnu
   gezählten Betrag samt Differenz fest. Erst ab Sonntag der Woche, Wochen der Reihe nach. Danach nimmt die Woche
   keine Buchung mehr an; der Endbestand ist der Übertrag in die nächste KW.
 
+- **Abrechnung → Kassabuch:** „Unterm Strich“ (Σ `auszahlung − lohn` der `berechnet`-Zeilen, ohne `__…` und ohne
+  `WARNUNG_KEIN_FAHRER`) wird bar ausgezahlt. Knopf „Ins Kassabuch übernehmen“ im Kassabuch (`kassa_abrechnung_buchen`):
+  eine Zeile Abrechnung ohne Zu-/Abschläge + je Zu-/Abschlag eine Zeile (Zuschlag = Ausgabe). Spätere Änderungen
+  kommen als Zeile „Änderung“ (Differenz). Ist die Woche übernommen, bucht `posten_anlegen` sofort mit und
+  `posten_loeschen` storniert. Diese Zeilen (`quelle` ≠ `hand`) lassen sich nicht von Hand stornieren.
+  Kassieren (`kassier_zahlungen`) fließt bewusst NICHT ins Kassabuch. `kassa_summe` nie ändern – es gibt Buchungen.
+
 ## Plattform-Sync (seit 2026-09-22)
 
 Grundsatz: **HYDRAlink ist der Spiegel.** Die Syncs schreiben ausschliesslich in

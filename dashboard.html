@@ -722,6 +722,9 @@
         #kbToolbar .kb-neu:disabled { opacity: .45; cursor: default; }
         .kb-wer { font-size: 12px; color: var(--text-mut); margin-top: 12px; line-height: 1.45; }
         .kb-wer b { color: var(--text); }
+        .kb-abr { display: flex; }
+        .kb-abr .btn { flex: none; }
+        .kb-tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 999px; background: var(--surface-2); color: var(--text-mut); margin-right: 6px; vertical-align: 1px; }
         #contentKassabuch td.l, #contentKassabuch th.l { text-align: left; font-family: var(--sans); }
         #contentKassabuch .data-table td small { display: block; font-size: 10.5px; color: var(--text-mut); font-weight: 400; overflow: hidden; text-overflow: ellipsis; }
         #kbTable tbody tr:not(.detail-row) { cursor: pointer; }
@@ -1308,6 +1311,7 @@
             <button class="btn desktop-only" id="kbExport">Export</button>
             <button class="btn" id="kbRefresh" title="Neu laden">↺</button>
         </div>
+        <div id="kbAbr"></div>
         <div class="split">
             <div class="split-main">
                 <table class="data-table" id="kbTable">
@@ -4398,7 +4402,7 @@
            die naechste Woche. Geschrieben wird nur ueber kassa_buchen / kassa_storno /
            kassa_anfang / kassa_abschliessen; kassa_pruefen rechnet die Pruefsummen-Kette nach. */
         const Kassa = (function () {
-            let ROWS = [], ABS = [], PRUEF = null, fehler = '', bereit = false, woche = null, art = 'alle', suche = '', sel = null, busy = false;
+            let ROWS = [], ABS = [], STAND = [], PRUEF = null, fehler = '', bereit = false, woche = null, art = 'alle', suche = '', sel = null, busy = false;
             function heute() { return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' }); }
             function tag(d) { return new Date(d + 'T12:00:00Z'); }
             function iso(dt) { return dt.toISOString().slice(0, 10); }
@@ -4423,8 +4427,9 @@
 
             async function laden() {
                 const sb = getSupabase(), auf = function (q) { return q.then(function (r) { return r; }, function (e) { return { error: e }; }); };
-                const [res, abs, pr] = await Promise.all([auf(sb.from('kassabuch').select('*').order('nr')),
-                    auf(sb.from('kassa_abschluss').select('*').order('von')), auf(sb.rpc('kassa_pruefen'))]);
+                const [res, abs, pr, stand] = await Promise.all([auf(sb.from('kassabuch').select('*').order('nr')),
+                    auf(sb.from('kassa_abschluss').select('*').order('von')), auf(sb.rpc('kassa_pruefen')), auf(sb.rpc('kassa_abrechnung_stand'))]);
+                STAND = stand.error ? [] : (stand.data || []);
                 fehler = res.error ? fehlerText(res.error) : abs.error ? fehlerText(abs.error) : '';
                 ROWS = res.error ? [] : (res.data || []);
                 ABS = abs.error ? [] : (abs.data || []);
@@ -4491,13 +4496,21 @@
                 if (PRUEF) st += PRUEF.ok ? '<span class="fg-pill ok kb-pruef" title="Jede Buchung trägt eine Prüfsumme, in die die Buchung davor einfließt. Die Kette wurde eben nachgerechnet.">Unverändert <span>· ' + (PRUEF.buchungen || 0) + ' Buchungen geprüft</span></span>'
                     : '<span class="fg-pill geaendert kb-pruef">⚠ ' + esc(PRUEF.hinweis || 'Prüfung fehlgeschlagen') + '</span>';
                 status.innerHTML = st;
+                // Abrechnung -> Kassabuch: noch nicht uebernommen oder seither geaendert
+                document.getElementById('kbAbr').innerHTML = STAND.filter(function (x) { return !x.uebernommen || +x.differenz; }).map(function (x) {
+                    const kw = kwText(x.woche), dis = busy ? ' disabled' : '';
+                    if (+x.posten_offen) return '<div class="alias-banner kb-abr"><span>Abrechnung ' + kw + ': Zu-/Abschläge sind nach einer Neuberechnung nicht mehr in der Auszahlung – zuerst in der Abrechnung „Wieder einrechnen“.</span></div>';
+                    return x.uebernommen
+                        ? '<div class="alias-banner kb-abr"><span>Abrechnung ' + kw + ' hat sich geändert: <strong>' + mitVz(-x.differenz) + '</strong> in der Kassa (unterm Strich jetzt ' + fmt(+x.soll) + ')</span><button class="btn" data-kb-abr="' + x.woche + '"' + dis + '>Änderung nachbuchen</button></div>'
+                        : '<div class="alias-banner kb-abr"><span>Abrechnung ' + kw + ': <strong>' + fmt(+x.soll) + '</strong> bar unterm Strich · ' + x.fahrer + ' Fahrer – noch nicht im Kassabuch</span><button class="btn" data-kb-abr="' + x.woche + '"' + dis + '>Ins Kassabuch übernehmen</button></div>';
+                }).join('');
                 const zu = gesperrtBis(), darfBuchen = !!a0 && h > (zu || '');
                 document.querySelectorAll('#kbToolbar [data-kb-neu]').forEach(function (b) { b.disabled = !darfBuchen; });
                 document.querySelectorAll('#kbToolbar [data-kb-art]').forEach(function (b) { b.classList.toggle('active', b.dataset.kbArt === art); });
 
                 const m = isMobile(), sp = m ? 3 : 7;
                 document.getElementById('kbHead').innerHTML = m ? '<tr><th class="l">Text · Wer</th><th style="width:100px">Betrag</th><th style="width:100px">Bestand</th></tr>'
-                    : '<tr><th class="l" style="width:56px">Nr.</th><th class="l" style="width:96px">Datum</th><th class="l" style="width:16%">Wer</th><th class="l">Text</th><th style="width:116px">Ein</th><th style="width:116px">Aus</th><th style="width:128px">Bestand</th></tr>';
+                    : '<tr><th class="l" style="width:56px">Nr.</th><th class="l" style="width:96px">Datum</th><th class="l" style="width:90px">Wer</th><th class="l">Text</th><th style="width:104px">Ein</th><th style="width:104px">Aus</th><th style="width:120px">Bestand</th></tr>';
                 const inW = ROWS.filter(function (r) { return r.woche === woche; });
                 const rows = inW.filter(function (r) {
                     return (art === 'alle' || r.art === art) && (!suche || (r.name + ' ' + (r.text || '')).toLowerCase().indexOf(suche) >= 0);
@@ -4509,7 +4522,7 @@
                         return '<tr class="' + (an ? 'selected ' : '') + (grau ? 'kb-storno' : '') + '" data-kb-zeile="' + r.id + '">' + (m
                             ? '<td class="l">' + esc(r.text || '') + '<small>' + kurz(r.datum) + ' · ' + esc(r.name) + ' · Nr. ' + r.nr + '</small></td>'
                               + '<td class="' + (r.art === 'aus' ? 'neg' : 'kb-ein') + '">' + (r.art === 'anfang' ? '' : mitVz(wert(r))) + '</td><td class="pay">' + fmt(r.bestand) + '</td>'
-                            : '<td class="l kb-nr">' + r.nr + '</td><td class="l">' + datumText(r.datum) + '</td><td class="l kb-name">' + esc(r.name) + '</td><td class="l">' + esc(r.text || '') + '</td>'
+                            : '<td class="l kb-nr">' + r.nr + '</td><td class="l">' + datumText(r.datum) + '</td><td class="l kb-name">' + esc(r.name) + '</td><td class="l">' + (r.quelle && r.quelle !== 'hand' ? '<span class="kb-tag">Abrechnung</span>' : '') + esc(r.text || '') + '</td>'
                               + '<td class="kb-ein">' + (r.art === 'ein' ? b : '') + '</td><td class="neg">' + (r.art === 'aus' ? b : '') + '</td><td class="pay">' + fmt(r.bestand) + '</td>')
                             + '</tr>' + (m && an ? '<tr class="detail-row"><td colspan="3">' + detail(r) + '</td></tr>' : '');
                     }).join('');
@@ -4520,7 +4533,8 @@
             function detail(r) {
                 const kv = function (k, v) { return '<div class="detail-kv"><span>' + k + '</span><span>' + v + '</span></div>'; };
                 const gegen = r.storniert ? ROWS.filter(function (x) { return x.storno_von === r.id; })[0] : null;
-                const darf = r.art !== 'anfang' && r.storno_von == null && !r.storniert;
+                const ausAbr = !!r.quelle && r.quelle !== 'hand';
+                const darf = r.art !== 'anfang' && r.storno_von == null && !r.storniert && !ausAbr;
                 return '<div class="detail"><h4>' + esc(r.text || '') + '</h4>'
                     + '<div class="sub">Nr. ' + r.nr + ' · ' + datumText(r.datum) + ' · ' + (r.art === 'anfang' ? 'Anfangsbestand' : r.art === 'ein' ? 'Einnahme' : 'Ausgabe') + '</div>'
                     + '<div class="pay' + (r.art === 'aus' ? ' neg' : '') + '">' + (r.art === 'anfang' ? fmt(parseFloat(r.betrag)) : mitVz(wert(r))) + '</div>'
@@ -4528,6 +4542,7 @@
                     + kv('Prüfsumme', '<span title="' + esc(r.pruefsumme || '') + '">' + esc((r.pruefsumme || '').slice(0, 12)) + '…</span>')
                     + (gegen ? '<div class="ps-warn">Storniert am ' + datumText(gegen.datum) + ' von ' + esc(gegen.name) + ' (Nr. ' + gegen.nr + ')</div>' : '')
                     + (r.storno_von != null ? '<div class="ps-warn">Gegenbuchung zu einer stornierten Buchung</div>' : '')
+                    + (ausAbr ? '<div class="kb-wer">Kommt aus der Abrechnung ' + kwText(r.woche_abr || '') + (r.quelle === 'posten' ? ' (Zu-/Abschlag)' : '') + '. Geändert wird dort – das Kassabuch zieht nach.</div>' : '')
                     + (darf ? '<div class="detail-acts"><button class="btn-ghost danger" data-kb-storno="' + r.id + '"' + (busy ? ' disabled' : '') + '>Stornieren</button></div>' : '')
                     + '</div>';
             }
@@ -4619,6 +4634,23 @@
                     });
                 d.querySelector('[name=gezaehlt]').focus();
             }
+            async function abrechnungBuchen(w) {
+                const x = STAND.filter(function (y) { return y.woche === w; })[0];
+                if (!x || busy) return;
+                const frage = x.uebernommen
+                    ? 'Abrechnung ' + kwText(w) + ' hat sich geändert.\n\nUnterm Strich jetzt ' + fmt(+x.soll) + ', im Kassabuch ' + fmt(+x.gebucht) + '.\nEs wird eine Zeile „Änderung“ über ' + mitVz(-x.differenz) + ' gebucht.'
+                    : 'Abrechnung ' + kwText(w) + ' ins Kassabuch übernehmen?\n\n' + fmt(+x.soll) + ' bar unterm Strich (' + x.fahrer + ' Fahrer) ' + (+x.soll >= 0 ? 'gehen aus der Kassa' : 'kommen in die Kassa')
+                      + '.\nZu-/Abschläge der Woche werden als eigene Zeilen darunter gebucht.\n\nGebucht wird mit heutigem Datum auf deinen Namen.';
+                if (!confirm(frage)) return;
+                busy = true; render();
+                try {
+                    const { error } = await getSupabase().rpc('kassa_abrechnung_buchen', { p_woche: w });
+                    if (error) throw error;
+                    woche = wocheVon(heute()); sel = null;
+                    showReToast('Abrechnung ' + kwText(w) + ' im Kassabuch', 'success');
+                } catch (e) { alert('Buchen fehlgeschlagen: ' + fehlerText(e)); }
+                finally { busy = false; await laden(); }
+            }
             async function storno(id) {
                 const r = ROWS.filter(function (x) { return x.id === id; })[0];
                 if (!r || busy) return;
@@ -4652,6 +4684,7 @@
                     if ((b = e.target.closest('[data-kb-art]'))) { art = b.dataset.kbArt; render(); return; }
                     if ((b = e.target.closest('[data-kb-storno]'))) { storno(parseInt(b.dataset.kbStorno, 10)); return; }
                     if ((b = e.target.closest('[data-kb-zu]'))) { abschlussFenster(b.dataset.kbZu); return; }
+                    if ((b = e.target.closest('[data-kb-abr]'))) { abrechnungBuchen(b.dataset.kbAbr); return; }
                     if (e.target.closest('#kbAnfangBtn')) { anfangFenster(); return; }
                     if (e.target.closest('#kbExport')) { exportCsv(); return; }
                     if (e.target.closest('#kbRefresh')) { laden(); return; }

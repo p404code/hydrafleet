@@ -5697,6 +5697,21 @@
                     renderFiles();
                 });
             });
+            // Uber hat Anfang Oktober 2026 die Spalten umbenannt ("An dein Unternehmen gezahlt …" ->
+            // "An dich gezahlt …"). Der AbrechnungsBot kennt nur die alte Schreibweise und rechnete
+            // KW40 deshalb mit Uber = 0. Hier wird nur die Kopfzeile zurueckbenannt, der Rest der
+            // Datei geht Byte fuer Byte unveraendert an den Bot.
+            async function uberKopfAngleichen(f) {
+                try {
+                    const bytes = new Uint8Array(await f.arrayBuffer());
+                    let ende = bytes.indexOf(10);
+                    if (ende < 0) ende = bytes.length;
+                    const kopf = new TextDecoder('utf-8', { ignoreBOM: true }).decode(bytes.subarray(0, ende));
+                    if (kopf.indexOf('An dich gezahlt') < 0) return f;
+                    const neu = new TextEncoder().encode(kopf.split('An dich gezahlt').join('An dein Unternehmen gezahlt'));
+                    return new File([neu, bytes.subarray(ende)], f.name, { type: f.type || 'text/csv' });
+                } catch (e) { console.warn('uber kopfzeile:', e); return f; }
+            }
             document.getElementById('abrForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const s = document.getElementById('abrStatus');
@@ -5716,8 +5731,9 @@
                 const missing = [['Bolt', 'bolt'], ['Uber', 'uber'], ['Mypos', 'mypos']].filter(function(pair) { return !(abrFiles[pair[0]] && abrFiles[pair[0]].length); }).map(function(pair) { return pair[1] === 'mypos' ? 'MyPOS' : pair[0]; });
                 if (missing.length) { s.style.display='block'; s.style.background='var(--status-err-bg)'; s.style.color='var(--status-err)'; s.textContent='Es fehlt noch: ' + missing.join(', '); btn.disabled=false; btn.textContent='Abrechnung erstellen'; return; }
                 let fileCount = 0;
+                const uberDateien = await Promise.all(abrFiles.Uber.map(uberKopfAngleichen));
                 [['Bolt', 'bolt'], ['Uber', 'uber'], ['Mypos', 'mypos']].forEach(function(pair) {
-                    abrFiles[pair[0]].forEach(function(f, i) { d.append(pair[1] + '_' + (i + 1), f, f.name); fileCount++; });
+                    (pair[0] === 'Uber' ? uberDateien : abrFiles[pair[0]]).forEach(function(f, i) { d.append(pair[1] + '_' + (i + 1), f, f.name); fileCount++; });
                 });
                 s.textContent = 'Verarbeite Abrechnung (' + fileCount + ' Dateien)...';
                 try {

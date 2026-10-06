@@ -216,6 +216,10 @@ aktiviert ist — aktuell zwei.
   Grenzen liefern nur die genaue Uhrzeit des Montagswechsels (±12 h), sonst wird
   Montag 04:00 Wien gerechnet. Kontrolle: `node scripts/uber-sync-aufrufen.js <JJJJ-Wnn> test`
   zeigt Fenster und Ubers Rohfenster, ohne Daten zu schreiben.
+- **Uber benennt Berichtsspalten um.** Seit KW40/2026 heißt „An dein Unternehmen gezahlt …“ im Bericht
+  „An dich gezahlt …“. Der AbrechnungsBot kennt nur die alte Schreibweise → Uber war in KW40 überall 0.
+  Der Upload im Dashboard benennt deshalb die Kopfzeile zurück (`uberKopfAngleichen`). **Offen:** `uber-sync`
+  liest ebenfalls nur die alten Namen (`P` in index.ts) – `uber_reports` KW40 hat leere Beträge, `roh` stimmt.
 - **CSV braucht einen echten RFC-4180-Parser.** Ein Fahrername wie "Ahmed Safa, Beng"
   hat am 14.09. einen ganzen Import zerlegt.
 - **Notion-Feld `"Pauschale "` hat ein Leerzeichen am Ende.** Nicht wegkürzen.

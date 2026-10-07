@@ -626,8 +626,8 @@
         :root[data-theme="dark"] .src.uber.on { border-color: #5a5f68; }
         .data-table td.fahrer-abw, .detail .fahrer-abw { color: var(--err) !important; }
         /* Drei Fahrerspalten brauchen Platz, Quellen und Zahlen wenig. */
-        #fpTable th:nth-child(1), #fpTable td:nth-child(1) { width: 15%; }
-        #fpTable th:nth-child(2), #fpTable td:nth-child(2) { width: 10%; }
+        #fpTable th:nth-child(1), #fpTable td:nth-child(1) { width: 210px; }
+        #fpTable th:nth-child(2), #fpTable td:nth-child(2) { width: 8%; }
         #fpTable th:nth-child(3), #fpTable td:nth-child(3),
         #fpTable th:nth-child(4), #fpTable td:nth-child(4),
         #fpTable th:nth-child(5), #fpTable td:nth-child(5) { width: 18%; }
@@ -850,6 +850,11 @@
            Sonst rutschen die Kennzeichentafeln zeilenweise hin und her. */
         .prob-dot.leer { visibility: hidden; }
         /* Fahrer-Tab */
+        .fz-zeile { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .fz-bild { flex: none; width: 60px; height: 30px; border-radius: 6px; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
+        .fz-bild img { width: 100%; height: 100%; object-fit: contain; display: block; }
+        .fz-bild.gross { display: flex; width: 100%; height: 130px; border-radius: 10px; margin-bottom: 12px; padding: 8px; box-sizing: border-box; }
+        @media (max-width: 768px) { .fz-zeile .fz-bild { display: none; } }
         .fz-main { display: flex; flex-direction: column; gap: 1px; }
         .fz-main b { font-weight: 600; color: var(--text); }
         .fz-main small { font-family: var(--mono); font-size: 11px; color: var(--text-mut); }
@@ -3048,9 +3053,12 @@
                 });
             });
             try {
-                const res = await getSupabase().from('fuhrpark_uebersicht').select('*');
+                const [res, bilder] = await Promise.all([getSupabase().from('fuhrpark_uebersicht').select('*'),
+                    getSupabase().from('uber_fahrzeuge').select('kennzeichen_key,marke,modell,baujahr,farbe,bild').then(function (r) { return r; }, function (e) { return { error: e }; })]);
                 if (res.error) throw res.error;
                 FP = res.data || [];
+                FP_UBER = {};
+                if (!bilder.error) (bilder.data || []).forEach(function (b) { FP_UBER[b.kennzeichen_key] = b; });
             } catch (e) {
                 document.getElementById('fpBody').innerHTML =
                     '<tr><td colspan="7" class="empty">Fehler beim Laden: ' + esc(e.message || String(e)) + '</td></tr>';
@@ -3137,8 +3145,8 @@
                     const wer = v.fahrer_notion || v.fahrer_bolt || v.fahrer_uber;
                     const streit = v.fahrer_befund === 'weicht ab' || v.fahrer_befund === 'nur Plattform';
                     return '<tr' + (sel ? ' class="selected"' : '') + klick + '>' +
-                        '<td><span class="fz-main"><span>' + punkt + kzHtml(v.kennzeichen) + '</span>' +
-                            '<small>' + esc(v.modell || '-') + '</small></span></td>' +
+                        '<td><span class="fz-zeile">' + fpBild(v) + '<span class="fz-main"><span>' + punkt + kzHtml(v.kennzeichen) + '</span>' +
+                            '<small>' + esc(v.modell || '-') + '</small></span></span></td>' +
                         '<td class="' + (streit ? 'fahrer-abw' : '') + '">' + esc(wer || '-') +
                             '<span class="zeile-sub">' + fpQuellen(v) + '</span></td>' +
                         '<td class="pay' + (f30 === 0 ? ' zero' : '') + '">' +
@@ -3152,8 +3160,8 @@
                     return name && v.fahrer_notion && name !== v.fahrer_notion ? ' class="fahrer-abw"' : '';
                 };
                 return '<tr' + (sel ? ' class="selected"' : '') + klick + '>' +
-                    '<td><span class="fz-main"><span>' + punkt + kzHtml(v.kennzeichen) + '</span>' +
-                        '<small>' + esc(v.modell || '-') + '</small></span></td>' +
+                    '<td><span class="fz-zeile">' + fpBild(v) + '<span class="fz-main"><span>' + punkt + kzHtml(v.kennzeichen) + '</span>' +
+                        '<small>' + esc(v.modell || '-') + '</small></span></span></td>' +
                     '<td>' + fpQuellen(v) + '</td>' +
                     '<td>' + esc(v.fahrer_notion || '-') + '</td>' +
                     '<td' + anders(v.fahrer_bolt) + '>' + esc(v.fahrer_bolt || '-') +
@@ -3184,6 +3192,14 @@
             renderFuhrpark();
         }
 
+        // Modellbild laut Uber-Fleet-Portal (img/fahrzeuge/, Zuordnung in uber_fahrzeuge) - kein Foto des echten Autos
+        let FP_UBER = {};
+        function fpBild(v, gross) {
+            const u = FP_UBER[v.kennzeichen_key];
+            if (!u || !u.bild) return gross ? '' : '<span class="fz-bild leer"></span>';
+            const titel = [u.baujahr, u.marke, u.modell].filter(Boolean).join(' ');
+            return '<span class="fz-bild' + (gross ? ' gross' : '') + '"><img src="img/fahrzeuge/' + encodeURIComponent(u.bild) + '" alt="' + esc(titel) + '" title="' + esc(titel + ' · Modellbild von Uber') + '" loading="lazy" width="200" height="100"></span>';
+        }
         function fpDetailHtml(v) {
             const p = fpProbleme(v);
             function kv(k, val, cls) {
@@ -3195,7 +3211,7 @@
                 return kv(label, '<span' + (rot ? ' class="fahrer-abw"' : '') + '>' + esc(name || '-') +
                     (n ? ' (' + n + ')' : '') + '</span>');
             };
-            return '<div class="detail">' +
+            return '<div class="detail">' + fpBild(v, true) +
                 '<h4 style="line-height:1.6">' + kzHtml(v.kennzeichen) + '</h4>' +
                 '<div class="sub">' + esc(v.modell || '-') +
                     (v.baujahr ? ' &middot; ' + v.baujahr : '') +

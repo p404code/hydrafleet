@@ -178,6 +178,7 @@
                 background: linear-gradient(#ed2939 0 33%, #fff 33% 67%, #ed2939 67% 100%);
                 border: 1px solid rgba(0,0,0,.22); border-radius: 1px; }
         [data-theme="dark"] .kz { background: #d9dade; border-color: #a5253a; }
+        .fz-bild { display: block; width: min(240px, 70%); height: auto; margin: 0 auto 10px; }
         .fz-vin { font-size: 14px; font-weight: 700; letter-spacing: .5px; overflow-wrap: anywhere; }
         .profile span { font-size: 12px; color: var(--text-mut); }
         .group { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-top: 12px; }
@@ -813,7 +814,8 @@
             if (!p.kennzeichen) {
                 return { html: '<div class="empty"><b>Dir ist derzeit kein Fahrzeug zugeordnet.</b><span>Bitte im Büro melden.</span></div>' };
             }
-            const html = '<section class="profile"><span>Kennzeichen</span>' + kzHtml(p.kennzeichen)
+            const bild = p.fahrzeug_bild ? '<img class="fz-bild" src="../img/fahrzeuge/' + encodeURIComponent(p.fahrzeug_bild) + '" alt="' + esc(p.fahrzeug_modell || 'Fahrzeug') + '" width="200" height="100">' : '';
+            const html = '<section class="profile">' + bild + '<span>Kennzeichen</span>' + kzHtml(p.kennzeichen)
                 + (p.fahrzeug_modell ? '<span>' + esc(p.fahrzeug_modell) + '</span>' : '') + '</section>'
                 + '<div class="group"><div class="item" style="cursor:default"><div class="grow"><div style="font-size:11px;color:var(--text-mut)">Fahrgestellnummer</div>'
                 + '<div class="fz-vin num">' + esc(p.fahrzeug_vin || '–') + '</div></div></div></div>'

@@ -220,6 +220,10 @@ aktiviert ist — aktuell zwei.
   „An dich gezahlt …“. Der AbrechnungsBot kennt nur die alte Schreibweise → Uber war in KW40 überall 0.
   Der Upload im Dashboard benennt deshalb die Kopfzeile zurück (`uberKopfAngleichen`). **Offen:** `uber-sync`
   liest ebenfalls nur die alten Namen (`P` in index.ts) – `uber_reports` KW40 hat leere Beträge, `roh` stimmt.
+- **Fahrzeugbilder** (seit 2026-10-07): Ubers Modellbilder je Kennzeichen in `uber_fahrzeuge` (+ Marke, Modell,
+  Baujahr, Farbe), Dateien in `img/fahrzeuge/`. Anzeige im Fuhrpark-Reiter (`fpBild`) und in der Fahrerapp
+  (Reiter Fahrzeug, `fahrer_app_profil().fahrzeug_bild`). Einmalig geholt mit `scripts/uber-fahrzeugbilder.js`,
+  kein laufender Sync – neue Autos brauchen einen neuen Lauf.
 - **CSV braucht einen echten RFC-4180-Parser.** Ein Fahrername wie "Ahmed Safa, Beng"
   hat am 14.09. einen ganzen Import zerlegt.
 - **Notion-Feld `"Pauschale "` hat ein Leerzeichen am Ende.** Nicht wegkürzen.

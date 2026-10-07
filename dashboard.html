@@ -851,6 +851,7 @@
         .prob-dot.leer { visibility: hidden; }
         /* Fahrer-Tab */
         .fz-zeile { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .fz-zeile.rechts { justify-content: flex-end; }
         .fz-bild { flex: none; width: 60px; height: 30px; border-radius: 6px; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
         .fz-bild img { width: 100%; height: 100%; object-fit: contain; display: block; }
         .fz-bild.gross { display: flex; width: 100%; height: 130px; border-radius: 10px; margin-bottom: 12px; padding: 8px; box-sizing: border-box; }
@@ -2495,6 +2496,7 @@
         /* === FAHRER-TAB === */
         /* Alles Rechnen passiert in der View public.fahrer_uebersicht.
            Hier wird nur gefiltert, sortiert und angezeigt. */
+        let FZ_MIETE = {};   // fahrer.id -> {basis_miete, prozent_satz, prozent_schwelle}
         let FZ = [], fzFilter = 'alle', fzSearch = '', fzSort = 'name', fzDir = 1, fzSel = null, fzLoaded = false;
 
         function fzProbleme(f) { return (f.probleme || []).filter(Boolean); }
@@ -2535,11 +2537,17 @@
            Aenderung (Zugang, Zuordnung) erneut aufgerufen. */
         async function ladeFahrer() {
             const sb = getSupabase();
-            const [res, ohne, mit] = await Promise.all([
+            const still = function (q) { return q.then(function (r) { return r; }, function (e) { return { error: e }; }); };
+            const [res, ohne, mit, miete, bilder] = await Promise.all([
                 sb.from('fahrer_uebersicht').select('*'),
                 sb.from('plattform_konten').select('*').is('fahrer_id', null),
-                sb.from('plattform_konten').select('*').not('fahrer_id', 'is', null)
-            ]).catch(function (e) { return [{ error: e }, { error: e }, { error: e }]; });
+                sb.from('plattform_konten').select('*').not('fahrer_id', 'is', null),
+                still(sb.from('fahrer').select('id,basis_miete,prozent_satz,prozent_schwelle')),
+                still(sb.from('uber_fahrzeuge').select('kennzeichen_key,marke,modell,baujahr,farbe,bild'))
+            ]).catch(function (e) { return [{ error: e }, { error: e }, { error: e }, { error: e }, { error: e }]; });
+            FZ_MIETE = {};
+            if (!miete.error) (miete.data || []).forEach(function (m) { FZ_MIETE[m.id] = m; });
+            if (!bilder.error) (bilder.data || []).forEach(function (b) { FP_UBER[b.kennzeichen_key] = b; });
             if (res.error) {
                 document.getElementById('fzBody').innerHTML =
                     '<tr><td colspan="6" class="empty">Fehler beim Laden: ' + esc(res.error.message || String(res.error)) + '</td></tr>';
@@ -2634,7 +2642,7 @@
                     '<td><span class="fz-main"><b>' + punkt + esc(f.name) + '</b>' +
                         '<small>' + esc(f.telefon || '-') + '</small></span></td>' +
                     '<td class="fz-id">' + (f.notion_fahrer_id == null ? '-' : f.notion_fahrer_id) + '</td>' +
-                    '<td>' + kzHtml(f.kennzeichen) + '</td>' +
+                    '<td><span class="fz-zeile rechts">' + fpBild(fzAuto(f)) + kzHtml(f.kennzeichen) + '</span></td>' +
                     '<td>' + esc(f.marke || '-') + '</td>' +
                     '<td>' + esc(f.modell || '-') + '</td>' +
                     '<td>' + appZelle + '</td>' +
@@ -2656,9 +2664,14 @@
             renderFahrer();
         }
 
+        // Schluessel wie public.kennzeichen_key(): Zusatz in Klammern weg, nur A-Z und 0-9
+        function fzAuto(f) { return { kennzeichen_key: String(f.kennzeichen || '').split('(')[0].toUpperCase().replace(/[^A-Z0-9]/g, '') }; }
         function fzDetailHtml(f) {
             const p = fzProbleme(f);
-            const offen = parseFloat(f.offen) || 0;
+            const m = FZ_MIETE[f.fahrer_id] || null;
+            const pauschale = m && m.basis_miete != null ? parseFloat(m.basis_miete) : null;
+            const satz = m ? parseFloat(m.prozent_satz) || 0 : 0;
+            const modellText = esc(f.mietmodell || '-') + (satz ? ' · ' + satz + ' % ab ' + fmt(m.prozent_schwelle || 1200) : '');
             function kv(k, v, cls) {
                 return '<div class="detail-kv' + (cls ? ' ' + cls : '') + '"><span>' + k + '</span><span>' + v + '</span></div>';
             }
@@ -2666,9 +2679,9 @@
                 '<h4>' + esc(f.name) + '</h4>' +
                 '<div class="sub">Fahrer-ID ' + (f.notion_fahrer_id == null ? '-' : f.notion_fahrer_id) +
                     ' &middot; ' + esc(f.telefon || 'keine Nummer') + '</div>' +
-                '<div class="pay' + (offen > 0 ? ' neg' : '') + '">' +
-                    (offen > 0 ? fmt(offen) : (f.letzte_auszahlung == null ? '-' : fmt(f.letzte_auszahlung))) + '</div>' +
-                '<div class="sub">' + (offen > 0 ? 'offener Saldo' : 'Auszahlung ' + esc(f.letzte_woche || '-')) + '</div>' +
+                fpBild(fzAuto(f), true) +
+                '<div class="pay">' + (pauschale == null ? '-' : fmt(pauschale)) + '</div>' +
+                '<div class="sub">Pauschale · Modell ' + modellText + '</div>' +
                 (p.length ? '<div class="detail-sec">Probleme</div><ul class="prob-list">' +
                     p.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
                 '<div class="detail-sec">Fahrzeug</div>' +
@@ -2681,10 +2694,10 @@
                 kv('Bewertung', f.bolt_bewertung == null ? '-' : parseFloat(f.bolt_bewertung).toFixed(2)) +
                 kv('Fahrten 30 Tage', fmtInt(f.fahrten_30t || 0)) +
                 '<div class="detail-sec">Abrechnung</div>' +
-                kv('Mietmodell', esc(f.mietmodell || '-')) +
+                kv('Pauschale', pauschale == null ? '-' : fmt(pauschale), 'strong') +
+                kv('Mietmodell', modellText) +
                 kv('Letzte Woche', esc(f.letzte_woche || '-')) +
-                kv('Auszahlung', f.letzte_auszahlung == null ? '-' : fmt(f.letzte_auszahlung), 'strong') +
-                kv('Offener Saldo', offen > 0 ? fmt(offen) : '-', 'strong') +
+                kv('Auszahlung', f.letzte_auszahlung == null ? '-' : fmt(f.letzte_auszahlung)) +
                 fzLohnHtml(f) +
                 fzAppHtml(f) +
                 fzKontenHtml(f) +

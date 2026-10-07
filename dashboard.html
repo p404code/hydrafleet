@@ -748,9 +748,21 @@
         #loKpi .lo-kachel.active { border-color: var(--text); }
         #contentLohn td.l, #contentLohn th.l { text-align: left; font-family: var(--sans); }
         #contentLohn .data-table td small { display: block; font-size: 10.5px; color: var(--text-mut); font-weight: 400; font-family: var(--sans); overflow: hidden; text-overflow: ellipsis; }
-        #loTable tbody tr:not(.detail-row) { cursor: pointer; }
+        #loTable td { padding-top: 7px; padding-bottom: 7px; }
+        #loTable tr.lo-offen td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+        #loTable tr.lo-firma td { text-transform: none; letter-spacing: 0; font-size: 12px; padding-top: 9px; padding-bottom: 9px; }
+        .lo-firma-zeile { display: flex; align-items: baseline; gap: 16px; font-family: var(--sans); min-width: 0; }
+        .lo-firma-zeile > b { color: var(--text); font-size: 13px; }
+        .lo-firma-zeile b.num { color: var(--text); float: none; }
+        .lo-firma-zeile .sp { flex: 1; }
+        .lo-journal { color: var(--text-mut) !important; text-decoration: underline; flex: none; }
+        .lo-pdf { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-mut); font-size: 10.5px; font-weight: 600; padding: 2px 7px; cursor: pointer; font-family: var(--sans); }
+        .lo-pdf:hover { color: var(--text); border-color: var(--border-strong); }
+        .lo-hoch { cursor: pointer; }
+        @media (max-width: 768px) { #loTable tbody tr:not(.detail-row):not(.lo-firma) { cursor: pointer; } .lo-nur-breit { display: none; } .lo-firma-zeile { gap: 10px; flex-wrap: wrap; } }
         .lo-wahl-feld { height: 30px; border: 1px solid var(--border-strong); border-radius: 7px; padding: 0 8px; background: var(--surface); color: var(--text); font-size: 12px; font-family: inherit; max-width: 220px; min-width: 0; }
-        .lo-drop { display: flex; align-items: center; gap: 10px; margin: 10px 20px 0; padding: 9px 12px; border: 1px dashed var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--text-mut); font-size: 12.5px; cursor: pointer; min-width: 0; }
+        .lo-drop { display: none; align-items: center; gap: 10px; margin: 10px 20px 0; padding: 9px 12px; border: 1px dashed var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--text-mut); font-size: 12.5px; cursor: pointer; min-width: 0; }
+        .lo-drop.over, .lo-drop.leer { display: flex; }
         .lo-drop.over { border-color: var(--accent); background: var(--accent-faint); color: var(--text); }
         .lo-drop b { color: var(--text); font-weight: 600; }
         .lo-drop .info { margin-left: auto; white-space: nowrap; }
@@ -759,7 +771,6 @@
         .lo-neu-kopf { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface-2); font-size: 12.5px; }
         .lo-neu-kopf .sp { flex: 1; }
         .lo-neu .data-table tr:last-child td { border-bottom: none; }
-        #contentLohn .split { margin-top: 10px; border-top: 1px solid var(--border); }
         .lo-ok { color: var(--accent); font-weight: 700; }
         .lo-err { color: var(--err); font-weight: 600; }
         .lo-warn { color: var(--warn); font-weight: 600; }
@@ -778,9 +789,12 @@
         .lo-z:last-child { border-bottom: none; }
         .lo-zeile { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
         .lo-z .lo-zeile .lo-lnk { font-weight: 500; }
-        #contentLohn .zbox { display: flex; gap: 6px; align-items: center; min-width: 0; margin-top: 4px; }
-        #contentLohn .zbox.fest { margin-top: 1px; font-size: 11.5px; color: var(--text-mut); justify-content: space-between; }
-        #contentLohn .zbox.fest span::before { content: "→ "; }
+        #contentLohn .zbox { display: flex; gap: 6px; align-items: center; min-width: 0; }
+        #contentLohn .zbox.fest { gap: 10px; color: var(--text); font-family: var(--sans); }
+        #contentLohn .zbox.fest span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .lo-loesen { flex: none; color: var(--text-dim) !important; font-size: 11px; text-decoration: underline; opacity: 0; }
+        #loTable tr:hover .lo-loesen, .lo-loesen:focus-visible, .detail-row .lo-loesen { opacity: 1; }
+        @media (hover: none) { .lo-loesen { opacity: 1; } }
         #contentLohn .zbox select { flex: 1 1 auto; min-width: 0; height: 28px; border: 1px solid var(--border-strong); border-radius: 6px; padding: 0 6px; background: var(--surface); color: var(--text); font-size: 12px; font-family: inherit; }
         #contentLohn .zbox .btn { flex: none; padding: 5px 9px; }
         dialog.lo-wahl { margin: auto; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); color: var(--text); padding: 16px 18px; width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 64px); }
@@ -1347,28 +1361,24 @@
             <div class="kpi" id="loKpi"></div>
         </div>
         <div class="toolbar">
-            <select class="lo-wahl-feld" id="loMonat" aria-label="Monat"><option value="">Alle Monate</option></select>
-            <select class="lo-wahl-feld" id="loFirma" aria-label="Firma"><option value="">Alle Firmen</option></select>
+            <select class="lo-wahl-feld" id="loMonat" aria-label="Monat"></select>
             <span id="loChips" style="display:contents"></span>
+            <input type="text" class="search" id="loSuche" placeholder="Name oder Ma-Nr">
             <div class="sp"></div>
+            <label class="btn lo-hoch" for="loDatei" title="Auszahlungsjournal + Lohnzettel als PDF, beliebig viele Firmen">Monat hochladen ↑</label>
             <button class="btn" id="loRefresh" title="Neu laden">↺</button>
         </div>
         <input type="file" id="loDatei" accept=".pdf,application/pdf" multiple hidden>
-        <label class="lo-drop" id="loDrop" for="loDatei"><span><b>Neuer Monat:</b> Auszahlungsjournal + Lohnzettel als PDF hierher ziehen oder wählen</span><span class="info" id="loDropInfo"></span></label>
+        <label class="lo-drop" id="loDrop" for="loDatei"><span><b>Auszahlungsjournal + Lohnzettel</b> als PDF hierher ziehen oder wählen</span></label>
         <div class="lo-neu" id="loNeu" hidden>
-            <div class="lo-neu-kopf"><b>Zum Speichern</b><span class="sp"></span><button class="btn-primary ok" style="flex:none" id="loSpeichern" disabled>Alle speichern (0)</button></div>
+            <div class="lo-neu-kopf"><b>Zum Speichern</b><span class="lo-mut" id="loDropInfo"></span><span class="sp"></span><button class="btn-primary ok" style="flex:none" id="loSpeichern" disabled>Alle speichern (0)</button></div>
             <table class="data-table" id="loNeuTab"></table>
         </div>
         <div class="ps-leiste" id="loLeiste" hidden></div>
-        <div class="split">
-            <div class="split-main">
-                <table class="data-table" id="loTable">
-                    <thead id="loHead"></thead>
-                    <tbody id="loBody"><tr><td colspan="6" class="empty">Laden…</td></tr></tbody>
-                </table>
-            </div>
-            <aside class="side-panel" id="loPanel"><div class="placeholder">Firma anklicken für Lohnzettel und Zuordnung</div></aside>
-        </div>
+        <table class="data-table" id="loTable">
+            <thead id="loHead"></thead>
+            <tbody id="loBody"><tr><td colspan="6" class="empty">Laden…</td></tr></tbody>
+        </table>
     </div>
 
     <div class="tab-content" id="contentFuhrpark">
@@ -4161,56 +4171,73 @@
             OHNE_FEHLER = res.error ? lohnFehlerText(res.error) : '';
             OHNE = res.error ? [] : (res.data || []);
         }
-            // Nach jeder Aenderung: Laeufe, "ohne Fahrer" und der gewaehlte Lauf neu
+            // Alle Lohnzettel eines Monats (Hauptliste)
+            const MONAT_Z = {};        // 'JJJJ-MM' -> {rows, fehler}
+            let suche = '';
+            async function ladeMonat(ym) {
+                if (!ym) return;
+                const res = await getSupabase().from('lohn_zettel_uebersicht').select('*').eq('monat', ym + '-01').order('firma_name').order('name')
+                    .then(function (r) { return r; }, function (e) { return { error: e }; });
+                MONAT_Z[ym] = { rows: res.error ? [] : (res.data || []), fehler: res.error ? lohnFehlerText(res.error) : '' };
+            }
+            // Nach jeder Aenderung: Laeufe und die Zettel des gewaehlten Monats neu
             async function ladeAlles() {
-                await Promise.all([ladeLaeufe(), ladeOhne()]);
-                if (!monatGesetzt && LAEUFE.length) { filter.monat = String(LAEUFE[0].monat).slice(0, 7); monatGesetzt = true; }
-                if (sel && !filter.ohne) {
-                    if (!LAEUFE.some(function (l) { return l.id === sel; })) sel = null; else await ladeZettel(sel);
-                }
+                await ladeLaeufe();
+                const monate = LAEUFE.map(function (l) { return String(l.monat).slice(0, 7); });
+                if (!filter.monat || monate.indexOf(filter.monat) < 0) filter.monat = monate[0] || '';
+                await ladeMonat(filter.monat);
                 renderFilter(); renderLaeufe();
             }
 
             function fahrerName(id) { const f = FAHRER.filter(function (x) { return x.fahrer_id === id; })[0]; return f ? f.name : 'Fahrer ' + id; }
             function passt(x) { return (!filter.firma || x.firma_nr === filter.firma) && (!filter.monat || String(x.monat).slice(0, 7) === filter.monat); }
+            function monatsZettel() { const z = MONAT_Z[filter.monat]; return (z && z.rows) || []; }
+            // Was die Tabelle zeigt: Monat, Firma, "ohne Fahrer", Suche
+            function sichtbar() {
+                return monatsZettel().filter(function (z) {
+                    return (!filter.firma || z.firma_nr === filter.firma) && (!filter.ohne || z.fahrer_id == null)
+                        && (!suche || (z.name + ' ' + (z.fahrer_name || '') + ' ' + z.ma_nr).toLowerCase().indexOf(suche) >= 0);
+                });
+            }
 
-            // Kopf: Auswahl Firma/Monat, Kacheln, Umschalter
+            // Kopf: Monat, Kacheln, Firmen als Umschalter
             function renderFilter() {
-                const fs = document.getElementById('loFirma'), ms = document.getElementById('loMonat');
-                const firmen = {}, monate = {};
-                LAEUFE.forEach(function (l) { firmen[l.firma_nr] = l.firma_name; monate[String(l.monat).slice(0, 7)] = 1; });
-                if (filter.firma && !firmen[filter.firma]) filter.firma = '';
-                if (filter.monat && !monate[filter.monat]) filter.monat = '';
-                fs.innerHTML = '<option value="">Alle Firmen</option>' + Object.keys(firmen).sort().map(function (k) {
-                    return '<option value="' + esc(k) + '"' + (k === filter.firma ? ' selected' : '') + '>' + esc(firmen[k] || k) + '</option>';
-                }).join('');
-                ms.innerHTML = '<option value="">Alle Monate</option>' + Object.keys(monate).sort().reverse().map(function (k) {
+                const ms = document.getElementById('loMonat');
+                const monate = {};
+                LAEUFE.forEach(function (l) { monate[String(l.monat).slice(0, 7)] = 1; });
+                ms.innerHTML = Object.keys(monate).sort().reverse().map(function (k) {
                     return '<option value="' + k + '"' + (k === filter.monat ? ' selected' : '') + '>' + lohnMonatText(k + '-01') + '</option>';
-                }).join('');
-                const rows = LAEUFE.filter(passt);
+                }).join('') || '<option value="">–</option>';
+                const imMonat = LAEUFE.filter(function (l) { return String(l.monat).slice(0, 7) === filter.monat; });
+                if (filter.firma && !imMonat.some(function (l) { return l.firma_nr === filter.firma; })) filter.firma = '';
+                const rows = imMonat.filter(passt);
                 const summe = function (f) { return rows.reduce(function (s, l) { return s + (parseFloat(f(l)) || 0); }, 0); };
                 const ausz = summe(function (l) { return l.summe_dienstnehmer; });
                 const abgaben = rows.map(lohnAbgaben).filter(function (a) { return a != null; });
                 const abg = abgaben.reduce(function (s, a) { return s + a; }, 0);
                 const ohne = summe(function (l) { return l.ohne_fahrer; });
                 document.getElementById('loBig').textContent = LAEUFE_FEHLER ? '--' : fmt(ausz);
-                document.getElementById('loSub').textContent = (filter.monat ? lohnMonatText(filter.monat + '-01') : 'alle Monate') + (filter.firma ? ' · ' + (firmen[filter.firma] || filter.firma) : '');
+                document.getElementById('loSub').textContent = filter.firma ? ((rows[0] && rows[0].firma_name) || filter.firma) : (imMonat.length + (imMonat.length === 1 ? ' Firma' : ' Firmen'));
                 const k = function (titel, wert, cls) { return '<div class="kpi-item"><small>' + titel + '</small><b' + (cls ? ' class="' + cls + '"' : '') + '>' + wert + '</b></div>'; };
                 document.getElementById('loKpi').innerHTML = LAEUFE_FEHLER ? '' :
-                    k(rows.length === 1 ? 'Firma' : 'Firmen', rows.length) + k('Personen', summe(function (l) { return l.anzahl_dienstnehmer; })) +
-                    k('Auszahlung', betrag(ausz), 'ok') + k('Abgaben', abgaben.length ? betrag(abg) : '–') +
-                    '<div class="kpi-item lo-kachel' + (filter.ohne ? ' active' : '') + '" data-lo-sicht="' + (filter.ohne ? 'laeufe' : 'ohne') + '" title="Lohnzettel ohne zugeordneten Fahrer zeigen"><small>Ohne Fahrer</small><b' + (ohne ? ' class="warn"' : ' class="ok"') + '>' + (ohne || '✓') + '</b></div>';
+                    k('Personen', summe(function (l) { return l.anzahl_dienstnehmer; })) + k('Auszahlung netto', betrag(ausz), 'ok') +
+                    k('Abgaben', abgaben.length ? betrag(abg) : '–') + k('Gesamtkosten', abgaben.length ? betrag(ausz + abg) : '–') +
+                    '<div class="kpi-item lo-kachel' + (filter.ohne ? ' active' : '') + '" data-lo-ohne="1" title="Nur Lohnzettel ohne zugeordneten Fahrer zeigen"><small>Ohne Fahrer</small><b' + (ohne ? ' class="warn"' : ' class="ok"') + '>' + (ohne || '✓') + '</b></div>';
+                const alle = imMonat.reduce(function (s, l) { return s + (l.anzahl_dienstnehmer || 0); }, 0);
                 document.getElementById('loChips').innerHTML =
-                    '<button class="chip' + (!filter.ohne ? ' active' : '') + '" data-lo-sicht="laeufe">Läufe <span class="cnt">' + rows.length + '</span></button>' +
-                    '<button class="chip' + (filter.ohne ? ' active' : '') + '" data-lo-sicht="ohne">Ohne Fahrer <span class="cnt">' + ohne + '</span></button>';
+                    '<button class="chip' + (!filter.firma ? ' active' : '') + '" data-lo-firma="">Alle <span class="cnt">' + alle + '</span></button>' +
+                    imMonat.map(function (l) {
+                        return '<button class="chip' + (filter.firma === l.firma_nr ? ' active' : '') + '" data-lo-firma="' + esc(l.firma_nr) + '">' + esc(l.firma_name) + ' <span class="cnt">' + (l.anzahl_dienstnehmer || 0) + '</span></button>';
+                    }).join('') +
+                    '<button class="chip' + (filter.ohne ? ' active' : '') + '" data-lo-ohne="1">Ohne Fahrer <span class="cnt">' + imMonat.reduce(function (s, l) { return s + (l.ohne_fahrer || 0); }, 0) + '</span></button>';
             }
 
-            // Fahrer-Zeile: Name + "lösen" oder Auswahl mit Vorschlag + "zuordnen"
+            // Fahrer-Zelle: Name + "lösen" oder Auswahl mit Vorschlag + "zuordnen"
             function fahrerHtml(z) {
                 const d = ' data-firma="' + esc(z.firma_nr) + '" data-manr="' + z.ma_nr + '"', dis = busy ? ' disabled' : '';
                 if (z.fahrer_id != null) {
                     return '<div class="zbox fest"><span>' + esc(z.fahrer_name || fahrerName(z.fahrer_id)) + '</span>' +
-                        '<button class="lo-lnk lo-mut" data-loesen="1"' + d + dis + '>lösen</button></div>';
+                        '<button class="lo-lnk lo-loesen" data-loesen="1"' + d + dis + '>lösen</button></div>';
                 }
                 const vorOk = FAHRER.some(function (f) { return f.fahrer_id === z.vorschlag_fahrer_id && f.notion_fahrer_id != null; });
                 return '<div class="zbox"><select data-fsel="1" aria-label="Fahrer wählen"' + dis + '>' + (!vorOk ? '<option value="">Fahrer wählen …</option>' : '') +
@@ -4221,7 +4248,7 @@
                     }).join('') + '</select><button class="btn" data-zuordnen="1"' + d + dis + '>zuordnen</button></div>';
             }
             function statusHtml(z) {
-                if (z.fahrer_id != null) return '<span class="ps-status ok">zugeordnet</span>';
+                if (z.fahrer_id != null) return '<span class="ps-status ok">✓</span>';
                 return z.vorschlag_fahrer_id != null ? '<span class="ps-status todo">Vorschlag</span>' : '<span class="ps-status err">offen</span>';
             }
             function pdfAttr(z) { return ' data-pdf="' + esc(z.pfad) + '" data-titel="' + esc('Lohnzettel ' + lohnMonatText(String(z.monat)) + ' · ' + z.name) + '"'; }
@@ -4230,81 +4257,59 @@
                 return new Set(rows.filter(function (z) { return z.fahrer_id == null && z.vorschlag_fahrer_id != null; })
                     .map(function (z) { return z.firma_nr + '|' + z.ma_nr; })).size;
             }
-            function kv(k, v, cls) { return '<div class="detail-kv' + (cls ? ' ' + cls : '') + '"><span>' + k + '</span><span>' + v + '</span></div>'; }
-
-            // Seitenpanel: ein Lauf mit seinen Lohnzetteln
-            function laufDetail(l) {
-                const z = ZETTEL[l.id], abg = lohnAbgaben(l);
-                const rows = (z && z !== 'lade' && z.rows) || [];
-                const n = vorschlagZahl(rows);
-                let h = '<div class="detail"><h4>' + esc(l.firma_name) + '</h4>'
-                    + '<div class="sub">Firma ' + esc(l.firma_nr) + ' · ' + lohnMonatText(String(l.monat)) + ' · hochgeladen ' + tagMonat(l.hochgeladen_am) + ' von ' + esc(l.hochgeladen_von || '?') + '</div>'
-                    + '<div class="pay">' + fmt(l.summe_dienstnehmer) + '</div>'
-                    + kv('Personen', l.anzahl_dienstnehmer || 0) + kv('Abgaben', abg == null ? '–' : fmt(abg))
-                    + (l.gesamt_summe != null ? kv('Gesamt', fmt(l.gesamt_summe), 'strong') : '')
-                    + (!l.firma_adresse ? '<div class="ps-warn">Adresse fehlt – Firma unter Rechnungen anlegen</div>' : '')
-                    + '<div class="detail-acts"><button class="btn-ghost" data-pdf="' + esc(l.aj_pfad) + '" data-titel="' + esc('Auszahlungsjournal ' + lohnMonatText(String(l.monat)) + ' · ' + l.firma_name) + '">Journal öffnen</button>'
-                    + (n ? '<button class="btn-primary" data-alle="' + esc(l.id) + '"' + (busy ? ' disabled' : '') + '>' + n + ' Vorschläge zuordnen</button>' : '') + '</div>'
-                    + '<div class="detail-sec">Lohnzettel' + (rows.length ? ' · ' + rows.length : '') + '</div>';
-                if (!z || z === 'lade') h += '<div class="lo-mut">Lade …</div>';
-                else if (z.fehler) h += '<div class="lo-err">' + esc(z.fehler) + '</div>';
-                else h += rows.map(function (r) {
-                    return '<div class="lo-z' + (r.fahrer_id == null ? ' offen' : '') + '"><div class="lo-zeile"><button class="lo-lnk"' + pdfAttr(r) + ' title="PDF öffnen">' + esc(r.name) + '</button>'
-                        + '<span class="num">' + betrag(r.auszahlung) + '</span></div>' + fahrerHtml(r) + '</div>';
-                }).join('');
-                return h + '</div>';
+            // Zwischenzeile je Firma: Summen des Laufs + Journal
+            function firmaZeile(nr, n, sp) {
+                const l = LAEUFE.filter(function (x) { return x.firma_nr === nr && String(x.monat).slice(0, 7) === filter.monat; })[0];
+                if (!l) return '';
+                const abg = lohnAbgaben(l);
+                return '<tr class="group-row lo-firma"><td colspan="' + sp + '"><span class="lo-firma-zeile"><b>' + esc(l.firma_name) + '</b><span>' + n + (n === 1 ? ' Person' : ' Personen') + '</span>'
+                    + '<span>Auszahlung <b class="num">' + betrag(l.summe_dienstnehmer) + '</b></span>' + (abg == null ? '' : '<span class="lo-nur-breit">Abgaben <b class="num">' + betrag(abg) + '</b></span>')
+                    + (!l.firma_adresse ? '<span class="lo-warn lo-nur-breit">Adresse fehlt – Firma unter Rechnungen anlegen</span>' : '')
+                    + '<span class="sp"></span><button class="lo-lnk lo-journal" data-pdf="' + esc(l.aj_pfad) + '" data-titel="' + esc('Auszahlungsjournal ' + lohnMonatText(String(l.monat)) + ' · ' + l.firma_name) + '">Journal</button></span></td></tr>';
             }
-            // Seitenpanel: ein Lohnzettel ohne Fahrer
+            // Aufklapper am Handy
             function zettelDetail(z) {
-                return '<div class="detail"><h4>' + esc(z.name) + '</h4>'
-                    + '<div class="sub">' + esc(z.firma_name) + ' · ' + lohnMonatText(String(z.monat)) + ' · Ma-Nr ' + z.ma_nr + '</div>'
-                    + '<div class="pay">' + fmt(z.auszahlung) + '</div>'
-                    + kv('Brutto', fmt(z.brutto)) + kv('Netto', fmt(z.netto)) + kv('Auszahlung', fmt(z.auszahlung), 'strong')
+                const kv = function (k, v, cls) { return '<div class="detail-kv' + (cls ? ' ' + cls : '') + '"><span>' + k + '</span><span>' + v + '</span></div>'; };
+                return '<div class="detail">' + kv('Ma-Nr', z.ma_nr) + kv('Brutto', fmt(z.brutto)) + kv('Netto', fmt(z.netto)) + kv('Auszahlung', fmt(z.auszahlung), 'strong')
                     + '<div class="detail-sec">Fahrer</div>' + fahrerHtml(z)
                     + '<div class="detail-acts"><button class="btn-ghost"' + pdfAttr(z) + '>Lohnzettel öffnen</button></div></div>';
             }
 
             function renderLaeufe() {
-                const head = document.getElementById('loHead'), body = document.getElementById('loBody'), panel = document.getElementById('loPanel');
+                const head = document.getElementById('loHead'), body = document.getElementById('loBody'), leiste = document.getElementById('loLeiste');
                 const m = isMobile(), sp = m ? 3 : 6;
                 const leer = function (t) { return '<tr><td class="empty" colspan="' + sp + '">' + t + '</td></tr>'; };
-                if (filter.ohne) {
-                    const rows = (OHNE || []).filter(passt);
-                    const n = vorschlagZahl(rows);
-                    const leiste = document.getElementById('loLeiste');
-                    leiste.hidden = !n;
-                    leiste.innerHTML = '<b>' + n + '</b>&nbsp;mit Vorschlag<span class="sp"></span><button class="btn-primary" style="flex:none" data-alle="ohne"' + (busy ? ' disabled' : '') + '>Vorschläge zuordnen …</button>';
-                    head.innerHTML = m ? '<tr><th class="l">Name</th><th style="width:88px">Betrag</th><th class="l" style="width:96px">Status</th></tr>'
-                        : '<tr><th class="l">Name</th><th class="l">Firma</th><th style="width:90px">Monat</th><th style="width:80px">Ma-Nr</th><th style="width:120px">Auszahlung</th><th class="l" style="width:120px">Status</th></tr>';
-                    const z = sel && rows.filter(function (r) { return r.id === sel; })[0];
-                    body.innerHTML = OHNE == null ? leer('Lade …') : OHNE_FEHLER ? leer('Fehler: ' + esc(OHNE_FEHLER))
-                        : !rows.length ? leer('Alle Lohnzettel sind einem Fahrer zugeordnet.')
-                        : rows.map(function (r) {
-                            const an = r.id === sel;
-                            return '<tr' + (an ? ' class="selected"' : '') + ' data-lo-zettel="' + esc(r.id) + '">' + (m
-                                ? '<td class="l">' + esc(r.name) + '<small>' + esc(r.firma_name) + ' · ' + lohnMonatText(String(r.monat)) + '</small></td><td>' + betrag(r.auszahlung) + '</td><td class="l">' + statusHtml(r) + '</td>'
-                                : '<td class="l">' + esc(r.name) + '</td><td class="l">' + esc(r.firma_name) + '</td><td>' + lohnMonatText(String(r.monat)) + '</td><td>' + r.ma_nr + '</td><td class="pay">' + betrag(r.auszahlung) + '</td><td class="l">' + statusHtml(r) + '</td>')
-                                + '</tr>' + (m && an ? '<tr class="detail-row"><td colspan="3">' + zettelDetail(r) + '</td></tr>' : '');
-                        }).join('');
-                    panel.innerHTML = m ? '' : z ? zettelDetail(z) : '<div class="placeholder">Lohnzettel anklicken zum Zuordnen</div>';
-                    return;
-                }
-                document.getElementById('loLeiste').hidden = true;
-                head.innerHTML = m ? '<tr><th class="l">Firma · Monat</th><th style="width:96px">Auszahlung</th><th style="width:78px">Fahrer</th></tr>'
-                    : '<tr><th class="l">Firma</th><th style="width:90px">Monat</th><th style="width:90px">Personen</th><th style="width:130px">Auszahlung</th><th style="width:120px">Abgaben</th><th style="width:110px">Ohne Fahrer</th></tr>';
-                if (LAEUFE_FEHLER) { body.innerHTML = leer('Noch nicht verfügbar: ' + esc(LAEUFE_FEHLER)); panel.innerHTML = ''; return; }
-                const rows = LAEUFE.filter(passt);
-                const l0 = sel && rows.filter(function (l) { return l.id === sel; })[0];
-                body.innerHTML = !rows.length ? leer(LAEUFE.length ? 'Keine Läufe für diesen Filter.' : 'Noch keine Lohnläufe hochgeladen.')
-                    : rows.map(function (l) {
-                        const an = l.id === sel, abg = lohnAbgaben(l);
-                        const ohne = l.ohne_fahrer ? '<span class="lo-warn">' + l.ohne_fahrer + '</span>' : '<span class="lo-ok">✓</span>';
-                        return '<tr' + (an ? ' class="selected"' : '') + ' data-lo-lauf="' + esc(l.id) + '">' + (m
-                            ? '<td class="l">' + esc(l.firma_name) + '<small>' + lohnMonatText(String(l.monat)) + ' · ' + (l.anzahl_dienstnehmer || 0) + ' Pers.</small></td><td class="pay">' + betrag(l.summe_dienstnehmer) + '</td><td>' + ohne + '</td>'
-                            : '<td class="l">' + esc(l.firma_name) + '</td><td>' + lohnMonatText(String(l.monat)) + '</td><td>' + (l.anzahl_dienstnehmer || 0) + '</td><td class="pay">' + betrag(l.summe_dienstnehmer) + '</td><td>' + (abg == null ? '–' : betrag(abg)) + '</td><td>' + ohne + '</td>')
-                            + '</tr>' + (m && an ? '<tr class="detail-row"><td colspan="3">' + laufDetail(l) + '</td></tr>' : '');
-                    }).join('');
-                panel.innerHTML = m ? '' : l0 ? laufDetail(l0) : '<div class="placeholder">Firma anklicken für Lohnzettel und Zuordnung</div>';
+                document.getElementById('loDrop').classList.toggle('leer', !LAEUFE_FEHLER && !LAEUFE.length);
+                head.innerHTML = m ? '<tr><th class="l">Name</th><th style="width:96px">Auszahlung</th><th class="l" style="width:92px">Fahrer</th></tr>'
+                    : '<tr><th class="l">Name laut Lohnzettel</th><th class="l" style="width:34%">Fahrer in HYDRAlink</th><th style="width:110px">Brutto</th><th style="width:110px">Netto</th><th style="width:120px">Auszahlung</th><th style="width:84px"></th></tr>';
+                const z0 = MONAT_Z[filter.monat];
+                if (LAEUFE_FEHLER) { leiste.hidden = true; body.innerHTML = leer('Noch nicht verfügbar: ' + esc(LAEUFE_FEHLER)); return; }
+                if (!LAEUFE.length) { leiste.hidden = true; body.innerHTML = leer('Noch keine Löhne hochgeladen.'); return; }
+                if (!z0) { leiste.hidden = true; body.innerHTML = leer('Lade …'); return; }
+                if (z0.fehler) { leiste.hidden = true; body.innerHTML = leer('Fehler: ' + esc(z0.fehler)); return; }
+                const rows = sichtbar();
+                const n = vorschlagZahl(rows);
+                leiste.hidden = !n;
+                leiste.innerHTML = '<b>' + n + '</b>&nbsp;ohne Fahrer, aber mit Vorschlag<span class="sp"></span><button class="btn-primary" style="flex:none" data-alle="sicht"' + (busy ? ' disabled' : '') + '>Vorschläge zuordnen …</button>';
+                if (!rows.length) { body.innerHTML = leer(filter.ohne && !suche ? 'Alle Lohnzettel sind einem Fahrer zugeordnet.' : 'Nichts gefunden.'); return; }
+                const jeFirma = {};
+                rows.forEach(function (z) { jeFirma[z.firma_nr] = (jeFirma[z.firma_nr] || 0) + 1; });
+                let firma = null, h = '';
+                rows.forEach(function (z) {
+                    if (z.firma_nr !== firma) { firma = z.firma_nr; h += firmaZeile(firma, jeFirma[firma], sp); }
+                    const offen = z.fahrer_id == null, an = z.id === sel;
+                    if (m) {
+                        h += '<tr class="' + (an ? 'selected ' : '') + (offen ? 'lo-offen' : '') + '" data-lo-zettel="' + esc(z.id) + '"><td class="l">' + esc(z.name) + '<small>' + esc(z.fahrer_name || (offen ? 'kein Fahrer zugeordnet' : '')) + '</small></td>'
+                            + '<td class="pay">' + betrag(z.auszahlung) + '</td><td class="l">' + statusHtml(z) + '</td></tr>'
+                            + (an ? '<tr class="detail-row"><td colspan="3">' + zettelDetail(z) + '</td></tr>' : '');
+                        return;
+                    }
+                    h += '<tr class="' + (offen ? 'lo-offen' : '') + '"><td class="l"><button class="lo-lnk"' + pdfAttr(z) + ' title="Lohnzettel öffnen">' + esc(z.name) + '</button>'
+                        + (z.seiten > 1 ? ' <span class="lo-mut">' + z.seiten + ' S.</span>' : '') + '</td>'
+                        + '<td class="l">' + fahrerHtml(z) + '</td><td>' + betrag(z.brutto) + '</td><td>' + betrag(z.netto) + '</td><td class="pay">' + betrag(z.auszahlung) + '</td>'
+                        + '<td><button class="lo-pdf"' + pdfAttr(z) + ' title="Lohnzettel öffnen">PDF</button></td></tr>';
+                });
+                body.innerHTML = h;
             }
 
         /* === Zuordnen === */
@@ -4355,7 +4360,7 @@
         // Alle Vorschlaege einer Liste; gleiche Firma + Ma-Nr nur einmal
         async function alleVorschlaege(quelle) {
             if (busy) return;
-            const rows = quelle === 'ohne' ? (OHNE || []).filter(passt) : ((ZETTEL[quelle] && ZETTEL[quelle].rows) || []);
+            const rows = sichtbar();
             const mit = rows.filter(function (z) { return z.fahrer_id == null && z.vorschlag_fahrer_id != null; });
             if (!mit.length) return;
             let personen = []; const gesehen = {};
@@ -4383,7 +4388,6 @@
         }
 
             /* === Ereignisse === */
-            function sicht(ohne) { filter.ohne = ohne; sel = null; renderFilter(); renderLaeufe(); }
             function klick(e) {
                 const t = e.target;
                 let b;
@@ -4399,18 +4403,11 @@
                 if ((b = t.closest('[data-alle]'))) { alleVorschlaege(b.dataset.alle); return; }
                 if ((b = t.closest('[data-zuordnen]'))) { zuordnen(b, false); return; }
                 if ((b = t.closest('[data-loesen]'))) { zuordnen(b, true); return; }
-                if ((b = t.closest('[data-lo-sicht]'))) { sicht(b.dataset.loSicht === 'ohne'); return; }
+                if ((b = t.closest('[data-lo-firma]'))) { filter.firma = b.dataset.loFirma; sel = null; renderFilter(); renderLaeufe(); return; }
+                if ((b = t.closest('[data-lo-ohne]'))) { filter.ohne = !filter.ohne; sel = null; renderFilter(); renderLaeufe(); return; }
                 if (t.closest('select, button, a, input, label, .detail-row')) return;
                 if ((b = t.closest('[data-neu]'))) { NEU_OFFEN[b.dataset.neu] = !NEU_OFFEN[b.dataset.neu]; renderNeu(); return; }
-                if ((b = t.closest('[data-lo-zettel]'))) { sel = sel === b.dataset.loZettel ? null : b.dataset.loZettel; renderLaeufe(); return; }
-                if ((b = t.closest('[data-lo-lauf]'))) {
-                    const id = b.dataset.loLauf;
-                    if (sel === id) { sel = null; renderLaeufe(); return; }
-                    sel = id;
-                    if (!ZETTEL[id]) ZETTEL[id] = 'lade';
-                    renderLaeufe();
-                    ladeZettel(id).then(renderLaeufe);
-                }
+                if ((b = t.closest('[data-lo-zettel]'))) { sel = sel === b.dataset.loZettel ? null : b.dataset.loZettel; renderLaeufe(); }
             }
             function init() {
                 if (bereit) return;
@@ -4425,8 +4422,13 @@
                 seite.addEventListener('click', klick);
                 document.getElementById('loSpeichern').addEventListener('click', alleSpeichern);
                 document.getElementById('loRefresh').addEventListener('click', ladeAlles);
-                document.getElementById('loFirma').addEventListener('change', function (e) { filter.firma = e.target.value; sel = null; renderFilter(); renderLaeufe(); });
-                document.getElementById('loMonat').addEventListener('change', function (e) { filter.monat = e.target.value; sel = null; renderFilter(); renderLaeufe(); });
+                document.getElementById('loMonat').addEventListener('change', async function (e) {
+                    filter.monat = e.target.value; filter.firma = ''; sel = null;
+                    renderFilter(); renderLaeufe();
+                    await ladeMonat(filter.monat); renderFilter(); renderLaeufe();
+                });
+                let t = null;
+                document.getElementById('loSuche').addEventListener('input', function (e) { clearTimeout(t); t = setTimeout(function () { suche = e.target.value.trim().toLowerCase(); renderLaeufe(); }, 150); });
                 window.matchMedia('(max-width: 768px)').addEventListener('change', function () { renderNeu(); renderLaeufe(); });
                 Promise.all([ladeFahrerListe(), ladeAlles()]).then(function () { renderLaeufe(); renderNeu(); });
             }

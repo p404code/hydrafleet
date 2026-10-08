@@ -107,3 +107,90 @@ do $$ begin
   begin truncate public.protokoll; assert false, 'truncate moeglich';
   exception when insufficient_privilege then null; end;
 end $$;
+
+-- ====================== Task 2: protokoll_verlauf + Altbestand ======================
+-- user -> 42501
+select set_config('request.jwt.claims',
+  '{"role":"authenticated","sub":"00000000-0000-0000-0000-000000000001","app_metadata":{"app_role":"user","app_name":"Testuser"}}', true);
+set local role authenticated;
+do $$ begin
+  begin perform * from public.protokoll_verlauf(); assert false, 'verlauf fuer user offen';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- admin
+select set_config('request.jwt.claims',
+  '{"role":"authenticated","sub":"00000000-0000-0000-0000-000000000003","app_metadata":{"app_role":"admin","app_name":"Testadmin"}}', true);
+set local role authenticated;
+do $$ declare r record; n int; m int; begin
+  -- Sammelzeile: die 3 Automatik-Aenderungen an settlements aus Task-1-Test
+  select * into r from public.protokoll_verlauf(p_art => 'automatik', p_bereich => 'geld');
+  assert found, 'keine automatik-zeile';
+  assert r.anzahl = 3 and array_length(r.ids, 1) = 3, format('sammelzeile: anzahl %s', r.anzahl);
+  assert r.aktion = 'geaendert' and r.alt is null and r.neu is null, 'sammelzeile hat einzelwerte';
+  assert r.woche is not null, 'sammelzeile ohne woche';
+
+  -- Einzelzeile Mensch mit alt/neu
+  select * into r from public.protokoll_verlauf(p_akteur => 'Testuser');
+  assert found and r.anzahl = 1 and r.tabelle = 'settlements' and r.bereich = 'geld', 'testuser-zeile falsch';
+  assert r.felder = array['korrektur','korrektur_note'] and r.neu ? 'korrektur', 'einzelzeile ohne werte';
+
+  -- Filter Mensch: nichts von der Automatik
+  select count(*) into n from public.protokoll_verlauf(p_art => 'mensch', p_limit => 1000) v where v.akteur_art = 'automatik';
+  assert n = 0, 'mensch-filter laesst automatik durch';
+
+  -- Nur Loeschungen
+  select count(*), count(*) filter (where v.aktion in ('geloescht', 'storno')) into n, m
+    from public.protokoll_verlauf(p_nur_loeschungen => true, p_limit => 1000) v;
+  assert n >= 1 and n = m, format('nur_loeschungen: %s zeilen, davon %s loeschungen', n, m);
+
+  -- Fahrer-Filter trifft den Alias-Test, und nur protokoll-Zeilen
+  select count(*), count(*) filter (where v.quelle = 'protokoll') into n, m
+    from public.protokoll_verlauf(p_fahrer => 'Test Fahrer') v;
+  assert n = 2 and m = 2, format('fahrer-filter: %s/%s', n, m);
+
+  -- Sync-Laeufe gebuendelt: je Verbindung, Tag und Status hoechstens eine Zeile
+  select count(*) into n from (
+    select 1 from public.protokoll_verlauf(p_bereich => 'sync', p_limit => 1000) v
+     group by v.neu->>'anbieter', v.neu->>'firma', v.aktion, (v.zeit at time zone 'Europe/Vienna')::date
+    having count(*) > 1) d;
+  assert n = 0, 'sync-laeufe nicht gebuendelt';
+
+  -- Seitenweise, neueste zuerst
+  select count(*) into n from public.protokoll_verlauf(p_limit => 5);
+  assert n <= 5, 'limit greift nicht';
+  select count(*) into n from (
+    select v.zeit, lag(v.zeit) over () as davor from public.protokoll_verlauf(p_limit => 50) v) s
+   where s.davor < s.zeit;
+  assert n = 0, 'nicht absteigend sortiert';
+end $$;
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+-- Altbestand: je Quellzeile genau eine Zeile
+do $$ declare n int; soll int; begin
+  select count(*) into n from public.protokoll where altbestand;
+  select (select count(*) from public.abrechnung_freigaben) + (select count(*) from public.abrechnung_posten)
+       + (select count(*) from public.kassier_zahlungen)    + (select count(*) from public.zuordnung_manuell)
+       + (select count(*) from public.lohn_personen)        + (select count(*) from public.fahrer_app_zugang) into soll;
+  assert n = soll, format('altbestand: %s statt %s', n, soll);
+  select count(*) into n from public.protokoll where altbestand and (aktion <> 'neu' or akteur_art <> 'buero');
+  assert n = 0, 'altbestand mit falscher aktion/akteur';
+end $$;
+
+-- Edge Function schreibt im Auftrag eines Mitarbeiters (service_role, Name in der Zeile) -> auftrag
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+set local role service_role;
+insert into public.fahrer_app_zugang (notion_fahrer_id, auth_user_id, angelegt_von) values (77, gen_random_uuid(), 'Stefan');
+reset role;
+select set_config('request.jwt.claims',
+  '{"role":"authenticated","sub":"00000000-0000-0000-0000-000000000003","app_metadata":{"app_role":"admin","app_name":"Testadmin"}}', true);
+set local role authenticated;
+do $$ declare r record; begin
+  select * into r from public.protokoll_verlauf(p_akteur => 'Stefan', p_bereich => 'zugaenge');
+  assert found, 'auftrag: zeile ueber den namen nicht gefunden';
+  assert r.akteur_art = 'automatik' and r.auftrag = 'Stefan' and r.fahrer = 'Fahrer-ID 77', 'auftrag falsch: ' || coalesce(r.auftrag, 'null');
+end $$;
+reset role;
+select set_config('request.jwt.claims', '', true);

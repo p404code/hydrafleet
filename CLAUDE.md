@@ -83,6 +83,7 @@ Präfix `pr`). Kontrolle „wer hat was geändert“. Absicherung – nicht aufw
 - Die Datenbank schreibt selbst mit: Trigger `protokoll_mitschreiben` (Funktion `protokoll_schreiben`) auf `settlements`,
   `abrechnung_posten`, `kassier_zahlungen`, `abrechnung_freigaben`, `post_eingang` (nur Entscheidungsfelder, kein INSERT),
   `mietverhaeltnisse`, `zuordnung_manuell`, `lohn_personen`, `name_aliases`, `fahrer_app_zugang`, `customers`, `companies`.
+  Fahrername: `notion_fahrer_id` → `notion_fahrer`, `fahrer_id` (Post) → `fahrer.id` – zwei Nummernkreise.
   **Neue Tabelle mit Büro-Schreibzugriff → Trigger anhängen** (Liste am Ende von `migrations/2026-10-08-protokoll.sql`)
   und in `protokoll_bereich`, `PR_TAB` eintragen.
 - Wer = `auth.jwt()`: Büro-Name, „Fahrer n“, „Automatik“ (`service_role`: n8n, Edge Functions) oder „SQL-Fenster“ (kein JWT –
@@ -91,7 +92,9 @@ Präfix `pr`). Kontrolle „wer hat was geändert“. Absicherung – nicht aufw
 - Der Trigger schluckt eigene Fehler (`raise warning`) – das Protokoll darf die Abrechnung nie blockieren.
 - `protokoll_verlauf(…)` mischt `protokoll` + `sync_runs` (je Verbindung/Tag/Status) + `post_ausgang` + `kassabuch`;
   Automatik-Zeilen gleicher Tabelle/Woche/Minute kommen als Sammelzeile (`anzahl`, `ids`).
-- Tests: `scripts/test-protokoll.sql` (mit Migration in `begin … rollback` über das MCP), `node --test scripts/test-protokoll-satz.mjs`.
+- Tests: `PGLITE=/tmp/pglite node scripts/test-protokoll.mjs` (lokales Postgres per PGlite, Tabellen-Nachbau in
+  `scripts/test-protokoll-schema.sql`, Asserts in `scripts/test-protokoll.sql` – berührt die Live-Datenbank nicht),
+  `node --test scripts/test-protokoll-satz.mjs`.
 
 ## Plattform-Sync (seit 2026-09-22)
 

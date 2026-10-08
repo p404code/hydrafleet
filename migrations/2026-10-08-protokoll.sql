@@ -94,10 +94,15 @@ begin
       from unnest(v_pk) with ordinality u(k, ord);
     v_fahrer := nullif(v_voll->>'fahrer_name', '');
     if v_fahrer is null then
-      v_fid := coalesce(v_voll->>'notion_fahrer_id', v_voll->>'fahrer_id');
-      if v_fid ~ '^[0-9]+$' then
+      -- zwei Nummernkreise: notion_fahrer_id = Notion-Nummer, fahrer_id (post_eingang) = fahrer.id
+      if (v_voll->>'notion_fahrer_id') ~ '^[0-9]+$' then
+        v_fid := v_voll->>'notion_fahrer_id';
         select f.name into v_fahrer from public.notion_fahrer f where f.notion_fahrer_id = v_fid::int limit 1;
         v_fahrer := coalesce(v_fahrer, 'Fahrer-ID ' || v_fid);
+      elsif (v_voll->>'fahrer_id') ~ '^[0-9]+$' then
+        v_fid := v_voll->>'fahrer_id';
+        select f.name into v_fahrer from public.fahrer f where f.id = v_fid::int;
+        v_fahrer := coalesce(v_fahrer, 'Fahrer ' || v_fid);
       end if;
     end if;
 
@@ -121,7 +126,7 @@ begin
     ('abrechnung_posten',    'id',                   'ohne', '', ''),
     ('kassier_zahlungen',    'id',                   'ohne', '', ''),
     ('abrechnung_freigaben', 'woche',                'ohne', '', ''),
-    ('post_eingang',         'id',                   'nur',  'fahrer_id,status,freigegeben_am,freigegeben_von,erledigt_am,erledigt_von,notiz,betrag,art', 'ohne_neu'),
+    ('post_eingang',         'id',                   'nur',  'gz,fahrer_id,status,freigegeben_am,freigegeben_von,erledigt_am,erledigt_von,notiz,betrag,art', 'ohne_neu'),
     ('mietverhaeltnisse',    'id',                   'ohne', '', ''),
     ('zuordnung_manuell',    'anbieter,driver_uuid', 'ohne', '', ''),
     ('lohn_personen',        'firma_nr,ma_nr',       'ohne', '', ''),
@@ -174,7 +179,7 @@ begin
            case when count(*) = 1 then min(x.fahrer) end as fahrer,
            x.woche, count(*)::int as anzahl,
            case when count(*) > 1 then array_agg(x.id order by x.id) end as ids,
-           case when count(*) = 1 then min(x.id) end as eine_id,
+           case when count(*) = 1 then min(x.id) end as eine_id, max(x.id) as sid,
            case when count(*) = 1 then (array_agg(x.alt))[1] end as alt,
            case when count(*) = 1 then (array_agg(x.neu))[1] end as neu,
            x.altbestand
@@ -188,7 +193,7 @@ begin
     select p.zeit, p.quelle, p.akteur_art, p.akteur, p.auftrag, p.tabelle, p.bereich, p.aktion, p.zeile, p.fahrer,
            p.woche, p.anzahl, p.ids,
            (select q.felder from public.protokoll q where q.id = p.eine_id) as felder,
-           p.alt, p.neu, p.altbestand
+           p.alt, p.neu, p.altbestand, lpad(p.sid::text, 12, '0') as sk
       from p
     union all
     -- Sync-Laeufe: je Verbindung, Wiener Tag und Status eine Zeile
@@ -196,7 +201,7 @@ begin
            'sync_runs'::text, 'sync'::text, s.status, null::text, null::text, null::text, count(*)::int,
            null::bigint[], null::text[], null::jsonb,
            jsonb_build_object('anbieter', v.anbieter, 'firma', v.firma, 'zeilen', sum(s.anzahl), 'fehler', max(s.fehler)),
-           false
+           false, v.id::text || s.status
       from public.sync_runs s join public.verbindungen v on v.id = s.verbindung_id
      where s.status <> 'laeuft'
      group by v.id, v.anbieter, v.firma, s.status, (coalesce(s.ende, s.start) at time zone 'Europe/Vienna')::date
@@ -205,7 +210,7 @@ begin
            coalesce(u.name, 'Automatik'), null::text, 'post_ausgang'::text, 'post'::text, 'gesendet'::text,
            a.id::text, null::text, null::text, 1, null::bigint[], null::text[], null::jsonb,
            jsonb_build_object('an', a.an, 'gz', a.gz, 'betreff', a.betreff, 'test_an', a.test_an, 'quelle', a.quelle),
-           false
+           false, a.id::text
       from public.post_ausgang a left join public.app_users u on u.auth_id = a.gesendet_von
      where a.gesendet_am is not null
     union all
@@ -214,22 +219,23 @@ begin
            k.nr::text, null::text, k.woche_abr, 1, null::bigint[], null::text[], null::jsonb,
            jsonb_build_object('nr', k.nr, 'datum', k.datum, 'art', k.art, 'betrag', k.betrag, 'text', k.text,
                               'quelle', k.quelle, 'storno_von', k.storno_von),
-           false
+           false, lpad(k.id::text, 12, '0')
       from public.kassabuch k
   )
   select a.zeit, a.quelle, a.akteur_art, a.akteur, a.auftrag, a.tabelle, a.bereich, a.aktion, a.zeile, a.fahrer,
          a.woche, a.anzahl, a.ids, a.felder, a.alt, a.neu, a.altbestand
     from alle a
    where a.zeit is not null
-     and (p_art is null or (p_art = 'automatik' and a.akteur_art = 'automatik')
-                        or (p_art = 'mensch' and a.akteur_art <> 'automatik'))
+     -- im Auftrag eines Mitarbeiters (auftrag) zaehlt als Mensch
+     and (p_art is null or (p_art = 'automatik' and a.akteur_art = 'automatik' and a.auftrag is null)
+                        or (p_art = 'mensch' and (a.akteur_art <> 'automatik' or a.auftrag is not null)))
      and (p_akteur is null or a.akteur = p_akteur or a.auftrag = p_akteur)
      and (p_bereich is null or a.bereich = p_bereich)
      and (p_fahrer is null or a.quelle = 'protokoll')
      and (not p_nur_loeschungen or a.quelle = 'protokoll' or a.aktion = 'storno')
      and (p_von is null or (a.zeit at time zone 'Europe/Vienna')::date >= p_von)
      and (p_bis is null or (a.zeit at time zone 'Europe/Vienna')::date <= p_bis)
-   order by a.zeit desc, a.quelle, a.tabelle, a.zeile
+   order by a.zeit desc, a.quelle, a.sk desc      -- sk macht die Reihenfolge eindeutig (Blaettern)
    limit least(greatest(coalesce(p_limit, 100), 1), 1000) offset greatest(coalesce(p_offset, 0), 0);
 end $$;
 revoke all on function public.protokoll_verlauf(text, text, text, text, date, date, boolean, int, int) from public, anon;

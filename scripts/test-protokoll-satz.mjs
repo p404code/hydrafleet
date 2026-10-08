@@ -66,3 +66,20 @@ test('nur admin darf den reiter', () => {
   assert.equal(protoErlaubt(null), false);
   assert.equal(protoErlaubt({}), false);
 });
+test('post: gz steht dabei, zuordnung und freigabe als satz', () => {
+  assert.equal(protoSatz(z({ tabelle: 'post_eingang', aktion: 'geaendert', felder: ['fahrer_id', 'status'],
+    alt: { gz: 'MA67/1', fahrer_id: null, status: 'neu' }, neu: { gz: 'MA67/1', fahrer_id: 14, status: 'zugeordnet' } })),
+    'Post GZ MA67/1: Fahrer zugeordnet · Status neu → zugeordnet');
+  assert.equal(protoSatz(z({ tabelle: 'post_eingang', aktion: 'geaendert', felder: ['freigegeben_am', 'freigegeben_von', 'status'],
+    alt: { gz: 'MA67/1', status: 'zugeordnet' }, neu: { gz: 'MA67/1', status: 'freigegeben', freigegeben_am: '2026-10-09T10:00:00Z', freigegeben_von: 'uuid' } })),
+    'Post GZ MA67/1: freigegeben');
+  assert.equal(protoSatz(z({ tabelle: 'post_eingang', aktion: 'geaendert', felder: ['fahrer_id'],
+    alt: { gz: 'MA67/1', fahrer_id: 14 }, neu: { gz: 'MA67/1', fahrer_id: null } })), 'Post GZ MA67/1: Fahrer-Zuordnung entfernt');
+  assert.equal(protoSatz(z({ tabelle: 'post_eingang', aktion: 'geaendert', felder: ['notiz'], alt: { gz: null, notiz: null }, neu: { gz: null, notiz: 'x' } })),
+    'Post: Notiz – → x');
+  assert.equal(protoSatz(z({ tabelle: 'post_eingang', aktion: 'geloescht', alt: { gz: 'MA67/1', art: 'strafverfuegung' } })), 'Post ‚MA67/1‘ gelöscht');
+});
+test('post-abgleich aus gmail ist kein versand aus hydralink', () => {
+  assert.equal(protoSatz({ quelle: 'post', aktion: 'gesendet', anzahl: 1, neu: { an: 'a@b.at', gz: 'MA67/2', quelle: 'gmail_abgleich' } }),
+    'Post von Hand beantwortet, per Gmail-Abgleich erkannt: a@b.at (GZ MA67/2)');
+});

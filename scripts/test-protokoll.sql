@@ -194,3 +194,34 @@ do $$ declare r record; begin
 end $$;
 reset role;
 select set_config('request.jwt.claims', '', true);
+
+-- ====================== Nach der Pruefung (Review) ======================
+-- post_eingang.fahrer_id zeigt auf fahrer(id), nicht auf die Notion-Nummer; GZ steht immer dabei
+update public.post_eingang set fahrer_id = 14, status = 'zugeordnet' where gz = 'MA67/1';
+do $$ declare r public.protokoll; begin
+  select * into r from public.protokoll where tabelle = 'post_eingang' and 'fahrer_id' = any (felder);
+  assert found, 'post zuordnung fehlt';
+  assert r.fahrer = 'Karl Probe', 'post: falscher fahrer ' || coalesce(r.fahrer, 'null');
+  assert r.neu->>'gz' = 'MA67/1' and r.alt->>'gz' = 'MA67/1', 'post: gz fehlt';
+  assert r.felder = array['fahrer_id','status'], 'post felder ' || r.felder::text;
+end $$;
+
+select set_config('request.jwt.claims',
+  '{"role":"authenticated","sub":"00000000-0000-0000-0000-000000000003","app_metadata":{"app_role":"admin","app_name":"Testadmin"}}', true);
+set local role authenticated;
+do $$ declare n int; a text[]; begin
+  -- im Auftrag eines Mitarbeiters = Mensch, nicht Automatik
+  select count(*) into n from public.protokoll_verlauf(p_art => 'mensch', p_limit => 1000) v where v.auftrag = 'Stefan';
+  assert n = 1, format('mensch-filter: auftrag-zeile %s mal', n);
+  select count(*) into n from public.protokoll_verlauf(p_art => 'automatik', p_limit => 1000) v where v.auftrag is not null;
+  assert n = 0, 'automatik-filter zeigt auftrag-zeilen';
+  -- gleiche Zeit: spaeter geschriebene Zeile zuerst (stabile Reihenfolge fuers Blaettern)
+  select array_agg(v.aktion) into a from public.protokoll_verlauf(p_fahrer => 'Test Fahrer') v;
+  assert a = array['geloescht','neu'], 'reihenfolge bei gleicher zeit: ' || a::text;
+  select count(distinct coalesce(v.zeile, '') || v.aktion || v.tabelle || coalesce(v.felder::text, '')) into n from (
+    select * from public.protokoll_verlauf(p_art => 'mensch', p_limit => 3, p_offset => 0)
+    union all select * from public.protokoll_verlauf(p_art => 'mensch', p_limit => 3, p_offset => 3)) v;
+  assert n = 6, format('blaettern liefert doppelte: %s von 6 verschieden', n);
+end $$;
+reset role;
+select set_config('request.jwt.claims', '', true);

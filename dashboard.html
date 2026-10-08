@@ -4865,7 +4865,8 @@
                 return wer.charAt(0).toUpperCase() + wer.slice(1) + '-Sync' + (n.firma ? ' ' + n.firma : '') + ' · ' + (r.anzahl || 0) + lauf
                     + ' · ' + (parseInt(n.zeilen, 10) || 0) + ' Zeilen' + (akt === 'fehler' ? ' · Fehler: ' + (n.fehler || '?') : ' · ok');
             }
-            if (r.quelle === 'post') return 'Post gesendet an ' + (n.an || '?') + (n.gz ? ' (GZ ' + n.gz + ')' : '') + (n.test_an ? ' · Test' : '');
+            if (r.quelle === 'post') return (n.quelle === 'gmail_abgleich' ? 'Post von Hand beantwortet, per Gmail-Abgleich erkannt: ' : 'Post gesendet an ')
+                + (n.an || '?') + (n.gz ? ' (GZ ' + n.gz + ')' : '') + (n.test_an ? ' · Test' : '');
             if (r.quelle === 'kassa') {
                 const art = { ein: 'Einnahme', aus: 'Ausgabe', anfang: 'Anfangsbestand' }[n.art] || n.art || '';
                 return 'Kassabuch Nr. ' + n.nr + ' · ' + (akt === 'storno' ? 'Storno · ' : '') + art + ' ' + prGeld(n.betrag) + prZitat(n.text);
@@ -4881,6 +4882,15 @@
             if (t === 'fahrer_app_zugang' && akt === 'geaendert') {
                 if (f.indexOf('gesperrt') >= 0) return n.gesperrt ? 'App-Zugang gesperrt' : 'App-Zugang entsperrt';
                 if (f.indexOf('pin_geaendert_am') >= 0) return 'App-Zugang: PIN neu gesetzt';
+            }
+            if (t === 'post_eingang' && akt === 'geaendert') {
+                // Wer/wann der Freigabe steht schon in der Zeile; die UUID-Felder sagen dem Leser nichts
+                const teile = [], rest = f.filter(function (k) { return k !== 'fahrer_id' && !/_(von|am)$/.test(k) && !(k === 'status' && f.indexOf('freigegeben_am') >= 0 && n.freigegeben_am); });
+                if (f.indexOf('fahrer_id') >= 0) teile.push(n.fahrer_id == null ? 'Fahrer-Zuordnung entfernt' : 'Fahrer zugeordnet');
+                if (f.indexOf('freigegeben_am') >= 0) teile.push(n.freigegeben_am ? 'freigegeben' : 'Freigabe zurückgenommen');
+                if (f.indexOf('erledigt_am') >= 0) teile.push(n.erledigt_am ? 'erledigt' : 'wieder offen');
+                if (rest.length) teile.push(prFelder({ felder: rest, alt: a, neu: n }));
+                return 'Post' + (n.gz ? ' GZ ' + n.gz : '') + ': ' + teile.join(' · ');
             }
             if (t === 'settlements' && akt === 'geaendert' && f.length) return prFelder(r);
             if (akt === 'geaendert') return name + ' geändert' + (f.length ? ': ' + prFelder(r) : '');

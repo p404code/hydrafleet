@@ -4766,6 +4766,70 @@
             return { init: init };
         })();
 
+        /* PROTO-SATZ START */
+        // Protokoll: Saetze aus einer Zeile von protokoll_verlauf. Reine Funktionen (scripts/test-protokoll-satz.mjs).
+        const PR_TAB = { settlements: 'Abrechnung', abrechnung_posten: 'Zu-/Abschlag', kassier_zahlungen: 'Kassieren',
+            abrechnung_freigaben: 'Freigabe', post_eingang: 'Post', mietverhaeltnisse: 'Mieter', zuordnung_manuell: 'Konto-Zuordnung',
+            lohn_personen: 'Lohn-Zuordnung', name_aliases: 'Namens-Alias', fahrer_app_zugang: 'App-Zugang', customers: 'Kunde', companies: 'Firma' };
+        const PR_FELD = { korrektur: 'Korrektur', korrektur_note: 'Notiz', auszahlung: 'Auszahlung', miete: 'Miete', lohn: 'Lohn',
+            status: 'Status', betrag: 'Betrag', notiz: 'Notiz', fahrer_id: 'Fahrer', gesperrt: 'Gesperrt', gueltig_von: 'Gültig von',
+            gueltig_bis: 'Gültig bis', mietmodell: 'Mietmodell', prozent_abzug: 'Abzug %', fahrer_name: 'Fahrer', art: 'Art' };
+        const PR_GELD = ['korrektur', 'auszahlung', 'miete', 'lohn', 'betrag', 'bolt_brutto', 'bolt_auszahlung', 'uber_fahrpreis',
+            'uber_auszahlung', 'mypos_summe', 'bruttoumsatz_gesamt', 'wir_bekommen', 'abzug_gesamt', 'summe'];
+        const PR_AKT = { neu: 'angelegt', geaendert: 'geändert', geloescht: 'gelöscht', gemischt: 'neu geschrieben' };
+        function prGeld(v) {
+            const n = parseFloat(v);
+            if (v == null || isNaN(n)) return '–';
+            return (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        function prWert(f, v) {
+            if (v == null || v === '') return '–';
+            if (PR_GELD.indexOf(f) >= 0) return prGeld(v);
+            if (v === true) return 'ja';
+            if (v === false) return 'nein';
+            const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+            return s.length > 80 ? s.slice(0, 79) + '…' : s;
+        }
+        function prKw(w) { return /^\d{4}-W\d+/.test(w || '') ? 'KW ' + parseInt(w.slice(6), 10) : (w || ''); }
+        function prZitat(t) { return t ? ' ‚' + t + '‘' : ''; }
+        function prFelder(r) {
+            const a = r.alt || {}, n = r.neu || {};
+            return (r.felder || []).map(function (f) { return (PR_FELD[f] || f) + ' ' + prWert(f, a[f]) + ' → ' + prWert(f, n[f]); }).join(' · ');
+        }
+        function protoSatz(r) {
+            r = r || {};
+            const n = r.neu || {}, a = r.alt || {}, t = r.tabelle || '', akt = r.aktion || '', v = akt === 'geloescht' ? a : n;
+            const name = PR_TAB[t] || t, f = r.felder || [];
+            if (r.quelle === 'sync') {
+                const wer = String(n.anbieter || '?'), lauf = r.anzahl === 1 ? ' Lauf' : ' Läufe';
+                return wer.charAt(0).toUpperCase() + wer.slice(1) + '-Sync' + (n.firma ? ' ' + n.firma : '') + ' · ' + (r.anzahl || 0) + lauf
+                    + ' · ' + (parseInt(n.zeilen, 10) || 0) + ' Zeilen' + (akt === 'fehler' ? ' · Fehler: ' + (n.fehler || '?') : ' · ok');
+            }
+            if (r.quelle === 'post') return 'Post gesendet an ' + (n.an || '?') + (n.gz ? ' (GZ ' + n.gz + ')' : '') + (n.test_an ? ' · Test' : '');
+            if (r.quelle === 'kassa') {
+                const art = { ein: 'Einnahme', aus: 'Ausgabe', anfang: 'Anfangsbestand' }[n.art] || n.art || '';
+                return 'Kassabuch Nr. ' + n.nr + ' · ' + (akt === 'storno' ? 'Storno · ' : '') + art + ' ' + prGeld(n.betrag) + prZitat(n.text);
+            }
+            if (r.anzahl > 1) return name + (r.woche ? ' ' + prKw(r.woche) : '') + ' – ' + r.anzahl + ' Zeilen ' + (PR_AKT[akt] || akt);
+            if (t === 'abrechnung_posten' && akt !== 'geaendert') {
+                const b = parseFloat(v.betrag) || 0;
+                return (b < 0 ? 'Abschlag ' : 'Zuschlag ') + (b < 0 ? '−' : '+') + prGeld(Math.abs(b)) + prZitat(v.text) + ' ' + PR_AKT[akt];
+            }
+            if (t === 'kassier_zahlungen' && akt !== 'geaendert') return 'Zahlung ' + prGeld(v.betrag) + (akt === 'neu' ? ' kassiert' : ' gelöscht');
+            if (t === 'abrechnung_freigaben' && akt === 'neu') return prKw(r.woche) + ' freigegeben';
+            if (t === 'abrechnung_freigaben' && akt === 'geloescht') return 'Freigabe ' + prKw(r.woche) + ' zurückgenommen';
+            if (t === 'fahrer_app_zugang' && akt === 'geaendert') {
+                if (f.indexOf('gesperrt') >= 0) return n.gesperrt ? 'App-Zugang gesperrt' : 'App-Zugang entsperrt';
+                if (f.indexOf('pin_geaendert_am') >= 0) return 'App-Zugang: PIN neu gesetzt';
+            }
+            if (t === 'settlements' && akt === 'geaendert' && f.length) return prFelder(r);
+            if (akt === 'geaendert') return name + ' geändert' + (f.length ? ': ' + prFelder(r) : '');
+            const titel = v.name || v.kurz || v.csv_name || v.gz || '';
+            return name + prZitat(titel) + ' ' + (PR_AKT[akt] || akt);
+        }
+        function protoErlaubt(session) { return !!(session && session.role === 'admin'); }
+        /* PROTO-SATZ ENDE */
+
         /* Reiter-Gruppen: oben die Gruppe, daneben ihre Unterreiter */
         const GRUPPEN = {
             abrechnung: [['abrechnungen', 'Übersicht'], ['abrbot', 'Upload'], ['muessenzahlen', 'Kassieren'], ['kassabuch', 'Kassabuch'], ['lohn', 'Löhne']],

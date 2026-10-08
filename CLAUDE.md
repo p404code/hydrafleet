@@ -78,6 +78,21 @@ Eine Bargeldkassa in `kassabuch`, geführt **je Kalenderwoche** wie die Abrechnu
   `posten_loeschen` storniert. Diese Zeilen (`quelle` ≠ `hand`) lassen sich nicht von Hand stornieren.
   Kassieren (`kassier_zahlungen`) fließt bewusst NICHT ins Kassabuch. `kassa_summe` nie ändern – es gibt Buchungen.
 
+**Protokoll (seit 2026-10-09):** eigener Punkt in der Kopfleiste, **nur für `admin`** (`contentProtokoll`, Hülle `Proto`,
+Präfix `pr`). Kontrolle „wer hat was geändert“. Absicherung – nicht aufweichen:
+- Die Datenbank schreibt selbst mit: Trigger `protokoll_mitschreiben` (Funktion `protokoll_schreiben`) auf `settlements`,
+  `abrechnung_posten`, `kassier_zahlungen`, `abrechnung_freigaben`, `post_eingang` (nur Entscheidungsfelder, kein INSERT),
+  `mietverhaeltnisse`, `zuordnung_manuell`, `lohn_personen`, `name_aliases`, `fahrer_app_zugang`, `customers`, `companies`.
+  **Neue Tabelle mit Büro-Schreibzugriff → Trigger anhängen** (Liste am Ende von `migrations/2026-10-08-protokoll.sql`)
+  und in `protokoll_bereich`, `PR_TAB` eintragen.
+- Wer = `auth.jwt()`: Büro-Name, „Fahrer n“, „Automatik“ (`service_role`: n8n, Edge Functions) oder „SQL-Fenster“ (kein JWT –
+  auch das Supabase-MCP). Nie als Parameter.
+- `protokoll`: UPDATE/DELETE/TRUNCATE per Trigger gesperrt, kein INSERT-Recht für irgendeine Rolle, SELECT nur `is_app_admin()`.
+- Der Trigger schluckt eigene Fehler (`raise warning`) – das Protokoll darf die Abrechnung nie blockieren.
+- `protokoll_verlauf(…)` mischt `protokoll` + `sync_runs` (je Verbindung/Tag/Status) + `post_ausgang` + `kassabuch`;
+  Automatik-Zeilen gleicher Tabelle/Woche/Minute kommen als Sammelzeile (`anzahl`, `ids`).
+- Tests: `scripts/test-protokoll.sql` (mit Migration in `begin … rollback` über das MCP), `node --test scripts/test-protokoll-satz.mjs`.
+
 ## Plattform-Sync (seit 2026-09-22)
 
 Grundsatz: **HYDRAlink ist der Spiegel.** Die Syncs schreiben ausschliesslich in

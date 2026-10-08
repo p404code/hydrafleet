@@ -741,6 +741,29 @@
         .kb-art input:checked + span { background: var(--text); color: var(--bg); border-color: var(--text); }
         .kb-art input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 1px; }
         @media (max-width: 768px) { #contentKassabuch .kpi { grid-template-columns: repeat(2, 1fr); } .kb-status .kb-pruef { margin-left: 0; } }
+        /* Protokoll (nur admin) */
+        [data-nur-admin][hidden] { display: none !important; }
+        #contentProtokoll td.l, #contentProtokoll th.l { text-align: left; font-family: var(--sans); }
+        #prTable tbody tr:not(.detail-row) { cursor: pointer; }
+        #prTable td.pr-zeit { color: var(--text-mut); font-family: var(--mono); font-weight: 400; white-space: nowrap; }
+        #prTable td.pr-wer { color: var(--text); font-weight: 500; white-space: nowrap; }
+        #prTable td.pr-wer small, #prTable td.pr-was small { display: block; font-size: 10.5px; color: var(--text-mut); font-weight: 400; }
+        #prTable td.pr-was { white-space: normal; }
+        #prTable tr.pr-weg td.pr-was, #prTable tr.pr-sql td.pr-wer { color: var(--danger, #e5484d); }
+        #prTable tr.pr-auto td.pr-wer { color: var(--text-mut); font-weight: 400; }
+        .pr-diff { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .pr-diff td { padding: 3px 8px 3px 0; vertical-align: top; border: 0; background: none; white-space: normal; word-break: break-word; }
+        .pr-diff td:first-child { color: var(--text-mut); white-space: nowrap; }
+        .pr-diff td.pr-alt { color: var(--text-dim); text-decoration: line-through; }
+        .pr-mehr { display: flex; justify-content: center; padding: 14px; }
+        #prToolbar input[type=date] { height: 30px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 0 8px; background: var(--surface); color: var(--text); font: inherit; font-size: 12px; }
+        #prToolbar select { max-width: 160px; }
+        #prTable th:nth-child(1) { width: 132px; } #prTable th:nth-child(2) { width: 170px; } #prTable th:nth-child(4) { width: 230px; }
+        @media (max-width: 768px) {
+            #prTable .pr-breit { display: none; }
+            #prTable th:nth-child(1) { width: 78px; } #prTable th:nth-child(2) { width: 96px; }
+            #prTable td.pr-zeit, #prTable td.pr-wer { white-space: normal; }
+        }
         /* Loehne-Reiter */
         #contentLohn .kpi { grid-template-columns: repeat(5, 1fr); }
         #loKpi .lo-kachel { cursor: pointer; border: 1px solid transparent; }
@@ -967,6 +990,10 @@
                 <button class="tab-btn" onclick="gruppeWechseln('experimentell')" data-gruppe="experimentell">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"/><path d="M7.5 15h9"/></svg>
                     Experimentell<span class="tab-warn" id="vbWarn"></span>
+                </button>
+                <button class="tab-btn" onclick="switchTab('protokoll')" data-gruppe="protokoll" data-nur-admin hidden>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                    Protokoll
                 </button>
             </div>
             <div class="sub-nav" id="subNav"></div>
@@ -1352,6 +1379,37 @@
         </div>
     </div>
 
+    <div class="tab-content" id="contentProtokoll">
+        <div class="hero">
+            <div class="hero-top">
+                <div class="week-pick"><span style="font-size:18px;font-weight:700">Protokoll</span><span class="week-range">wer hat was gemacht – nur für dich sichtbar</span></div>
+                <div class="hero-big"><b id="prBig">--</b><small>Einträge geladen</small></div>
+            </div>
+        </div>
+        <div class="toolbar" id="prToolbar">
+            <button class="chip active" data-pr-art="">Alle</button>
+            <button class="chip" data-pr-art="mensch">Mensch</button>
+            <button class="chip" data-pr-art="automatik">Automatik</button>
+            <select class="chip" id="prWer" aria-label="Person"><option value="">Alle Personen</option></select>
+            <select class="chip" id="prBereich" aria-label="Bereich">
+                <option value="">Alle Bereiche</option><option value="geld">Geld</option><option value="freigaben">Freigaben</option>
+                <option value="post">Post &amp; Strafen</option><option value="zuordnungen">Zuordnungen</option><option value="zugaenge">App-Zugänge</option>
+                <option value="stammdaten">Stammdaten</option><option value="kassa">Kassabuch</option><option value="sync">Syncs</option>
+            </select>
+            <input type="text" class="search" id="prFahrer" placeholder="Fahrer">
+            <input type="date" id="prVon" class="desktop-only" aria-label="von">
+            <input type="date" id="prBis" class="desktop-only" aria-label="bis">
+            <button class="chip" id="prWeg">Nur Löschungen</button>
+            <div class="sp"></div>
+            <button class="btn" id="prRefresh" title="Neu laden">↺</button>
+        </div>
+        <table class="data-table" id="prTable">
+            <thead><tr><th class="l">Zeit</th><th class="l">Wer</th><th class="l">Was</th><th class="l pr-breit">Fahrer / Woche</th></tr></thead>
+            <tbody id="prBody"><tr><td class="empty">Laden…</td></tr></tbody>
+        </table>
+        <div class="pr-mehr"><button class="btn" id="prMehr" hidden>Ältere laden</button></div>
+    </div>
+
     <div class="tab-content" id="contentLohn">
         <div class="hero">
             <div class="hero-top">
@@ -1438,6 +1496,8 @@
             <button onclick="switchTab('api')" data-menue="api"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-6"/></svg>API-Abrechnung</button>
             <button onclick="switchTab('fuhrpark')" data-menue="fuhrpark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 17h-2v-6l2-5h9l4 5h3a1 1 0 011 1v5h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>Fuhrpark</button>
             <button onclick="switchTab('verbindungen')" data-menue="verbindungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/><path d="M3 12h4M17 12h4"/><circle cx="12" cy="12" r="9"/></svg>Verbindungen<span class="tab-warn" id="vbWarnMenue"></span></button>
+            <div class="menue-gruppe" data-nur-admin hidden>Protokoll</div>
+            <button onclick="switchTab('protokoll')" data-menue="protokoll" data-nur-admin hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Protokoll</button>
         </div>
     </div>
     <div class="tab-content" id="contentVerbindungen">
@@ -4829,13 +4889,134 @@
         }
         function protoErlaubt(session) { return !!(session && session.role === 'admin'); }
         /* PROTO-SATZ ENDE */
+        function istAdmin() { try { return protoErlaubt(JSON.parse(localStorage.getItem('hydralink_session') || 'null')); } catch (e) { return false; } }
+        /* Protokoll-Reiter: Verlauf aus protokoll_verlauf (nur admin; die Sperre liegt in der Datenbank) */
+        const Proto = (function () {
+            const SEITE = 100;
+            let bereit = false, ROWS = [], offen = null, mehr = false, fehler = '', laeuft = 0, UNTER = {};
+            const F = { art: '', wer: '', bereich: '', fahrer: '', von: '', bis: '', weg: false };
+            function h(x) { return esc(String(x == null ? '' : x)); }
+            function schmal() { return window.matchMedia('(max-width: 768px)').matches; }
+            function zeitText(d) { return d ? new Date(d).toLocaleString('de-AT', schmal() ? { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' } : { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '–'; }
+            function fehlerText(e) { return e && e.code === '42501' ? 'Keine Berechtigung.' : (e && e.message) || String(e); }
+            function param(offset) {
+                return { p_art: F.art || null, p_akteur: F.wer || null, p_bereich: F.bereich || null, p_fahrer: F.fahrer || null,
+                    p_von: F.von || null, p_bis: F.bis || null, p_nur_loeschungen: F.weg, p_limit: SEITE + 1, p_offset: offset };
+            }
+            async function laden(anhaengen) {
+                const nr = ++laeuft, offset = anhaengen ? ROWS.length : 0;
+                let res;
+                try { res = await getSupabase().rpc('protokoll_verlauf', param(offset)); } catch (e) { res = { error: e }; }
+                if (nr !== laeuft) return;                       // ein neuerer Aufruf hat ueberholt
+                fehler = res.error ? fehlerText(res.error) : '';
+                const neu = res.error ? [] : (res.data || []);
+                mehr = neu.length > SEITE;
+                ROWS = (anhaengen ? ROWS : []).concat(neu.slice(0, SEITE));
+                if (!anhaengen) { offen = null; UNTER = {}; }
+                render();
+            }
+            async function personenLaden() {
+                let res;
+                try { res = await getSupabase().from('app_users').select('name').order('name'); } catch (e) { res = { error: e }; }
+                if (res.error || !res.data) return;
+                document.getElementById('prWer').innerHTML = '<option value="">Alle Personen</option>'
+                    + res.data.map(function (u) { return '<option value="' + h(u.name) + '">' + h(u.name) + '</option>'; }).join('')
+                    + '<option value="SQL-Fenster">SQL-Fenster</option>';
+            }
+            function wer(r) {
+                if (r.auftrag) return h(r.auftrag) + '<small>über Automatik</small>';
+                return h(r.akteur) + (r.altbestand ? '<small>Altbestand</small>' : '');
+            }
+            function diff(r) {
+                const a = r.alt || {}, n = r.neu || {};
+                const keys = r.aktion === 'geaendert' && r.felder ? r.felder : Object.keys(r.aktion === 'geloescht' ? a : n).sort();
+                if (!keys.length) return '<div class="placeholder">Keine Einzelwerte.</div>';
+                return '<table class="pr-diff">' + keys.map(function (k) {
+                    const alt = r.aktion === 'neu' ? '' : prWert(k, a[k]), neu = r.aktion === 'geloescht' ? '' : prWert(k, n[k]);
+                    return '<tr><td>' + h(PR_FELD[k] || k) + '</td>' + (r.aktion === 'geaendert'
+                        ? '<td class="pr-alt">' + h(alt) + '</td><td>' + h(neu) + '</td>'
+                        : '<td colspan="2">' + h(r.aktion === 'geloescht' ? alt : neu) + '</td>') + '</tr>';
+                }).join('') + '</table>';
+            }
+            function detail(r, i) {
+                if (r.anzahl > 1 && r.ids) {
+                    const u = UNTER[i];
+                    if (!u) return '<div class="placeholder">Laden…</div>';
+                    if (u.fehler) return '<div class="placeholder">Fehler: ' + h(u.fehler) + '</div>';
+                    return '<table class="pr-diff">' + u.rows.map(function (x) {
+                        x.quelle = 'protokoll'; x.anzahl = 1;
+                        return '<tr><td>' + h(x.fahrer || x.zeile || '') + '</td><td colspan="2">' + h(protoSatz(x)) + '</td></tr>';
+                    }).join('') + '</table>';
+                }
+                return diff(r);
+            }
+            async function unterLaden(i) {
+                const r = ROWS[i];
+                if (!r || !(r.anzahl > 1) || !r.ids || UNTER[i]) return;
+                let res;
+                try { res = await getSupabase().from('protokoll').select('*').in('id', r.ids.slice(0, 300)).order('fahrer'); } catch (e) { res = { error: e }; }
+                UNTER[i] = res.error ? { fehler: fehlerText(res.error) } : { rows: res.data || [] };
+                if (offen === i) render();
+            }
+            function render() {
+                document.getElementById('prBig').textContent = fehler ? '–' : String(ROWS.length) + (mehr ? '+' : '');
+                document.querySelectorAll('#prToolbar [data-pr-art]').forEach(function (b) { b.classList.toggle('active', b.dataset.prArt === F.art); });
+                document.getElementById('prWeg').classList.toggle('active', F.weg);
+                document.getElementById('prMehr').hidden = !mehr;
+                const sp = schmal() ? 3 : 4;      // die Spalte Fahrer/Woche fehlt am Handy
+                document.getElementById('prBody').innerHTML = fehler ? '<tr><td class="empty" colspan="' + sp + '">Fehler: ' + h(fehler) + '</td></tr>'
+                    : !ROWS.length ? '<tr><td class="empty" colspan="' + sp + '">Keine Einträge für diese Auswahl.</td></tr>'
+                    : ROWS.map(function (r, i) {
+                        const weg = r.aktion === 'geloescht' || r.aktion === 'storno', an = offen === i;
+                        const kl = (an ? 'selected ' : '') + (weg ? 'pr-weg ' : '') + (r.akteur_art === 'sql' ? 'pr-sql ' : '') + (r.akteur_art === 'automatik' && !r.auftrag ? 'pr-auto' : '');
+                        const ort = [r.fahrer, prKw(r.woche)].filter(Boolean).join(' · ');
+                        return '<tr class="' + kl + '" data-pr-zeile="' + i + '">'
+                            + '<td class="l pr-zeit">' + h(zeitText(r.zeit)) + '</td>'
+                            + '<td class="l pr-wer">' + wer(r) + '</td>'
+                            + '<td class="l pr-was">' + h(protoSatz(r)) + '</td>'
+                            + '<td class="l pr-breit">' + h(ort) + '</td></tr>'
+                            + (an ? '<tr class="detail-row"><td colspan="' + sp + '">' + (ort ? '<div style="margin-bottom:6px;font-weight:600">' + h(ort) + '</div>' : '') + detail(r, i) + '</td></tr>' : '');
+                    }).join('');
+            }
+            function init() {
+                if (!istAdmin()) return;
+                if (bereit) { laden(false); return; }
+                bereit = true;
+                let t;
+                document.getElementById('contentProtokoll').addEventListener('click', function (e) {
+                    let b;
+                    if ((b = e.target.closest('[data-pr-art]'))) { F.art = b.dataset.prArt; laden(false); return; }
+                    if (e.target.closest('#prWeg')) { F.weg = !F.weg; laden(false); return; }
+                    if (e.target.closest('#prRefresh')) { laden(false); return; }
+                    if (e.target.closest('#prMehr')) { laden(true); return; }
+                    if (e.target.closest('.detail-row')) return;
+                    if ((b = e.target.closest('[data-pr-zeile]'))) {
+                        const i = parseInt(b.dataset.prZeile, 10);
+                        offen = offen === i ? null : i; render();
+                        if (offen != null) unterLaden(offen);
+                    }
+                });
+                document.getElementById('prWer').addEventListener('change', function (e) { F.wer = e.target.value; laden(false); });
+                document.getElementById('prBereich').addEventListener('change', function (e) { F.bereich = e.target.value; laden(false); });
+                document.getElementById('prVon').addEventListener('change', function (e) { F.von = e.target.value; laden(false); });
+                document.getElementById('prBis').addEventListener('change', function (e) { F.bis = e.target.value; laden(false); });
+                document.getElementById('prFahrer').addEventListener('input', function (e) {
+                    clearTimeout(t); t = setTimeout(function () { F.fahrer = e.target.value.trim(); laden(false); }, 300);
+                });
+                window.matchMedia('(max-width: 768px)').addEventListener('change', render);
+                personenLaden();
+                laden(false);
+            }
+            return { init: init };
+        })();
 
         /* Reiter-Gruppen: oben die Gruppe, daneben ihre Unterreiter */
         const GRUPPEN = {
             abrechnung: [['abrechnungen', 'Übersicht'], ['abrbot', 'Upload'], ['muessenzahlen', 'Kassieren'], ['kassabuch', 'Kassabuch'], ['lohn', 'Löhne']],
             fahrer: [['fahrer', 'App'], ['post', 'Post']],
             rechnungen: [['rechnungen']],
-            experimentell: [['api', 'API-Abrechnung'], ['fuhrpark', 'Fuhrpark'], ['verbindungen', 'Verbindungen']]
+            experimentell: [['api', 'API-Abrechnung'], ['fuhrpark', 'Fuhrpark'], ['verbindungen', 'Verbindungen']],
+            protokoll: [['protokoll']]
         };
         function gruppeVon(tab) {
             for (const g in GRUPPEN) if (GRUPPEN[g].some(function (r) { return r[0] === tab; })) return g;
@@ -4851,7 +5032,9 @@
         function switchTab(tab) {
             menueZu();
             const inhalt = { abrechnungen: 'contentAbrechnungen', api: 'contentApi', abrbot: 'contentAbrBot', muessenzahlen: 'contentMuessenZahlen', lohn: 'contentLohn', kassabuch: 'contentKassabuch',
-                fahrer: 'contentFahrer', fuhrpark: 'contentFuhrpark', post: 'contentPost', verbindungen: 'contentVerbindungen', rechnungen: 'contentRechnungen' };
+                fahrer: 'contentFahrer', fuhrpark: 'contentFuhrpark', post: 'contentPost', verbindungen: 'contentVerbindungen', rechnungen: 'contentRechnungen',
+                protokoll: 'contentProtokoll' };
+            if (tab === 'protokoll' && !istAdmin()) tab = 'abrechnungen';
             if (!inhalt[tab]) tab = 'abrechnungen';
             const g = gruppeVon(tab);
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.gruppe === g));
@@ -4871,6 +5054,7 @@
             else if (tab === 'post') initPost();
             else if (tab === 'lohn') Lohn.init();
             else if (tab === 'kassabuch') Kassa.init();
+            else if (tab === 'protokoll') Proto.init();
             else if (tab === 'muessenzahlen') initMuessenZahlen();
             localStorage.setItem('hydralink_tab', tab);
             try { localStorage.setItem('hydralink_tab_' + g, tab); } catch (e) {}
@@ -5296,6 +5480,7 @@
 
         /* Restore last tab (MUST be after all let/const declarations above) */
         const savedTab = localStorage.getItem('hydralink_tab');
+        if (istAdmin()) document.querySelectorAll('[data-nur-admin]').forEach(function (e) { e.hidden = false; });
         switchTab(savedTab || 'abrechnungen');
 
         function switchReSubTab(sub) {

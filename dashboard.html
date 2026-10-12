@@ -945,6 +945,12 @@
         .pk-vorschlag { margin-top: 6px; font-size: 11.5px; color: var(--info); }
         .pk-card .detail-acts { margin-top: 8px; }
         .pk-card select { width: 100%; height: 36px; margin-top: 8px; font-size: 13px; }
+        .pk-neu { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; }
+        .pk-neu[hidden] { display: none; }
+        .pk-neu input { width: 100%; min-width: 0; height: 36px; margin-top: 8px; font-size: 13px; box-sizing: border-box;
+            background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 7px 12px; color: var(--text); outline: none; font-family: inherit; }
+        .pk-neu .pk-neu-breit, .pk-neu small { grid-column: 1 / -1; }
+        .pk-neu small { margin-top: 6px; color: var(--text-mut); font-size: 11px; }
         .pk-leer { color: var(--text-mut); font-size: 12px; padding: 6px 0; }
         @media (max-width: 768px) {
             .pk-karte { margin: 14px 12px 20px; }
@@ -2609,6 +2615,7 @@
                 document.getElementById(id).addEventListener('click', fzAppKlick);
             });
             document.getElementById('pkListe').addEventListener('click', pkKlick);
+            document.getElementById('pkListe').addEventListener('change', pkWahl);
             await ladeFahrer();
         }
 
@@ -2617,13 +2624,18 @@
         async function ladeFahrer() {
             const sb = getSupabase();
             const still = function (q) { return q.then(function (r) { return r; }, function (e) { return { error: e }; }); };
-            const [res, ohne, mit, miete, bilder] = await Promise.all([
+            const [res, ohne, mit, miete, bilder, notion] = await Promise.all([
                 sb.from('fahrer_uebersicht').select('*'),
                 sb.from('plattform_konten').select('*').is('fahrer_id', null),
                 sb.from('plattform_konten').select('*').not('fahrer_id', 'is', null),
                 still(sb.from('fahrer').select('id,basis_miete,prozent_satz,prozent_schwelle')),
-                still(sb.from('uber_fahrzeuge').select('kennzeichen_key,marke,modell,baujahr,farbe,bild'))
-            ]).catch(function (e) { return [{ error: e }, { error: e }, { error: e }, { error: e }, { error: e }]; });
+                still(sb.from('uber_fahrzeuge').select('kennzeichen_key,marke,modell,baujahr,farbe,bild')),
+                still(sb.from('notion_fahrer_ohne_eintrag').select('*'))
+            ]).catch(function (e) { return [{ error: e }, { error: e }, { error: e }, { error: e }, { error: e }, { error: e }]; });
+            // Fehlt die View (Migration nicht eingespielt): Zuordnen geht weiter, nur ohne "Aus Notion anlegen".
+            PK_NOTION = notion.error ? [] : (notion.data || []).slice().sort(function (a, b) {
+                return String(a.name || '').localeCompare(String(b.name || ''), 'de') || (a.notion_fahrer_id - b.notion_fahrer_id);
+            });
             FZ_MIETE = {};
             if (!miete.error) (miete.data || []).forEach(function (m) { FZ_MIETE[m.id] = m; });
             if (!bilder.error) (bilder.data || []).forEach(function (b) { FP_UBER[b.kennzeichen_key] = b; });
@@ -2788,6 +2800,7 @@
            bleibt serverseitig). Der PIN kommt genau einmal zurueck und steht nur
            im Speicher, bis "Fertig" gedrueckt oder ein anderer Fahrer gewaehlt wird. */
         let PK_OHNE = [], PK_MIT = [], PK_FEHLER = '', pkFilter = 'umsatz', pkOffen = null;
+        let PK_NOTION = [];   // Notion-Fahrer ohne Eintrag in fahrer (View notion_fahrer_ohne_eintrag)
         let FZ_PIN = null, fzBusy = false;
 
         // App-Status je Fahrer fuer Tabelle und Sortierung (rang: aktiv zuerst)
@@ -2969,14 +2982,33 @@
                     // Vorschlag nur vorauswaehlen, wenn er waehlbar ist (aktiv, mit Notion-Nr.) -
                     // sonst Platzhalter, damit nicht still der erste Fahrer der Liste gewaehlt ist.
                     const vorWaehlbar = aktive.some(function (f) { return f.fahrer_id === k.vorschlag_fahrer_id && f.notion_fahrer_id != null; });
+                    // Gibt es den Fahrer noch nicht: Notion-Eintrag vorauswaehlen, aber nur wenn genau einer
+                    // passt (Telefon schlaegt Name) - bei doppelten Notion-Seiten entscheidet das Buero.
+                    const tk = pkTelKey(k.telefon), nk = pkNameKey(k.konto_name);
+                    let treffer = tk ? PK_NOTION.filter(function (n) { return n.tel_key === tk; }) : [];
+                    if (!treffer.length && nk) treffer = PK_NOTION.filter(function (n) { return n.name_key === nk; });
+                    const vorNotion = !vorWaehlbar && treffer.length === 1 ? treffer[0].notion_fahrer_id : null;
                     html += '<select data-pksel="1" aria-label="Fahrer wählen">' +
-                        (!vorWaehlbar ? '<option value="">Fahrer wählen …</option>' : '') +
+                        (!vorWaehlbar && vorNotion == null ? '<option value="">Fahrer wählen …</option>' : '') +
+                        '<optgroup label="Fahrer">' +
                         aktive.map(function (f) {
                             const ohneNr = f.notion_fahrer_id == null;
                             return '<option value="' + f.fahrer_id + '"' + (vorWaehlbar && f.fahrer_id === k.vorschlag_fahrer_id ? ' selected' : '') +
                                 (ohneNr ? ' disabled' : '') + '>' + esc(f.name) + (ohneNr ? ' (ohne Fahrer-ID)' : ' · Nr. ' + f.notion_fahrer_id) + '</option>';
-                        }).join('') + '</select>' +
-                        '<div class="detail-acts"><button class="btn-primary ok" data-pkspeichern="1" data-anbieter="' + esc(k.anbieter) + '" data-uuid="' + esc(k.driver_uuid) + '"' + dis + '>Zuordnen</button>' +
+                        }).join('') + '</optgroup>' +
+                        (PK_NOTION.length ? '<optgroup label="Aus Notion anlegen">' + PK_NOTION.map(function (n) {
+                            return '<option value="n:' + n.notion_fahrer_id + '"' + (vorNotion === n.notion_fahrer_id ? ' selected' : '') + '>' +
+                                esc(n.name) + ' · Nr. ' + n.notion_fahrer_id + (n.telefon ? ' · ' + esc(n.telefon) : '') + '</option>';
+                        }).join('') + '</optgroup>' : '') + '</select>' +
+                        '<div class="pk-neu" data-pkneu="1"' + (vorNotion == null ? ' hidden' : '') + '>' +
+                            '<select data-pkmodell="1" aria-label="Mietmodell"><option value="">Mietmodell …</option>' +
+                                '<option value="fix">fix</option><option value="f11">f11 · 10 % ab 1100</option><option value="f12">f12 · 10 % ab 1200</option></select>' +
+                            '<input type="number" data-pkmiete="1" min="0" max="2000" step="1" inputmode="decimal" placeholder="Pauschale €" aria-label="Pauschale in Euro">' +
+                            '<input type="text" class="pk-neu-breit" data-pkkz="1" maxlength="20" placeholder="Kennzeichen" aria-label="Kennzeichen" autocapitalize="characters">' +
+                            '<small>Legt den Fahrer neu an. Der AbrechnungsBot zieht die Pauschale ab der nächsten Abrechnung ab.</small>' +
+                        '</div>' +
+                        '<div class="detail-acts"><button class="btn-primary ok" data-pkspeichern="1" data-anbieter="' + esc(k.anbieter) + '" data-uuid="' + esc(k.driver_uuid) + '"' + dis + '>' +
+                            (vorNotion == null ? 'Zuordnen' : 'Anlegen und zuordnen') + '</button>' +
                         '<button class="btn-ghost" data-pkzu="1">Abbrechen</button></div>';
                 } else {
                     html += '<div class="detail-acts"><button class="btn-ghost" data-pkauf="' + esc(key) + '"' + dis + '>Zuordnen</button></div>';
@@ -2984,14 +3016,62 @@
                 return html + '</div>';
             }).join('');
         }
+        // Wie tel_key() und name_key() in der Datenbank - nur fuer die Vorauswahl.
+        function pkTelKey(t) {
+            const d = String(t || '').replace(/[^0-9]/g, '');
+            return d.indexOf('00') === 0 ? d.slice(2) : (d.charAt(0) === '0' ? '43' + d.slice(1) : d);
+        }
+        function pkNameKey(t) {
+            return String(t || '').replace(/[^a-zA-Z]/g, ' ').toLowerCase().split(' ').filter(Boolean).sort().join(' ');
+        }
+        // Felder fuer den neuen Fahrer nur zeigen, wenn ein Notion-Eintrag gewaehlt ist (ohne Neuzeichnen, Eingaben bleiben).
+        function pkWahl(e) {
+            const sel = e.target.closest('[data-pksel]');
+            if (!sel) return;
+            const karte = sel.closest('.pk-card'), neu = sel.value.indexOf('n:') === 0;
+            karte.querySelector('[data-pkneu]').hidden = !neu;
+            karte.querySelector('[data-pkspeichern]').textContent = neu ? 'Anlegen und zuordnen' : 'Zuordnen';
+        }
         async function pkKlick(e) {
             const auf = e.target.closest('[data-pkauf]');
             if (auf) { pkOffen = auf.dataset.pkauf; renderPlattformKonten(); return; }
             if (e.target.closest('[data-pkzu]')) { pkOffen = null; renderPlattformKonten(); return; }
             const sp = e.target.closest('[data-pkspeichern]');
             if (!sp || sp.disabled || fzBusy) return;
-            const sel = sp.closest('.pk-card').querySelector('[data-pksel]');
-            const fid = sel ? parseInt(sel.value, 10) : NaN;
+            const karte = sp.closest('.pk-card');
+            const sel = karte.querySelector('[data-pksel]');
+            const wahl = sel ? sel.value : '';
+            if (wahl.indexOf('n:') === 0) {
+                // Fahrer gibt es noch nicht: aus dem Notion-Eintrag anlegen, dann zuordnen
+                const nid = parseInt(wahl.slice(2), 10);
+                const n = PK_NOTION.filter(function (x) { return x.notion_fahrer_id === nid; })[0];
+                const modell = karte.querySelector('[data-pkmodell]').value;
+                const mieteTxt = karte.querySelector('[data-pkmiete]').value.trim().replace(',', '.');
+                const miete = mieteTxt === '' ? NaN : Number(mieteTxt);
+                const kz = karte.querySelector('[data-pkkz]').value.trim();
+                if (!n) { alert('Notion-Eintrag nicht mehr vorhanden – bitte neu laden.'); return; }
+                if (!modell) { alert('Bitte das Mietmodell wählen.'); return; }
+                if (!(miete >= 0 && miete <= 2000)) { alert('Bitte die Pauschale eintragen (0 bis 2000 €).'); return; }
+                if (!kz) { alert('Bitte das Kennzeichen eintragen.'); return; }
+                if (!confirm(n.name + ' (Nr. ' + nid + ') als neuen Fahrer anlegen?\n\n' +
+                    'Mietmodell: ' + modell + '\nPauschale: ' + fmt(miete) + '\nKennzeichen: ' + kz + '\n\n' +
+                    'Der AbrechnungsBot rechnet ab der nächsten Abrechnung mit diesen Werten.')) return;
+                fzBusy = true; renderPlattformKonten();
+                try {
+                    const { error } = await getSupabase().rpc('konto_fahrer_anlegen', { p_anbieter: sp.dataset.anbieter, p_driver_uuid: sp.dataset.uuid,
+                        p_notion_fahrer_id: nid, p_mietmodell: modell, p_basis_miete: miete, p_kennzeichen: kz });
+                    if (error) throw error;
+                    pkOffen = null;
+                    showReToast('Angelegt und zugeordnet: ' + n.name, 'success');
+                } catch (err) {
+                    alert('Anlegen fehlgeschlagen: ' + fgFehler(err));
+                } finally {
+                    fzBusy = false;
+                    await ladeFahrer();
+                }
+                return;
+            }
+            const fid = sel ? parseInt(wahl, 10) : NaN;
             if (!fid) { alert('Bitte einen Fahrer wählen.'); return; }
             fzBusy = true; renderPlattformKonten();
             try {

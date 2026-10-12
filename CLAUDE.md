@@ -125,7 +125,7 @@ Token gelesen, die Signatur prueft das Gateway: `verify_jwt` NIE abschalten.
 ```
 */10 * * * *   notion-sync-laufend        Notion-Aenderungen binnen ~10 Min sichtbar
 0 4 * * 1      bolt-sync-woechentlich     Montag 04:00
-0 5 * * 1      uber-sync-woechentlich     Montag 05:00 (nach Bolt)
+0,10,30 5 * * 1  uber-sync-woechentlich   Montag 05:00, 05:10, 05:30 (nach Bolt), Body {"nur_offene": true}
 20 2 * * *     sync-runs-aufraeumen       reines SQL, alte Laeufe loeschen
 ```
 
@@ -145,6 +145,8 @@ nie im Frontend. `verbindungen` speichert nur Metadaten (Anbieter, Firma,
 **Zwei Uber-Verbindungen** seit 2026-09-28: `eh_limousinenservice_kg` (Org `08fc2f53-…`)
 und `ee_taxi_kg` (E&E Taxi KG, Org `c566f3b3-…`, eigener Login, Browser-Profil
 `~/.hydrafleet-uber-profile-ee`). Die Fahrer sind am 25.09. von EH zu E&E gewechselt.
+**EH ist seit 2026-10-12 `pausiert`** (fährt nicht mehr über Uber, Sitzung abgelaufen) – `uber-sync` ruft nur
+`aktiv` ab, `verbindungen_status` blendet pausierte aus. Abgerufen wird nur noch E&E.
 
 **Die Uber-Sitzungen laufen ab** (EH: gültig bis 2026-10-06; E&E: gesetzt 2026-09-28). Danach
 schreibt `uber-sync` `sitzung_abgelaufen:` in `verbindungen.letzter_fehler`, der
@@ -237,8 +239,14 @@ aktiviert ist — aktuell zwei.
   zeigt Fenster und Ubers Rohfenster, ohne Daten zu schreiben.
 - **Uber benennt Berichtsspalten um.** Seit KW40/2026 heißt „An dein Unternehmen gezahlt …“ im Bericht
   „An dich gezahlt …“. Der AbrechnungsBot kennt nur die alte Schreibweise → Uber war in KW40 überall 0.
-  Der Upload im Dashboard benennt deshalb die Kopfzeile zurück (`uberKopfAngleichen`). **Offen:** `uber-sync`
-  liest ebenfalls nur die alten Namen (`P` in index.ts) – `uber_reports` KW40 hat leere Beträge, `roh` stimmt.
+  Der Upload im Dashboard benennt deshalb die Kopfzeile zurück (`uberKopfAngleichen`). `uber-sync` liest seit
+  v8 beide Schreibweisen (`spalte()` in `_shared/uber-logik.ts`).
+- **Eine Edge Function lebt höchstens 150 s** (`WORKER_RESOURCE_LIMIT`, Status 546, `sync_runs` bleibt auf
+  `laeuft`). Ubers Zahlungsbericht brauchte am 12.10.2026 213 s → KW41 fehlte. Seit v8 wartet `uber-sync` nur
+  115 s, endet sonst mit `berichte_noch_nicht_fertig`, und der nächste Lauf nimmt dieselben Berichte wieder auf
+  (`berichtWaehlen`: gleicher Typ + gleiches Fenster, höchstens 1 h alt). Deshalb drei Zeitplan-Läufe mit
+  `nur_offene`; beide Uber-Konten laufen gleichzeitig. Von Hand: denselben Aufruf nach ein paar Minuten
+  wiederholen. Tests: `node --test scripts/test-uber-logik.mjs`.
 - **Fahrzeugbilder** (seit 2026-10-07): Ubers Modellbilder je Kennzeichen in `uber_fahrzeuge` (+ Marke, Modell,
   Baujahr, Farbe), Dateien in `img/fahrzeuge/`. Anzeige im Fuhrpark-Reiter (`fpBild`) und in der Fahrerapp
   (Reiter Fahrzeug, `fahrer_app_profil().fahrzeug_bild`). Einmalig geholt mit `scripts/uber-fahrzeugbilder.js`,

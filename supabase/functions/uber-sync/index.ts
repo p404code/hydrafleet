@@ -13,6 +13,14 @@
 // Schreibt NUR in die uber_*-Tabellen. settlements bleibt unberuehrt.
 // Sitzung abgelaufen -> 'sitzung_abgelaufen' in verbindungen.letzter_fehler,
 // erneuern mit scripts/uber-session-speichern.js.
+//
+// Eine Edge Function lebt hoechstens 150 s, Ubers Zahlungsbericht braucht am
+// Montag frueh auch einmal 213 s. Deshalb wartet ein Lauf nur bis zu seiner
+// Frist, endet dann mit 'berichte_noch_nicht_fertig', und der naechste Lauf
+// nimmt dieselben Berichte wieder auf (berichtWaehlen). Der Zeitplan ruft
+// dafuer dreimal mit nur_offene auf.
+
+import { berichtWaehlen, spalte } from "../_shared/uber-logik.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -20,6 +28,7 @@ const FLEET        = "https://fleethub.uber.com/api";
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
            "(KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36";
 const WOCHE_MS = 7 * 86400000;
+const WARTEN_MS = 115000;   // danach bleiben ~35 s fuer Download und Schreiben
 
 const kopf = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`,
                "Content-Type": "application/json" };
@@ -155,7 +164,7 @@ function parseCSV(text: string): Record<string, string>[] {
   }
   if (feld.length || zeile.length) { zeile.push(feld); zeilen.push(zeile); }
   if (!zeilen.length) return [];
-  const kopf = zeilen[0].map((h) => h.replace(/^﻿/, "").trim());
+  const kopf = zeilen[0].map((h) => h.replace(/^\uFEFF/, "").trim());
   return zeilen.slice(1).filter((z) => z.some((v) => v.trim() !== ""))
     .map((z) => Object.fromEntries(kopf.map((h, i) => [h, (z[i] ?? "").trim()])));
 }
@@ -169,6 +178,7 @@ const ganz = (v: string | undefined) => { const n = zahl(v); return n == null ? 
 const zeit = (v: string | undefined) => (v && v.trim() ? v.trim().replace(" ", "T") : null);
 
 // ---------- Spalten, 1:1 aus den echten Berichten ----------
+// P in der Schreibweise bis KW39/2026; spalte() liest auch die neue ("An dich gezahlt").
 const P: Record<string, string> = {
   gezahlt: "An dein Unternehmen gezahlt",
   umsaetze: "An dein Unternehmen gezahlt : Deine Umsätze",
@@ -233,7 +243,23 @@ async function berichtHolen(ruf: any, org: string, reportId: string) {
   return parseCSV(await a.text());
 }
 
-async function syncVerbindung(v: any, von: string, bis: string, woche: string, nurTest: boolean) {
+async function berichtsliste(ruf: any, org: string) {
+  const l = await ruf("vs-sp-reports-management/GetReports", {
+    orgId: uuid(org),
+    pageOptions: { pageToken: { value: "" }, pageSize: { value: 30 } }, filters: [],
+  });
+  return l.reports ?? [];
+}
+
+// Hat diese Verbindung die Woche in den letzten Stunden schon vollstaendig geholt?
+async function schonGeholt(v: any, von: string, bis: string): Promise<boolean> {
+  const seit = new Date(Date.now() - 3 * 3600000).toISOString();
+  const r = await db(`sync_runs?verbindung_id=eq.${v.id}&zeitraum_von=eq.${von}&zeitraum_bis=eq.${bis}` +
+    `&status=eq.ok&fehler=is.null&start=gt.${encodeURIComponent(seit)}&select=id&limit=1`);
+  return (r || []).length > 0;
+}
+
+async function syncVerbindung(v: any, von: string, bis: string, woche: string, nurTest: boolean, frist: number) {
   const [lauf] = await db("sync_runs", {
     method: "POST", headers: { Prefer: "return=representation" },
     body: JSON.stringify({ verbindung_id: v.id, zeitraum_von: von, zeitraum_bis: bis, status: "laeuft" }),
@@ -292,36 +318,39 @@ async function syncVerbindung(v: any, von: string, bis: string, woche: string, n
     }
     if (fahrerZeilen.length) await upsert("uber_drivers", "driver_uuid", fahrerZeilen);
 
-    // --- drei Berichte GLEICHZEITIG anfordern, damit die Wartezeit nur einmal anfaellt ---
+    // --- drei Berichte GLEICHZEITIG anfordern, damit die Wartezeit nur einmal anfaellt.
+    //     Hat ein vorheriger Lauf sie schon angefordert, werden sie wieder aufgenommen. ---
     const typen = {
       zahlungen: "REPORT_TYPE_PAYMENTS_DRIVER",
       fahrzeuge: "REPORT_TYPE_VEHICLE_PERFORMANCE",
       fahrten:   "REPORT_TYPE_TRIP_ACTIVITY",
     } as Record<string, string>;
     const ids: Record<string, string> = {};
+    const vorhanden = await berichtsliste(ruf, org);
     for (const [k, t] of Object.entries(typen)) {
-      ids[k] = await berichtAnfordern(ruf, org, t, von, bis, fenster);
+      ids[k] = berichtWaehlen(vorhanden, t, fenster, Date.now()) ??
+               await berichtAnfordern(ruf, org, t, von, bis, fenster);
     }
 
-    // --- gemeinsam auf alle warten ---
+    // --- gemeinsam auf alle warten, hoechstens bis zur Frist ---
     const fertig: Record<string, string> = {};
-    for (let i = 0; i < 40 && Object.keys(fertig).length < 3; i++) {
-      await schlaf(5000);
-      const l = await ruf("vs-sp-reports-management/GetReports", {
-        orgId: uuid(org),
-        pageOptions: { pageToken: { value: "" }, pageSize: { value: 30 } }, filters: [],
-      });
+    for (;;) {
+      const liste = await berichtsliste(ruf, org);
       for (const [k, rid] of Object.entries(ids)) {
         if (fertig[k]) continue;
-        const r = (l.reports ?? []).find((x: any) => x.id?.uuid?.value === rid);
+        const r = liste.find((x: any) => x.id?.uuid?.value === rid);
         if (!r) continue;
         if (r.status === "REPORT_STATUS_COMPLETED") fertig[k] = r.fileName;
         else if (String(r.status).includes("FAILED"))
           throw new Error(`Bericht ${typen[k]} fehlgeschlagen: ${r.failedReason}`);
       }
+      if (Object.keys(fertig).length === 3) break;
+      if (Date.now() + 5000 > frist) {
+        const offen = Object.keys(ids).filter((k) => !fertig[k]);
+        throw new Error(`berichte_noch_nicht_fertig: ${offen.join(", ")} - der naechste Lauf nimmt sie wieder auf`);
+      }
+      await schlaf(5000);
     }
-    const offen = Object.keys(ids).filter((k) => !fertig[k]);
-    if (offen.length) throw new Error(`Berichte nicht rechtzeitig fertig: ${offen.join(", ")}`);
 
     const jetzt = jetzt0();
     const zaehler: Record<string, number> = {};
@@ -335,7 +364,7 @@ async function syncVerbindung(v: any, von: string, bis: string, woche: string, n
           driver_uuid: z["Fahrer-UUID"], vorname: z["Vorname des Fahrers"] ?? null,
           nachname: z["Nachname des Fahrers"] ?? null,
           report_id: ids.zahlungen, roh: z, sync_run_id: lauf.id, aktualisiert_am: jetzt };
-        for (const f of Object.keys(P)) o[f] = zahl(z[P[f]]);
+        for (const f of Object.keys(P)) o[f] = zahl(spalte(z, P[f]));
         return o;
       });
       if (out.length) await upsert("uber_reports", "org_id,zeitraum_von,zeitraum_bis,driver_uuid", out);
@@ -421,6 +450,7 @@ const verboten = () => new Response(JSON.stringify({ fehler: "nicht_berechtigt" 
 
 Deno.serve(async (req) => {
   if (!aufruferErlaubt(req)) return verboten();
+  const frist = Date.now() + WARTEN_MS;
   try {
     const body = req.headers.get("content-length") === "0" ? {} : await req.json().catch(() => ({}));
     let von: string, bis: string, woche: string;
@@ -435,8 +465,14 @@ Deno.serve(async (req) => {
     const verbindungen = await db("verbindungen?anbieter=eq.uber&select=id,firma,externe_id,status");
     const aktive = (verbindungen || []).filter((v: any) => v.status === "aktiv");
     if (!aktive.length) throw new Error("Keine aktive Uber-Verbindung");
-    const ergebnis = [];
-    for (const v of aktive) ergebnis.push(await syncVerbindung(v, von, bis, woche, body.test === true));
+    // Alle Verbindungen gleichzeitig: sie teilen sich die 150 s der Funktion.
+    // nur_offene (Zeitplan): was in diesem Durchgang schon geholt ist, bleibt liegen.
+    const ergebnis = await Promise.all(aktive.map(async (v: any) => {
+      if (body.nur_offene === true && await schonGeholt(v, von, bis)) {
+        return { firma: v.firma, status: "ok", uebersprungen: "schon geholt" };
+      }
+      return syncVerbindung(v, von, bis, woche, body.test === true, frist);
+    }));
     const fehler = ergebnis.some((r: any) => r.status === "fehler");
     return new Response(JSON.stringify({ woche, von, bis, verbindungen: ergebnis }, null, 2),
       { status: fehler ? 207 : 200, headers: { "Content-Type": "application/json" } });

@@ -229,6 +229,12 @@ aktiviert ist — aktuell zwei.
   Gleiches Muster bei `uber_drivers.fahrer_id`.
 - **Bolt-Zeitfilter**: `time_range_filter_type: "price_review"`, nicht `created`.
   Mit `created` streuen die Werte über Wochengrenzen.
+- **`settlement_fahrer()` nimmt bei gleicher Telefonnummer den aktiven Fahrer**, erst dann die kleinste id
+  (Dombaew 633 inaktiv / 639 aktiv).
+- **Fahrer entstehen nur über den Fuhrpark in Notion** (Entscheidung Betreiber 12.10.2026): wer dort keinem Auto
+  zugeordnet ist, fehlt in `fahrer`, sein Plattform-Konto bleibt „ohne Fahrer“ und der AbrechnungsBot rechnet ihn als
+  „UNBEKANNT“ ohne Pauschale. Der Status auf der Notion-Fahrerseite zählt nicht. Abhilfe ist der Eintrag im
+  Notion-Fuhrpark, kein Anlegen in HYDRAlink (am 12.10. gebaut und wieder entfernt, Commits 420737b/13d1c17).
 - **PostgREST antwortet bei `return=minimal` mit 201 und leerem Body**, nicht 204.
   Immer erst `await r.text()`, dann nur parsen wenn nicht leer.
 - **Ubers Abrechnungswoche beginnt Montag ~04:00 Wien**, nicht Mitternacht UTC.

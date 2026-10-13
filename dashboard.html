@@ -2988,8 +2988,6 @@
                     let treffer = tk ? PK_NOTION.filter(function (n) { return n.tel_key === tk; }) : [];
                     if (!treffer.length && nk) treffer = PK_NOTION.filter(function (n) { return n.name_key === nk; });
                     const vorNotion = !vorWaehlbar && treffer.length === 1 ? treffer[0].notion_fahrer_id : null;
-                    // In Notion stehen viele Seiten ohne Eintrag (alte, doppelte): was zu Telefon oder Name des Kontos passt, steht oben.
-                    const passt = function (n) { return (tk && n.tel_key === tk) || (nk && n.name_key === nk); };
                     html += '<select data-pksel="1" aria-label="Fahrer wählen">' +
                         (!vorWaehlbar && vorNotion == null ? '<option value="">Fahrer wählen …</option>' : '') +
                         '<optgroup label="Fahrer">' +
@@ -2998,9 +2996,10 @@
                             return '<option value="' + f.fahrer_id + '"' + (vorWaehlbar && f.fahrer_id === k.vorschlag_fahrer_id ? ' selected' : '') +
                                 (ohneNr ? ' disabled' : '') + '>' + esc(f.name) + (ohneNr ? ' (ohne Fahrer-ID)' : ' · Nr. ' + f.notion_fahrer_id) + '</option>';
                         }).join('') + '</optgroup>' +
-                        pkNotionGruppe('Aus Notion anlegen – passt zu diesem Konto', PK_NOTION.filter(passt), vorNotion) +
-                        pkNotionGruppe('Aus Notion anlegen – alle ohne Eintrag', PK_NOTION.filter(function (n) { return !passt(n); }), vorNotion) +
-                        '</select>' +
+                        (PK_NOTION.length ? '<optgroup label="Aus Notion anlegen">' + PK_NOTION.map(function (n) {
+                            return '<option value="n:' + n.notion_fahrer_id + '"' + (vorNotion === n.notion_fahrer_id ? ' selected' : '') + '>' +
+                                esc(n.name) + ' · Nr. ' + n.notion_fahrer_id + (n.telefon ? ' · ' + esc(n.telefon) : '') + '</option>';
+                        }).join('') + '</optgroup>' : '') + '</select>' +
                         '<div class="pk-neu" data-pkneu="1"' + (vorNotion == null ? ' hidden' : '') + '>' +
                             '<select data-pkmodell="1" aria-label="Mietmodell"><option value="">Mietmodell …</option>' +
                                 '<option value="fix">fix</option><option value="f11">f11 · 10 % ab 1100</option><option value="f12">f12 · 10 % ab 1200</option></select>' +
@@ -3024,13 +3023,6 @@
         }
         function pkNameKey(t) {
             return String(t || '').replace(/[^a-zA-Z]/g, ' ').toLowerCase().split(' ').filter(Boolean).sort().join(' ');
-        }
-        function pkNotionGruppe(titel, liste, vorNotion) {
-            if (!liste.length) return '';
-            return '<optgroup label="' + esc(titel) + '">' + liste.map(function (n) {
-                return '<option value="n:' + n.notion_fahrer_id + '"' + (vorNotion === n.notion_fahrer_id ? ' selected' : '') + '>' +
-                    esc(n.name) + ' · Nr. ' + n.notion_fahrer_id + (n.telefon ? ' · ' + esc(n.telefon) : '') + '</option>';
-            }).join('') + '</optgroup>';
         }
         // Felder fuer den neuen Fahrer nur zeigen, wenn ein Notion-Eintrag gewaehlt ist (ohne Neuzeichnen, Eingaben bleiben).
         function pkWahl(e) {

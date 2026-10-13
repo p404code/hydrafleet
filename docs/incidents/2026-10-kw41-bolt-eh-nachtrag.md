@@ -24,6 +24,23 @@ Summe der Auszahlungen +408,51 €. Vorher geprüft: keine Zu-/Abschläge, keine
 Kassabuch-Eintrag für diese Fahrer in KW41. Die Woche war schon freigegeben (13.10. 16:08, Summe
 27.313,57 €) – die gespeicherte Freigabe-Summe ist seither um 408,51 € zu niedrig, bis neu freigegeben wird.
 
+## Zusätzlich: Mahmoud Hemdan
+
+Die Bolt-CSV führt ihn als „Mahmoud Mahmoud Deif Alla Mohamed Deif Alla Hemdan“. Der Bot fand ihn nicht und
+rechnete „UNBEKANNT“ ohne Pauschale (Status `WARNUNG_KEIN_FAHRER`). Alias in `name_aliases` eingetragen
+(greift ab dem nächsten Bot-Lauf) und die KW41-Zeile `158055` so gesetzt, wie der Bot sie mit Alias schreibt:
+
+| Feld | vorher | nachher |
+|---|---|---|
+| fahrer_name | Mahmoud Mahmoud Deif Alla Mohamed Deif Alla Hemdan | Mahmoud Hemdan |
+| telefon | (leer) | +436602345533 |
+| mietmodell / miete | UNBEKANNT / 0 | f12 / 550 |
+| prozent_abzug / abzug_gesamt | 0 / 0 | 179,71 / 729,71 |
+| auszahlung | 1.241,65 | 511,94 |
+| status | WARNUNG_KEIN_FAHRER | berechnet |
+
+Bolt-Umsatz (2.997,10 / 1.241,65) unverändert. Die Woche hat damit 53 statt 52 berechnete Zeilen.
+
 ## Rückweg
 
 Die Werte „vorher“ aus der Tabelle zurückschreiben; `bruttoumsatz_gesamt`, `wir_bekommen` und

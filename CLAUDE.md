@@ -229,14 +229,6 @@ aktiviert ist — aktuell zwei.
   Gleiches Muster bei `uber_drivers.fahrer_id`.
 - **Bolt-Zeitfilter**: `time_range_filter_type: "price_review"`, nicht `created`.
   Mit `created` streuen die Werte über Wochengrenzen.
-- **Plattform-Konto für einen Fahrer, den es in `fahrer` noch nicht gibt** (seit 2026-10-12): Reiter Fahrer/App →
-  „Plattformkonten ohne Fahrer“ → Auswahl „Aus Notion anlegen“ (View `notion_fahrer_ohne_eintrag`). Das Büro trägt
-  Mietmodell, Pauschale und Kennzeichen ein, `konto_fahrer_anlegen()` legt die `fahrer`-Zeile an (Prozent/Schwelle
-  folgen dem Modell) und ordnet zu. **Das schreibt in die Tabelle des alten Systems:** der AbrechnungsBot zieht die
-  Pauschale ab dem nächsten Lauf ab (vorher „UNBEKANNT“, 0 €), und der n8n-Sync kann dieselbe Person später
-  zusätzlich anlegen → dann meldet `konto_zuordnen` die doppelte Notion-Nr. Test: `PGLITE=<dir> node scripts/test-fahrer-aus-notion.mjs`.
-- **`settlement_fahrer()` nimmt bei gleicher Telefonnummer den aktiven Fahrer**, erst dann die kleinste id
-  (Dombaew 633 inaktiv / 639 aktiv).
 - **PostgREST antwortet bei `return=minimal` mit 201 und leerem Body**, nicht 204.
   Immer erst `await r.text()`, dann nur parsen wenn nicht leer.
 - **Ubers Abrechnungswoche beginnt Montag ~04:00 Wien**, nicht Mitternacht UTC.

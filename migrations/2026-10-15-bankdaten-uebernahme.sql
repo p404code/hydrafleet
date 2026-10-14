@@ -9,6 +9,10 @@
 -- ============================================================================
 
 alter table public.fahrer_iban add column if not exists uebernommen_nr integer;
+-- Das Formular kennt nur neu/geprueft/abgelehnt; die Uebernahme braucht zwei Zustaende mehr.
+alter table public.fahrer_iban drop constraint if exists fahrer_iban_status_check;
+alter table public.fahrer_iban add constraint fahrer_iban_status_check
+  check (status = any (array['neu', 'geprueft', 'abgelehnt', 'uebernommen', 'ueberholt']));
 
 do $$
 declare r record;

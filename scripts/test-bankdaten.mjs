@@ -32,7 +32,8 @@ create table public.abrechnung_freigaben (woche text primary key, freigegeben_am
 create table public.settlements (id serial primary key, woche text, fahrer_name text, telefon text, status text default 'berechnet',
   auszahlung numeric(10,2) default 0, lohn numeric default 0);
 create table public.fahrer_iban (id bigint primary key, erstellt_am timestamptz default now(), vorname text not null, nachname text not null,
-  telefon text, kontoinhaber text not null, iban text not null, bic text, revtag text, status text not null default 'neu', notiz text);
+  telefon text, kontoinhaber text not null, iban text not null, bic text, revtag text, status text not null default 'neu', notiz text,
+  constraint fahrer_iban_status_check check (status = any (array['neu','geprueft','abgelehnt'])));  -- wie live
 insert into public.fahrer_iban (id, erstellt_am, vorname, nachname, telefon, kontoinhaber, iban, bic, revtag) values
   (1, '2026-10-06', 'Cem', 'Fahr', '0660 3333333', 'Cem Fahr', 'DE89 3704 0044 0532 0130 00', null, null),
   (2, '2026-10-08', 'Cem', 'Fahr', '06603333333', 'Cem Fahr', 'GB82WEST12345698765432', 'westgb2l', 'cem'),  -- neuester gewinnt

@@ -897,6 +897,7 @@
             #fzTable th:nth-child(2), #fzTable td:nth-child(2) { width: 76px; }
             #fzTable th:nth-child(3), #fzTable td:nth-child(3) { width: 190px; }
             #fzTable th:nth-child(6), #fzTable td:nth-child(6) { width: 104px; }
+            #fzTable th:nth-child(7), #fzTable td:nth-child(7) { width: 140px; }
         }
         .fz-bild { flex: none; width: 60px; height: 30px; border-radius: 6px; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
         .fz-bild img { width: 100%; height: 100%; object-fit: contain; display: block; }
@@ -945,6 +946,10 @@
         .pk-vorschlag { margin-top: 6px; font-size: 11.5px; color: var(--info); }
         .pk-card .detail-acts { margin-top: 8px; }
         .pk-card select { width: 100%; height: 36px; margin-top: 8px; font-size: 13px; }
+        .fz-bank-form { display: grid; gap: 6px; }
+        .fz-bank-form input { width: 100%; box-sizing: border-box; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 7px 12px; font-size: 13px; color: var(--text); font-family: inherit; }
+        .fz-bank-fehler { color: var(--err); font-size: 11.5px; }
+        .fz-bank-verlauf { font-size: 11.5px; color: var(--text-mut); display: grid; gap: 3px; margin-top: 6px; }
         .pk-leer { color: var(--text-mut); font-size: 12px; padding: 6px 0; }
         @media (max-width: 768px) {
             .pk-karte { margin: 14px 12px 20px; }
@@ -1288,6 +1293,7 @@
             <button class="chip" data-fz="problem">Mit Problem <span class="cnt" id="fzCntProblem"></span></button>
             <button class="chip" data-fz="mitapp">mit App <span class="cnt" id="fzCntMitApp"></span></button>
             <button class="chip" data-fz="ohneapp">ohne App <span class="cnt" id="fzCntOhneApp"></span></button>
+            <button class="chip" data-fz="ohnebank">Bankdaten fehlen <span class="cnt" id="fzCntOhneBank"></span></button>
             <button class="chip" data-fz="archiv">Archiviert <span class="cnt" id="fzCntArchiv"></span></button>
             <div class="sp"></div>
             <button class="chip chip-link" onclick="switchTab('lohn')">Löhne →</button>
@@ -1303,8 +1309,9 @@
                         <th data-fzsort="marke">Marke</th>
                         <th data-fzsort="modell">Modell</th>
                         <th data-fzsort="app_rang">App-Status</th>
+                        <th>Bank</th>
                     </tr></thead>
-                    <tbody id="fzBody"><tr><td colspan="6" class="empty">Lade ...</td></tr></tbody>
+                    <tbody id="fzBody"><tr><td colspan="7" class="empty">Lade ...</td></tr></tbody>
                 </table>
                 <section class="pk-karte" id="pkKarte">
                     <div class="pk-kopf">
@@ -1313,6 +1320,10 @@
                         <button class="chip" data-pk="alle">alle <span class="cnt" id="pkCntAlle"></span></button>
                     </div>
                     <div class="pk-liste" id="pkListe"><div class="pk-leer">Lade ...</div></div>
+                </section>
+                <section class="pk-karte" id="fbKarte" hidden>
+                    <div class="pk-kopf"><h4>Bankdaten aus dem Formular, nicht zugeordnet</h4></div>
+                    <div class="pk-liste" id="fbListe"></div>
                 </section>
             </div>
             <div class="side-panel" id="fzPanel"><div class="placeholder">Fahrer auswählen</div></div>
@@ -1688,6 +1699,7 @@
             </div>
         </div>
     </div>
+    <script src="/bank-logik.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <!-- html2canvas loaded lazily on first share -->
     <script>
@@ -2576,6 +2588,7 @@
         /* Alles Rechnen passiert in der View public.fahrer_uebersicht.
            Hier wird nur gefiltert, sortiert und angezeigt. */
         let FZ_MIETE = {};   // fahrer.id -> {basis_miete, prozent_satz, prozent_schwelle}
+        let FZ_BANK = {}, FZ_BANK_DA = false, FB_OFFEN = [], fzBankForm = null, fzBankVerlauf = {};
         let FZ = [], fzFilter = 'alle', fzSearch = '', fzSort = 'name', fzDir = 1, fzSel = null, fzLoaded = false;
 
         function fzProbleme(f) { return (f.probleme || []).filter(Boolean); }
@@ -2609,6 +2622,18 @@
                 document.getElementById(id).addEventListener('click', fzAppKlick);
             });
             document.getElementById('pkListe').addEventListener('click', pkKlick);
+            document.getElementById('fbListe').addEventListener('click', async function (e) {
+                const b = e.target.closest('[data-fbzu]');
+                if (!b || b.disabled) return;
+                const sel = document.querySelector('[data-fbsel="' + b.dataset.fbzu + '"]');
+                const nr = sel ? parseInt(sel.value, 10) : NaN;
+                if (!nr) { alert('Bitte einen Fahrer wählen.'); return; }
+                b.disabled = true;
+                const { error } = await getSupabase().rpc('formular_iban_zuordnen', { p_id: parseInt(b.dataset.fbzu, 10), p_notion_fahrer_id: nr });
+                if (error) { alert('Zuordnen fehlgeschlagen: ' + fgFehler(error)); b.disabled = false; return; }
+                showReToast('Bankdaten übernommen', 'success');
+                await ladeFahrer();
+            });
             await ladeFahrer();
         }
 
@@ -2617,13 +2642,19 @@
         async function ladeFahrer() {
             const sb = getSupabase();
             const still = function (q) { return q.then(function (r) { return r; }, function (e) { return { error: e }; }); };
-            const [res, ohne, mit, miete, bilder] = await Promise.all([
+            const [res, ohne, mit, miete, bilder, bank, fbOffen] = await Promise.all([
                 sb.from('fahrer_uebersicht').select('*'),
                 sb.from('plattform_konten').select('*').is('fahrer_id', null),
                 sb.from('plattform_konten').select('*').not('fahrer_id', 'is', null),
                 still(sb.from('fahrer').select('id,basis_miete,prozent_satz,prozent_schwelle')),
-                still(sb.from('uber_fahrzeuge').select('kennzeichen_key,marke,modell,baujahr,farbe,bild'))
-            ]).catch(function (e) { return [{ error: e }, { error: e }, { error: e }, { error: e }, { error: e }]; });
+                still(sb.from('uber_fahrzeuge').select('kennzeichen_key,marke,modell,baujahr,farbe,bild')),
+                still(sb.from('bank_uebersicht').select('*')),
+                still(sb.from('formular_iban_offen').select('*').order('erstellt_am'))
+            ]).catch(function (e) { return [{ error: e }, { error: e }, { error: e }, { error: e }, { error: e }, { error: e }, { error: e }]; });
+            FZ_BANK = {};
+            FZ_BANK_DA = !bank.error;
+            if (!bank.error) (bank.data || []).forEach(function (b) { FZ_BANK[b.notion_fahrer_id] = b; });
+            FB_OFFEN = fbOffen.error ? [] : (fbOffen.data || []);
             FZ_MIETE = {};
             if (!miete.error) (miete.data || []).forEach(function (m) { FZ_MIETE[m.id] = m; });
             if (!bilder.error) (bilder.data || []).forEach(function (b) { FP_UBER[b.kennzeichen_key] = b; });
@@ -2638,6 +2669,7 @@
             PK_MIT = mit.error ? [] : (mit.data || []);
             renderFahrer();
             renderPlattformKonten();
+            renderFormularBank();
         }
 
         function fzListe() {
@@ -2645,6 +2677,7 @@
             if (fzFilter === 'problem') { rows = rows.filter(function (f) { return f.aktiv && fzProbleme(f).length; }); }
             else if (fzFilter === 'mitapp') { rows = rows.filter(function (f) { return f.aktiv && f.app_bereit; }); }
             else if (fzFilter === 'ohneapp') { rows = rows.filter(function (f) { return f.aktiv && !f.app_bereit; }); }
+            else if (fzFilter === 'ohnebank') { rows = rows.filter(function (f) { return f.aktiv && !fzBank(f); }); }
             else if (fzFilter === 'archiv') { rows = rows.filter(function (f) { return !f.aktiv; }); }
             else { rows = rows.filter(function (f) { return f.aktiv; }); }
             if (fzSearch) {
@@ -2684,6 +2717,7 @@
             kpiApp.className = appDa && bereit === aktiv.length ? 'ok' : '';
             document.getElementById('fzCntOhneApp').textContent = appDa ? aktiv.length - bereit : '';
             document.getElementById('fzCntMitApp').textContent = appDa ? bereit : '';
+            document.getElementById('fzCntOhneBank').textContent = FZ_BANK_DA ? aktiv.filter(function (f) { return !fzBank(f); }).length : '';
 
             const rows = fzListe();
             document.getElementById('fzCountBig').textContent = rows.length;
@@ -2693,7 +2727,7 @@
             });
 
             const body = document.getElementById('fzBody');
-            if (!rows.length) { body.innerHTML = '<tr><td colspan="6" class="empty">Kein Fahrer gefunden.</td></tr>'; return; }
+            if (!rows.length) { body.innerHTML = '<tr><td colspan="' + (isMobile() ? 3 : 7) + '" class="empty">Kein Fahrer gefunden.</td></tr>'; return; }
 
             const mobil = isMobile();
             body.innerHTML = rows.map(function (f) {
@@ -2725,6 +2759,7 @@
                     '<td>' + esc(f.marke || '-') + '</td>' +
                     '<td>' + esc(f.modell || '-') + '</td>' +
                     '<td>' + appZelle + '</td>' +
+                    '<td>' + fzBankZelle(f) + '</td>' +
                 '</tr>';
             }).join('');
 
@@ -2745,6 +2780,66 @@
 
         // Schluessel wie public.kennzeichen_key(): Zusatz in Klammern weg, nur A-Z und 0-9
         function fzAuto(f) { return { kennzeichen_key: String(f.kennzeichen || '').split('(')[0].toUpperCase().replace(/[^A-Z0-9]/g, '') }; }
+        function fzBank(f) { const b = f.notion_fahrer_id != null ? FZ_BANK[f.notion_fahrer_id] : null; return b && b.iban ? b : null; }
+        function fzZeit(t) { return t ? new Date(t).toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '–'; }
+        function fzBankZelle(f) {
+            if (!FZ_BANK_DA) return '–';
+            const b = fzBank(f);
+            if (!b) return '<span class="dot aus"></span>fehlt';
+            const best = b.bestaetigt_am && b.bestaetigt_iban === b.iban;
+            return '<span class="dot' + (best ? '' : ' warn') + '"></span>' + (best ? esc(String(b.woche || '').replace(/^\d{4}-/, '')) + ' bestätigt' : 'hinterlegt');
+        }
+        function fzBankHtml(f) {
+            if (!FZ_BANK_DA || f.notion_fahrer_id == null) return '';
+            const b = fzBank(f);
+            const nr = f.notion_fahrer_id;
+            function kv(k, v) { return '<div class="detail-kv"><span>' + k + '</span><span>' + v + '</span></div>'; }
+            let html = '<div class="detail-sec">Bankdaten</div>';
+            if (fzBankForm === nr) {
+                const w = b || {};
+                html += '<div class="fz-bank-form" data-fzbankform="' + nr + '">' +
+                    '<input type="text" data-bk="inhaber" placeholder="Kontoinhaber" value="' + esc(w.kontoinhaber || f.name || '') + '">' +
+                    '<input type="text" data-bk="iban" placeholder="IBAN" value="' + esc(w.iban ? BankLogik.gruppiert(w.iban) : '') + '">' +
+                    '<input type="text" data-bk="bic" placeholder="BIC (optional)" value="' + esc(w.bic || '') + '">' +
+                    '<input type="text" data-bk="revtag" placeholder="Revtag (optional)" value="' + esc(w.revtag || '') + '">' +
+                    '<div class="fz-bank-fehler" data-bkfehler="1"></div>' +
+                    '<div class="detail-acts"><button class="btn-primary ok" data-fzbanksave="' + nr + '">Speichern</button>' +
+                    '<button class="btn-ghost" data-fzbankzu="1">Abbrechen</button></div></div>';
+                return html;
+            }
+            if (!b) {
+                html += kv('IBAN', '<span style="color:var(--text-mut)">fehlt</span>');
+            } else {
+                const best = b.bestaetigt_am && b.bestaetigt_iban === b.iban;
+                html += kv('Kontoinhaber', esc(b.kontoinhaber)) +
+                    kv('IBAN', '<span class="num">' + esc(BankLogik.gruppiert(b.iban)) + '</span>') +
+                    kv('BIC / Revtag', esc((b.bic || '–') + ' · ' + (b.revtag || '–'))) +
+                    kv('Geändert', esc(fzZeit(b.geaendert_am)) + ' · ' + esc(b.geaendert_von || '')) +
+                    kv(esc(b.woche || 'Woche'), best ? 'bestätigt ' + esc(fzZeit(b.bestaetigt_am)) : '<span style="color:var(--warn)">nicht bestätigt</span>');
+                if (b.aenderungen > 1) {
+                    const v = fzBankVerlauf[nr];
+                    html += v ? '<div class="fz-bank-verlauf">' + v.map(function (x) {
+                        return '<div>' + esc(fzZeit(x.zeit)) + ' · ' + esc(x.von) + ': ' + esc(x.alt_iban ? BankLogik.kurz(x.alt_iban) : '–') + ' → ' + esc(BankLogik.kurz(x.neu_iban)) + '</div>';
+                    }).join('') + '</div>' : '<button class="btn-ghost" data-fzbankverlauf="' + nr + '">Verlauf (' + b.aenderungen + ' Änderungen)</button>';
+                }
+            }
+            return html + '<div class="detail-acts"><button class="btn-ghost" data-fzbankauf="' + nr + '">' + (b ? 'Bankdaten ändern' : 'Bankdaten eintragen') + '</button></div>';
+        }
+        function renderFormularBank() {
+            const karte = document.getElementById('fbKarte');
+            karte.hidden = !FB_OFFEN.length;
+            if (!FB_OFFEN.length) return;
+            const aktive = FZ.filter(function (f) { return f.aktiv && f.notion_fahrer_id != null; })
+                .sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'de'); });
+            document.getElementById('fbListe').innerHTML = FB_OFFEN.map(function (x) {
+                return '<div class="pk-card"><div class="pk-card-top"><b>' + esc(x.name) + '</b><span class="num">' + esc(x.iban_kurz) + '</span></div>' +
+                    '<div class="pk-meta">' + esc([x.telefon || 'keine Nummer', x.kontoinhaber, x.grund].join(' · ')) + '</div>' +
+                    (x.grund === 'IBAN ungültig' ? '' :
+                    '<select data-fbsel="' + x.id + '"><option value="">Fahrer wählen …</option>' + aktive.map(function (f) {
+                        return '<option value="' + f.notion_fahrer_id + '">' + esc(f.name) + ' · Nr. ' + f.notion_fahrer_id + '</option>'; }).join('') + '</select>' +
+                    '<div class="detail-acts"><button class="btn-ghost" data-fbzu="' + x.id + '">Zuordnen</button></div>') + '</div>';
+            }).join('');
+        }
         function fzDetailHtml(f) {
             const p = fzProbleme(f);
             const m = FZ_MIETE[f.fahrer_id] || null;
@@ -2779,6 +2874,7 @@
                 kv('Auszahlung', f.letzte_auszahlung == null ? '-' : fmt(f.letzte_auszahlung)) +
                 fzLohnHtml(f) +
                 fzAppHtml(f) +
+                fzBankHtml(f) +
                 fzKontenHtml(f) +
             '</div>';
         }
@@ -2911,7 +3007,30 @@
                 await ladeFahrer();
             }
         }
-        function fzAppKlick(e) {
+        async function fzAppKlick(e) {
+            const bAuf = e.target.closest('[data-fzbankauf]');
+            if (bAuf) { fzBankForm = parseInt(bAuf.dataset.fzbankauf, 10); renderFahrer(); return; }
+            if (e.target.closest('[data-fzbankzu]')) { fzBankForm = null; renderFahrer(); return; }
+            const bVer = e.target.closest('[data-fzbankverlauf]');
+            if (bVer) {
+                const nr = parseInt(bVer.dataset.fzbankverlauf, 10);
+                const r = await getSupabase().from('fahrer_bank_verlauf').select('zeit,von,alt_iban,neu_iban').eq('notion_fahrer_id', nr).order('zeit', { ascending: false });
+                fzBankVerlauf[nr] = r.error ? [] : (r.data || []); renderFahrer(); return;
+            }
+            const bSave = e.target.closest('[data-fzbanksave]');
+            if (bSave) {
+                const box = bSave.closest('[data-fzbankform]');
+                const w = function (k) { return box.querySelector('[data-bk="' + k + '"]').value; };
+                const fehler = BankLogik.inhaberFehler(w('inhaber')) || BankLogik.ibanFehler(w('iban')) || BankLogik.bicFehler(w('bic')) || BankLogik.revtagFehler(w('revtag'));
+                if (fehler) { box.querySelector('[data-bkfehler]').textContent = fehler; return; }
+                bSave.disabled = true;
+                const { error } = await getSupabase().rpc('buero_bank_setzen', { p_notion_fahrer_id: parseInt(bSave.dataset.fzbanksave, 10),
+                    p_kontoinhaber: w('inhaber'), p_iban: w('iban'), p_bic: w('bic') || null, p_revtag: w('revtag') || null });
+                if (error) { box.querySelector('[data-bkfehler]').textContent = fgFehler(error); bSave.disabled = false; return; }
+                fzBankForm = null; delete fzBankVerlauf[parseInt(bSave.dataset.fzbanksave, 10)];
+                showReToast('Bankdaten gespeichert', 'success');
+                await ladeFahrer(); return;
+            }
             const lzp = e.target.closest('[data-lzpdf]');
             if (lzp) { e.stopPropagation(); fzLohnPdf(lzp); return; }
             const v = e.target.closest('[data-fzvorschau]');

@@ -2,7 +2,9 @@
 -- Bankdaten aus dem oeffentlichen Formular (~/Projects/iban-formular, Tabelle fahrer_iban) uebernehmen
 -- Datum: 2026-10-15. Wiederholbar: uebernimmt nur Eintraege mit status 'neu'.
 --
--- Zuordnung ueber die Telefonnummer (tel_key) zu genau einem aktiven Fahrer mit Notion-Nr.
+-- Zuordnung zu genau einem aktiven Fahrer mit Notion-Nr.: zuerst ueber die Telefonnummer (tel_key),
+-- sonst ueber den Namen (name_key, Reihenfolge egal) oder einen Namens-Alias. Das Formular hatte
+-- live fast nie eine Telefonnummer (15.10.: 12 von 13 leer).
 -- Je Fahrer gewinnt der neueste gueltige Eintrag; aeltere werden 'ueberholt'.
 -- Hat der Fahrer schon Bankdaten (App oder Buero), wird NICHTS ueberschrieben.
 -- Der Rest bleibt 'neu' und steht im Dashboard (View formular_iban_offen).
@@ -14,15 +16,37 @@ alter table public.fahrer_iban drop constraint if exists fahrer_iban_status_chec
 alter table public.fahrer_iban add constraint fahrer_iban_status_check
   check (status = any (array['neu', 'geprueft', 'abgelehnt', 'uebernommen', 'ueberholt']));
 
+-- Notion-Nr. des einen passenden Fahrers, sonst null. p_anzahl: wie viele Fahrer passen (0, 1, >1).
+create or replace function public.formular_iban_fahrer(p_telefon text, p_vorname text, p_nachname text,
+                                                       out p_nr integer, out p_anzahl integer)
+language plpgsql stable security definer set search_path = public as $$
+declare v_name text := btrim(coalesce(p_vorname, '') || ' ' || coalesce(p_nachname, ''));
+begin
+  -- Fahrer-Logins bekommen nichts (sonst liesse sich die Nr. zu Name/Telefon erfragen);
+  -- Buero und die Migration selbst (ohne Anmeldung) schon.
+  if auth.uid() is not null and not public.is_app_user() then return; end if;
+  if public.tel_key(p_telefon) <> '' then
+    select min(f.notion_fahrer_id), count(distinct f.notion_fahrer_id) into p_nr, p_anzahl
+    from public.fahrer f
+    where f.aktiv and f.notion_fahrer_id is not null and public.tel_key(f.telefon) = public.tel_key(p_telefon);
+    if p_anzahl = 1 then return; end if;
+  end if;
+  select min(f.notion_fahrer_id), count(distinct f.notion_fahrer_id) into p_nr, p_anzahl
+  from public.fahrer f
+  where f.aktiv and f.notion_fahrer_id is not null
+    and ((public.name_key(v_name) <> '' and public.name_key(f.name) = public.name_key(v_name))
+         or f.name = (select a.fahrer_name from public.name_aliases a where a.csv_name = lower(v_name)));
+  if p_anzahl <> 1 then p_nr := null; end if;
+end $$;
+revoke all on function public.formular_iban_fahrer(text, text, text) from public, anon;
+grant execute on function public.formular_iban_fahrer(text, text, text) to authenticated;   -- fuer die View formular_iban_offen
+
 do $$
 declare r record;
 begin
   for r in
     with treffer as (
-      select i.*, (select min(f.notion_fahrer_id) from public.fahrer f
-                   where f.aktiv and f.notion_fahrer_id is not null
-                     and public.tel_key(i.telefon) <> '' and public.tel_key(f.telefon) = public.tel_key(i.telefon)
-                   having count(distinct f.notion_fahrer_id) = 1) as nr
+      select i.*, (public.formular_iban_fahrer(i.telefon, i.vorname, i.nachname)).p_nr as nr
       from public.fahrer_iban i
       where i.status = 'neu' and public.iban_gueltig(i.iban)
     )
@@ -48,10 +72,9 @@ select i.id, i.erstellt_am, btrim(i.vorname || ' ' || i.nachname) as name, i.tel
             then substr(public.iban_norm(i.iban), 1, 4) || ' •••• ' || right(public.iban_norm(i.iban), 4)
             else public.iban_norm(i.iban) end as iban_kurz,
        case when not public.iban_gueltig(i.iban) then 'IBAN ungültig'
-            when public.tel_key(i.telefon) = '' then 'keine Telefonnummer'
-            when not exists (select 1 from public.fahrer f where f.aktiv and f.notion_fahrer_id is not null
-                             and public.tel_key(f.telefon) = public.tel_key(i.telefon)) then 'kein Fahrer mit dieser Telefonnummer'
-            else 'Telefonnummer passt zu mehreren Fahrern' end as grund
+            when (public.formular_iban_fahrer(i.telefon, i.vorname, i.nachname)).p_anzahl = 0 then 'kein passender Fahrer (Name/Telefon)'
+            when (public.formular_iban_fahrer(i.telefon, i.vorname, i.nachname)).p_anzahl > 1 then 'mehrere Fahrer passen'
+            else 'Fahrer hat schon Bankdaten' end as grund
 from public.fahrer_iban i
 where i.status = 'neu' and public.is_app_user();
 revoke all on public.formular_iban_offen from public, anon;

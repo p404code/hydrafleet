@@ -25,6 +25,9 @@ create function public.is_app_user() returns boolean language sql stable as $$
 create function public.tel_key(t text) returns text language sql immutable as $$
   select case when d like '00%' then substr(d, 3) when d like '0%' then '43' || substr(d, 2) else d end
   from (select regexp_replace(coalesce(t, ''), '[^0-9]', '', 'g') as d) x $$;
+create function public.name_key(t text) returns text language sql immutable as $$
+  select coalesce((select string_agg(w, ' ' order by w)
+    from unnest(string_to_array(lower(regexp_replace(coalesce(t, ''), '[^a-zA-Z]', ' ', 'g')), ' ')) w where w <> ''), '') $$;
 create function public.protokoll_schreiben() returns trigger language plpgsql as $$ begin return null; end $$;
 create table public.fahrer (id integer primary key, name text not null, telefon text, aktiv boolean default true, notion_fahrer_id integer);
 create table public.fahrer_app_zugang (notion_fahrer_id integer primary key, auth_user_id uuid not null, gesperrt boolean default false);
@@ -38,7 +41,11 @@ insert into public.fahrer_iban (id, erstellt_am, vorname, nachname, telefon, kon
   (1, '2026-10-06', 'Cem', 'Fahr', '0660 3333333', 'Cem Fahr', 'DE89 3704 0044 0532 0130 00', null, null),
   (2, '2026-10-08', 'Cem', 'Fahr', '06603333333', 'Cem Fahr', 'GB82WEST12345698765432', 'westgb2l', 'cem'),  -- neuester gewinnt
   (3, '2026-10-07', 'Unbe', 'Kannt', '0699 0000000', 'Unbe Kannt', 'AT611904300234573201', null, null),       -- kein Fahrer
-  (4, '2026-10-07', 'Anna', 'Fahr', '+43 660 1111111', 'Anna Fahr', 'AT611904300234573202', null, null);    -- IBAN kaputt
+  (4, '2026-10-07', 'Anna', 'Fahr', '+43 660 1111111', 'Anna Fahr', 'AT611904300234573202', null, null),    -- IBAN kaputt
+  -- Das Formular hat live keine Telefonnummern (12 von 13 leer): Zuordnung ueber den Namen
+  (5, '2026-10-07', 'Vier', 'Dora', null, 'Dora Vier', 'DE89370400440532013000', null, null),     -- Reihenfolge vertauscht
+  (6, '2026-10-07', 'Emil', 'Weiss', null, 'Emil Weiss', 'BG80BNBG96611020345678', null, null),   -- ueber name_aliases
+  (7, '2026-10-07', 'Gleich', 'Name', null, 'Gleich Name', 'LT121000011101001000', null, null);   -- zwei Fahrer passen
 create function public.settlement_fahrer(p_telefon text, p_name text) returns integer language sql stable as $$
   select f.id from public.fahrer f
   where (coalesce(p_telefon,'') <> '' and public.tel_key(f.telefon) = public.tel_key(p_telefon)) or f.name = p_name
@@ -60,7 +67,11 @@ create policy app_users_all on public.fahrer for all to authenticated using (pub
 grant select on public.fahrer, public.settlements, public.abrechnung_freigaben to authenticated;
 
 insert into public.fahrer values (1, 'Anna Fahr', '+436601111111', true, 101), (2, 'Bert Fahr', '+436602222222', true, 102),
-                                 (3, 'Cem Fahr', '+436603333333', true, 103);
+                                 (3, 'Cem Fahr', '+436603333333', true, 103),
+                                 (4, 'Dora Vier', null, true, 104), (5, 'Emil Fuenf', null, true, 105),
+                                 (6, 'Gleich Name', null, true, 106), (7, 'Name Gleich', null, true, 107);  -- 6/7: gleicher name_key
+create table public.name_aliases (csv_name text primary key, fahrer_name text not null);
+insert into public.name_aliases values ('emil weiss', 'Emil Fuenf');
 insert into public.fahrer_app_zugang values (101, '00000000-0000-0000-0000-000000000101', false),
                                             (102, '00000000-0000-0000-0000-000000000102', false);
 insert into public.abrechnung_freigaben (woche) values ('2026-W40'), ('2026-W41');
@@ -136,7 +147,7 @@ try {
   assert.equal(a.iban, 'AT611904300234573201');
   await q(`select public.buero_bank_setzen(103, 'Cem Fahr', 'GB82WEST12345698765432')`);
   await nein(`select public.buero_bank_setzen(999, 'Niemand', 'GB82WEST12345698765432')`, [], /Fahrer/);
-  const ue = await q('select notion_fahrer_id, iban, geaendert_von, aenderungen from public.bank_uebersicht order by 1');
+  const ue = await q('select notion_fahrer_id, iban, geaendert_von, aenderungen from public.bank_uebersicht where iban is not null order by 1');
   assert.deepEqual(ue.map((r) => [r.notion_fahrer_id, r.iban, r.geaendert_von, r.aenderungen]), [
     [101, 'AT611904300234573201', 'fahrer', 2], [102, 'DE89370400440532013000', 'fahrer', 1], [103, 'GB82WEST12345698765432', 'Stefan', 1]]);
   const v = await q('select alt_iban, neu_iban, von from public.fahrer_bank_verlauf where notion_fahrer_id = 101 order by id');
@@ -159,27 +170,29 @@ try {
     await db.exec(lies(uebernahme));
     let r = await q('select id, status, uebernommen_nr from public.fahrer_iban order by id');
     assert.deepEqual(r.map((x) => [x.id, x.status, x.uebernommen_nr]),
-      [[1, 'neu', null], [2, 'neu', null], [3, 'neu', null], [4, 'neu', null]]);
+      [[1, 'neu', null], [2, 'neu', null], [3, 'neu', null], [4, 'neu', null], [5, 'uebernommen', 104], [6, 'uebernommen', 105], [7, 'neu', null]]);
     // Cem neu aufsetzen: Buero-Eintrag weg, damit die Uebernahme greift (Verlauf bleibt, nur fahrer_bank leeren)
     await db.exec(`delete from public.fahrer_bank where notion_fahrer_id = 103`);
     await db.exec(lies(uebernahme));
     r = await q('select id, status, uebernommen_nr from public.fahrer_iban order by id');
     assert.deepEqual(r.map((x) => [x.id, x.status, x.uebernommen_nr]),
-      [[1, 'ueberholt', 103], [2, 'uebernommen', 103], [3, 'neu', null], [4, 'neu', null]]);
+      [[1, 'ueberholt', 103], [2, 'uebernommen', 103], [3, 'neu', null], [4, 'neu', null], [5, 'uebernommen', 104], [6, 'uebernommen', 105], [7, 'neu', null]]);
     const [c] = await q('select iban, bic, revtag, geaendert_von from public.fahrer_bank where notion_fahrer_id = 103');
     assert.deepEqual([c.iban, c.bic, c.revtag, c.geaendert_von], ['GB82WEST12345698765432', 'WESTGB2L', '@cem', 'formular']);
 
     await als(BUERO);
     const offen = await q('select id, grund from public.formular_iban_offen order by id');
-    assert.deepEqual(offen.map((x) => [x.id, x.grund]), [[3, 'kein Fahrer mit dieser Telefonnummer'], [4, 'IBAN ungültig']]);
+    assert.deepEqual(offen.map((x) => [x.id, x.grund]), [[3, 'kein passender Fahrer (Name/Telefon)'], [4, 'IBAN ungültig'], [7, 'mehrere Fahrer passen']]);
     await nein('select public.formular_iban_zuordnen(4, 101)', [], /IBAN ungültig/);
     await q('select public.formular_iban_zuordnen(3, 102)');       // Buero ordnet Eintrag 3 Bert zu
     const [b] = await q(`select iban, geaendert_von from public.fahrer_bank where notion_fahrer_id = 102`);
     assert.deepEqual([b.iban, b.geaendert_von], ['AT611904300234573201', 'formular (Stefan)']);
-    assert.equal((await q('select count(*)::int n from public.formular_iban_offen'))[0].n, 1);
+    assert.equal((await q('select count(*)::int n from public.formular_iban_offen'))[0].n, 2);
     await raus();
     await als(ANNA);
     await nein('select public.formular_iban_zuordnen(4, 101)', [], /Nicht autorisiert/);
+    // Fahrer koennen ueber die Zuordnungsfunktion keine fremden Fahrer-Nummern erfragen
+    assert.equal((await q(`select (public.formular_iban_fahrer('06603333333', 'Cem', 'Fahr')).p_nr as nr`))[0].nr, null);
     await raus();
   }
   console.log('OK');

@@ -114,6 +114,8 @@ try {
   await q(`select public.fahrer_bank_setzen('Anna Fahr', 'AT611904300234573201')`);
   [a] = await q('select * from public.fahrer_app_bank()');
   assert.equal(a.bestaetigt_am, null); assert.equal(a.iban, 'AT611904300234573201');
+  // Betrag eines anderen Fahrers ist nicht abfragbar (nur intern in den RPCs)
+  await nein(`select public.bank_betrag(2, '2026-W41')`, [], /permission denied/);
   // Vorschau-Parameter wird fuer Fahrer ignoriert (sieht nur sich)
   [a] = await q('select * from public.fahrer_app_bank(2)');
   assert.equal(a.iban, 'AT611904300234573201');

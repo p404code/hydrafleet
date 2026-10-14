@@ -229,10 +229,13 @@ where f.aktiv and f.notion_fahrer_id is not null;
 revoke all on public.bank_uebersicht from public, anon;
 grant select on public.bank_uebersicht to authenticated;
 
-revoke all on function public.bank_schreiben(integer, text, text, text, text, text) from public, anon, authenticated;
+-- bank_schreiben und bank_betrag nur intern (ueber die security-definer-RPCs): sonst koennte ein
+-- Fahrer mit bank_betrag(<fremde id>, woche) die Auszahlung eines anderen abfragen.
+revoke all on function public.bank_schreiben(integer, text, text, text, text, text),
+  public.bank_betrag(integer, text) from public, anon, authenticated;
 revoke all on function public.fahrer_app_bank(integer), public.fahrer_bank_setzen(text, text, text, text),
   public.bank_bestaetigen(text), public.buero_bank_setzen(integer, text, text, text, text),
-  public.bank_woche(), public.bank_betrag(integer, text) from public, anon;
+  public.bank_woche() from public, anon;
 grant execute on function public.fahrer_app_bank(integer), public.fahrer_bank_setzen(text, text, text, text),
   public.bank_bestaetigen(text), public.buero_bank_setzen(integer, text, text, text, text),
-  public.bank_woche(), public.bank_betrag(integer, text) to authenticated;
+  public.bank_woche() to authenticated;

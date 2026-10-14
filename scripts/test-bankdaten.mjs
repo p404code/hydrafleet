@@ -1,0 +1,154 @@
+// Datenbank-Test fuer die Bankdaten, lokal in PGlite – die Live-Datenbank wird nicht beruehrt.
+//
+//   npm i --prefix /tmp/pglite @electric-sql/pglite        (einmalig, ausserhalb des Repos)
+//   PGLITE=/tmp/pglite node scripts/test-bankdaten.mjs
+//
+// Nachbau der benutzten Tabellen/Funktionen (Stand 15.10.2026, nur noetige Spalten), dann die Migrationen.
+import { readFileSync, existsSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
+import { join } from 'node:path';
+import assert from 'node:assert/strict';
+
+const basis = process.env.PGLITE;
+if (!basis) { console.error('PGLITE fehlt – siehe Kopf dieser Datei.'); process.exit(2); }
+const { PGlite } = await import(pathToFileURL(join(basis, 'node_modules/@electric-sql/pglite/dist/index.js')).href);
+const db = new PGlite();
+const lies = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+await db.exec(`
+create role anon; create role authenticated;
+create schema auth;
+create function auth.jwt() returns jsonb language sql stable as $$ select nullif(current_setting('request.jwt.claims', true), '')::jsonb $$;
+create function auth.uid() returns uuid language sql stable as $$ select (auth.jwt()->>'sub')::uuid $$;
+create function public.is_app_user() returns boolean language sql stable as $$
+  select coalesce((auth.jwt() -> 'app_metadata' ->> 'app_role') in ('admin','user'), false) $$;
+create function public.tel_key(t text) returns text language sql immutable as $$
+  select case when d like '00%' then substr(d, 3) when d like '0%' then '43' || substr(d, 2) else d end
+  from (select regexp_replace(coalesce(t, ''), '[^0-9]', '', 'g') as d) x $$;
+create function public.protokoll_schreiben() returns trigger language plpgsql as $$ begin return null; end $$;
+create table public.fahrer (id integer primary key, name text not null, telefon text, aktiv boolean default true, notion_fahrer_id integer);
+create table public.fahrer_app_zugang (notion_fahrer_id integer primary key, auth_user_id uuid not null, gesperrt boolean default false);
+create table public.abrechnung_freigaben (woche text primary key, freigegeben_am timestamptz default now());
+create table public.settlements (id serial primary key, woche text, fahrer_name text, telefon text, status text default 'berechnet',
+  auszahlung numeric(10,2) default 0, lohn numeric default 0);
+create function public.settlement_fahrer(p_telefon text, p_name text) returns integer language sql stable as $$
+  select f.id from public.fahrer f
+  where (coalesce(p_telefon,'') <> '' and public.tel_key(f.telefon) = public.tel_key(p_telefon)) or f.name = p_name
+  order by (coalesce(p_telefon,'') <> '' and public.tel_key(f.telefon) = public.tel_key(p_telefon)) desc, f.aktiv desc nulls last, f.id
+  limit 1 $$;
+create function public.mein_fahrer_id() returns integer language sql stable security definer set search_path = public as $$
+  select min(f.id) from public.fahrer f
+  join public.fahrer_app_zugang z on z.notion_fahrer_id = f.notion_fahrer_id and z.auth_user_id = auth.uid() and not z.gesperrt
+  where f.aktiv and coalesce(auth.jwt()->'app_metadata'->>'fahrer_nr', '') ~ '^[0-9]{1,9}$'
+    and f.notion_fahrer_id = (auth.jwt()->'app_metadata'->>'fahrer_nr')::integer
+  having count(*) = 1 $$;
+create function public.fahrer_app_ziel(p_fahrer_id integer) returns integer language sql stable security definer set search_path = public as $$
+  select case when p_fahrer_id is not null and public.is_app_user() then (select f.id from public.fahrer f where f.id = p_fahrer_id)
+              when public.is_app_user() then null else public.mein_fahrer_id() end $$;
+grant usage on schema public, auth to anon, authenticated;
+-- wie live: Buero liest fahrer/settlements/freigaben ueber RLS (app_users_all), Fahrer sehen nichts direkt
+alter table public.fahrer enable row level security;
+create policy app_users_all on public.fahrer for all to authenticated using (public.is_app_user());
+grant select on public.fahrer, public.settlements, public.abrechnung_freigaben to authenticated;
+
+insert into public.fahrer values (1, 'Anna Fahr', '+436601111111', true, 101), (2, 'Bert Fahr', '+436602222222', true, 102),
+                                 (3, 'Cem Fahr', '+436603333333', true, 103);
+insert into public.fahrer_app_zugang values (101, '00000000-0000-0000-0000-000000000101', false),
+                                            (102, '00000000-0000-0000-0000-000000000102', false);
+insert into public.abrechnung_freigaben (woche) values ('2026-W40'), ('2026-W41');
+insert into public.settlements (woche, fahrer_name, telefon, auszahlung, lohn) values
+  ('2026-W41', 'Anna Fahr', '+436601111111', 500, 100),        -- Anna: 400
+  ('2026-W41', 'Anna Alias', '+436601111111', 50, 0),          -- zweite Zeile derselben Person: +50
+  ('2026-W41', 'Bert Fahr', '+436602222222', 100, 300),        -- Bert: -200
+  ('2026-W40', 'Anna Fahr', '+436601111111', 999, 0);
+`);
+await db.exec(lies('../migrations/2026-10-15-bankdaten.sql'));
+const uebernahme = '../migrations/2026-10-15-bankdaten-uebernahme.sql';
+
+const als = (claims) => db.exec(`select set_config('request.jwt.claims', '${JSON.stringify(claims)}', false); set role authenticated;`);
+const raus = () => db.exec(`reset role; select set_config('request.jwt.claims', '', false);`);
+const ANNA = { sub: '00000000-0000-0000-0000-000000000101', app_metadata: { fahrer_nr: '101' } };
+const BERT = { sub: '00000000-0000-0000-0000-000000000102', app_metadata: { fahrer_nr: '102' } };
+const BUERO = { sub: '00000000-0000-0000-0000-000000000900', app_metadata: { app_role: 'user', app_name: 'Stefan' } };
+const q = async (sql, p) => (await db.query(sql, p)).rows;
+const nein = async (sql, p, muster) => assert.rejects(db.query(sql, p), (e) => { assert.match(e.message, muster); return true; });
+
+try {
+  // --- Pruefung in SQL wie im Browser
+  const g = await q(`select public.iban_gueltig('lt12 1000 0111-0100 1000') a, public.iban_gueltig('AT611904300234573202') b,
+                            public.iban_gueltig('AT6119043002345732') c, public.iban_gueltig('DE89370400440532013000') d`);
+  assert.deepEqual(g[0], { a: true, b: false, c: false, d: true });
+
+  // --- Anna: noch nichts da -> eine Zeile mit leeren Bankdaten, Betrag 450 (zwei Zeilen), Woche W41
+  await als(ANNA);
+  let [a] = await q('select * from public.fahrer_app_bank()');
+  assert.equal(a.iban, null); assert.equal(a.woche, '2026-W41'); assert.equal(Number(a.betrag), 450);
+  await nein(`select public.bank_bestaetigen('2026-W41')`, [], /zuerst Bankdaten/);
+  await nein(`select public.fahrer_bank_setzen('Anna Fahr', 'AT611904300234573202')`, [], /IBAN ungültig/);
+  await nein(`select public.fahrer_bank_setzen(' ', 'AT611904300234573201')`, [], /Kontoinhaber/);
+  await nein(`select public.fahrer_bank_setzen('Anna Fahr', 'AT611904300234573201', 'REV')`, [], /BIC/);
+  await q(`select public.fahrer_bank_setzen('  Anna   Fahr ', 'lt12 1000 0111-0100 1000', 'revolt21', 'anna.f')`);
+  [a] = await q('select * from public.fahrer_app_bank()');
+  assert.equal(a.iban, 'LT121000011101001000'); assert.equal(a.kontoinhaber, 'Anna Fahr');
+  assert.equal(a.bic, 'REVOLT21'); assert.equal(a.revtag, '@anna.f');
+  // Bestaetigen: nur aktuelle Woche
+  await nein(`select public.bank_bestaetigen('2026-W40')`, [], /aktuelle Woche/);
+  await q(`select public.bank_bestaetigen('2026-W41')`);
+  [a] = await q('select * from public.fahrer_app_bank()');
+  assert.equal(a.bestaetigt_iban, 'LT121000011101001000'); assert.ok(a.bestaetigt_am);
+  // Gleiche Daten nochmal: kein Verlauf, Bestaetigung bleibt
+  await q(`select public.fahrer_bank_setzen('Anna Fahr', 'LT121000011101001000', 'REVOLT21', '@anna.f')`);
+  [a] = await q('select * from public.fahrer_app_bank()');
+  assert.ok(a.bestaetigt_am, 'Bestaetigung darf bei gleichen Daten bleiben');
+  // Fahrer liest Tabellen nicht direkt
+  assert.equal((await q('select count(*)::int n from public.fahrer_bank'))[0].n, 0);
+  assert.equal((await q('select count(*)::int n from public.fahrer_bank_verlauf'))[0].n, 0);
+  // Neue IBAN -> Bestaetigung weg
+  await q(`select public.fahrer_bank_setzen('Anna Fahr', 'AT611904300234573201')`);
+  [a] = await q('select * from public.fahrer_app_bank()');
+  assert.equal(a.bestaetigt_am, null); assert.equal(a.iban, 'AT611904300234573201');
+  // Vorschau-Parameter wird fuer Fahrer ignoriert (sieht nur sich)
+  [a] = await q('select * from public.fahrer_app_bank(2)');
+  assert.equal(a.iban, 'AT611904300234573201');
+  await raus();
+
+  // --- Bert: Betrag negativ -> Bestaetigen abgelehnt
+  await als(BERT);
+  await q(`select public.fahrer_bank_setzen('Bert Fahr', 'DE89370400440532013000')`);
+  await nein(`select public.bank_bestaetigen('2026-W41')`, [], /keine Auszahlung/);
+  await raus();
+
+  // --- Buero: sieht alles, kann nicht als Fahrer speichern/bestaetigen, kann ueber buero_bank_setzen eintragen
+  await als(BUERO);
+  await nein(`select public.fahrer_bank_setzen('X Y', 'DE89370400440532013000')`, [], /Fahrerapp/);
+  await nein(`select public.bank_bestaetigen('2026-W41')`, [], /Fahrerapp/);
+  [a] = await q('select * from public.fahrer_app_bank(1)');         // Vorschau Anna
+  assert.equal(a.iban, 'AT611904300234573201');
+  await q(`select public.buero_bank_setzen(103, 'Cem Fahr', 'GB82WEST12345698765432')`);
+  await nein(`select public.buero_bank_setzen(999, 'Niemand', 'GB82WEST12345698765432')`, [], /Fahrer/);
+  const ue = await q('select notion_fahrer_id, iban, geaendert_von, aenderungen from public.bank_uebersicht order by 1');
+  assert.deepEqual(ue.map((r) => [r.notion_fahrer_id, r.iban, r.geaendert_von, r.aenderungen]), [
+    [101, 'AT611904300234573201', 'fahrer', 2], [102, 'DE89370400440532013000', 'fahrer', 1], [103, 'GB82WEST12345698765432', 'Stefan', 1]]);
+  const v = await q('select alt_iban, neu_iban, von from public.fahrer_bank_verlauf where notion_fahrer_id = 101 order by id');
+  assert.deepEqual(v.map((r) => [r.alt_iban, r.neu_iban, r.von]),
+    [[null, 'LT121000011101001000', 'fahrer'], ['LT121000011101001000', 'AT611904300234573201', 'fahrer']]);
+  await raus();
+
+  // --- Ohne Anmeldung: nichts
+  await db.exec('set role anon');
+  await nein('select * from public.fahrer_bank', [], /permission denied/);
+  await nein(`select public.fahrer_bank_setzen('X Y', 'DE89370400440532013000')`, [], /permission denied/);
+  await raus();
+
+  // --- Verlauf ist unveraenderlich, auch fuer den Besitzer der Tabelle
+  await nein('update public.fahrer_bank_verlauf set von = $1', ['x'], /nicht geändert/);
+  await nein('delete from public.fahrer_bank_verlauf', [], /nicht geändert/);
+
+  if (existsSync(new URL(uebernahme, import.meta.url))) {
+    // Task 3 haengt hier seine Asserts an
+  }
+  console.log('OK');
+} catch (e) {
+  console.error('FEHLER: ' + (e && e.message || e));
+  process.exit(1);
+}

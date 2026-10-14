@@ -1,6 +1,7 @@
 -- ============================================================================
 -- Bankdaten aus dem oeffentlichen Formular (~/Projects/iban-formular, Tabelle fahrer_iban) uebernehmen
--- Datum: 2026-10-15. Wiederholbar: uebernimmt nur Eintraege mit status 'neu'.
+-- Datum: 2026-10-15. EINMALIG fuer Eintraege bis zum Stichtag 15.10.2026: das Formular ist oeffentlich,
+-- spaetere Eintraege ordnet nur das Buero zu (Dashboard), nie automatisch.
 --
 -- Zuordnung zu genau einem aktiven Fahrer mit Notion-Nr.: zuerst ueber die Telefonnummer (tel_key),
 -- sonst ueber den Namen (name_key, Reihenfolge egal) oder einen Namens-Alias. Das Formular hatte
@@ -49,6 +50,7 @@ begin
       select i.*, (public.formular_iban_fahrer(i.telefon, i.vorname, i.nachname)).p_nr as nr
       from public.fahrer_iban i
       where i.status = 'neu' and public.iban_gueltig(i.iban)
+        and i.erstellt_am < timestamptz '2026-10-16 00:00 Europe/Vienna'   -- Stichtag, siehe Kopf
     )
     select t.*, row_number() over (partition by t.nr order by t.erstellt_am desc, t.id desc) as rang
     from treffer t
@@ -74,13 +76,22 @@ select i.id, i.erstellt_am, btrim(i.vorname || ' ' || i.nachname) as name, i.tel
        case when not public.iban_gueltig(i.iban) then 'IBAN ungültig'
             when (public.formular_iban_fahrer(i.telefon, i.vorname, i.nachname)).p_anzahl = 0 then 'kein passender Fahrer (Name/Telefon)'
             when (public.formular_iban_fahrer(i.telefon, i.vorname, i.nachname)).p_anzahl > 1 then 'mehrere Fahrer passen'
-            else 'Fahrer hat schon Bankdaten' end as grund
+            when exists (select 1 from public.fahrer_bank b
+                         where b.notion_fahrer_id = (public.formular_iban_fahrer(i.telefon, i.vorname, i.nachname)).p_nr)
+              then 'Fahrer hat schon Bankdaten'
+            else (select 'passt zu ' || f.name || ' (Nr. ' || f.notion_fahrer_id || ')' from public.fahrer f
+                  where f.aktiv and f.notion_fahrer_id = (public.formular_iban_fahrer(i.telefon, i.vorname, i.nachname)).p_nr
+                  limit 1) end as grund
 from public.fahrer_iban i
 where i.status = 'neu' and public.is_app_user();
 revoke all on public.formular_iban_offen from public, anon;
 grant select on public.formular_iban_offen to authenticated;
 
-create or replace function public.formular_iban_zuordnen(p_id bigint, p_notion_fahrer_id integer)
+-- Ein Eintrag aus dem oeffentlichen Formular ueberschreibt vorhandene Bankdaten nur ausdruecklich
+-- (p_ueberschreiben, im Dashboard mit Rueckfrage alt gegen neu).
+drop function if exists public.formular_iban_zuordnen(bigint, integer);
+create or replace function public.formular_iban_zuordnen(p_id bigint, p_notion_fahrer_id integer,
+                                                         p_ueberschreiben boolean default false)
 returns void language plpgsql security definer set search_path = public as $$
 declare i public.fahrer_iban;
 begin
@@ -90,12 +101,25 @@ begin
   if not public.iban_gueltig(i.iban) then raise exception 'IBAN ungültig – bitte beim Fahrer nachfragen' using errcode = '22023'; end if;
   if not exists (select 1 from public.fahrer where aktiv and notion_fahrer_id = p_notion_fahrer_id) then
     raise exception 'Kein aktiver Fahrer mit Nr. %', p_notion_fahrer_id using errcode = 'P0002'; end if;
+  if not coalesce(p_ueberschreiben, false) and exists (select 1 from public.fahrer_bank where notion_fahrer_id = p_notion_fahrer_id) then
+    raise exception 'Fahrer hat schon Bankdaten – nur mit ausdrücklichem Überschreiben' using errcode = 'P0001'; end if;
   perform public.bank_schreiben(p_notion_fahrer_id, i.kontoinhaber, i.iban, i.bic, i.revtag,
           'formular (' || coalesce(auth.jwt()->'app_metadata'->>'app_name', 'Büro') || ')');
   update public.fahrer_iban set status = 'uebernommen', uebernommen_nr = p_notion_fahrer_id where id = p_id;
 end $$;
-revoke all on function public.formular_iban_zuordnen(bigint, integer) from public, anon;
-grant execute on function public.formular_iban_zuordnen(bigint, integer) to authenticated;
+revoke all on function public.formular_iban_zuordnen(bigint, integer, boolean) from public, anon;
+grant execute on function public.formular_iban_zuordnen(bigint, integer, boolean) to authenticated;
+
+-- Falsche oder fremde Eintraege aus dem Formular wegschieben
+create or replace function public.formular_iban_verwerfen(p_id bigint)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_app_user() then raise exception 'Nicht autorisiert' using errcode = '42501'; end if;
+  update public.fahrer_iban set status = 'abgelehnt' where id = p_id and status = 'neu';
+  if not found then raise exception 'Eintrag % nicht offen', p_id using errcode = 'P0002'; end if;
+end $$;
+revoke all on function public.formular_iban_verwerfen(bigint) from public, anon;
+grant execute on function public.formular_iban_verwerfen(bigint) to authenticated;
 
 drop policy if exists buero_liest on public.fahrer_iban;
 create policy buero_liest on public.fahrer_iban for select to authenticated using (public.is_app_user());

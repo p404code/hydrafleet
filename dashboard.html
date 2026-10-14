@@ -2623,13 +2623,26 @@
             });
             document.getElementById('pkListe').addEventListener('click', pkKlick);
             document.getElementById('fbListe').addEventListener('click', async function (e) {
+                const weg = e.target.closest('[data-fbweg]');
+                if (weg && !weg.disabled) {
+                    if (!confirm('Diesen Formular-Eintrag verwerfen? Er wird keinem Fahrer zugeordnet.')) return;
+                    weg.disabled = true;
+                    const r = await getSupabase().rpc('formular_iban_verwerfen', { p_id: parseInt(weg.dataset.fbweg, 10) });
+                    if (r.error) { alert('Verwerfen fehlgeschlagen: ' + fgFehler(r.error)); weg.disabled = false; return; }
+                    await ladeFahrer(); return;
+                }
                 const b = e.target.closest('[data-fbzu]');
                 if (!b || b.disabled) return;
                 const sel = document.querySelector('[data-fbsel="' + b.dataset.fbzu + '"]');
                 const nr = sel ? parseInt(sel.value, 10) : NaN;
                 if (!nr) { alert('Bitte einen Fahrer wählen.'); return; }
+                // Hat der Fahrer schon Bankdaten, nur nach Rueckfrage ueberschreiben (das Formular ist oeffentlich)
+                const alt = FZ_BANK[nr] && FZ_BANK[nr].iban ? FZ_BANK[nr] : null;
+                const neu = FB_OFFEN.filter(function (x) { return String(x.id) === b.dataset.fbzu; })[0];
+                if (alt && !confirm('Dieser Fahrer hat schon Bankdaten.\n\nJetzt: ' + BankLogik.kurz(alt.iban) + ' · ' + alt.kontoinhaber +
+                    '\nAus dem Formular: ' + (neu ? neu.iban_kurz + ' · ' + neu.kontoinhaber : '?') + '\n\nWirklich überschreiben?')) return;
                 b.disabled = true;
-                const { error } = await getSupabase().rpc('formular_iban_zuordnen', { p_id: parseInt(b.dataset.fbzu, 10), p_notion_fahrer_id: nr });
+                const { error } = await getSupabase().rpc('formular_iban_zuordnen', { p_id: parseInt(b.dataset.fbzu, 10), p_notion_fahrer_id: nr, p_ueberschreiben: !!alt });
                 if (error) { alert('Zuordnen fehlgeschlagen: ' + fgFehler(error)); b.disabled = false; return; }
                 showReToast('Bankdaten übernommen', 'success');
                 await ladeFahrer();
@@ -2837,7 +2850,9 @@
                     (x.grund === 'IBAN ungültig' ? '' :
                     '<select data-fbsel="' + x.id + '"><option value="">Fahrer wählen …</option>' + aktive.map(function (f) {
                         return '<option value="' + f.notion_fahrer_id + '">' + esc(f.name) + ' · Nr. ' + f.notion_fahrer_id + '</option>'; }).join('') + '</select>' +
-                    '<div class="detail-acts"><button class="btn-ghost" data-fbzu="' + x.id + '">Zuordnen</button></div>') + '</div>';
+                    '<div class="detail-acts"><button class="btn-ghost" data-fbzu="' + x.id + '">Zuordnen</button>') +
+                    (x.grund === 'IBAN ungültig' ? '<div class="detail-acts">' : '') +
+                    '<button class="btn-ghost" data-fbweg="' + x.id + '">Verwerfen</button></div></div>';
             }).join('');
         }
         function fzDetailHtml(f) {

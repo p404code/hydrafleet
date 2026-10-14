@@ -184,8 +184,10 @@ begin
   perform public.bank_schreiben(v_nr, p_kontoinhaber, p_iban, p_bic, p_revtag, 'fahrer');
 end $$;
 
--- Fahrer bestaetigt seine IBAN fuer die neueste freigegebene Woche
-create or replace function public.bank_bestaetigen(p_woche text)
+-- Fahrer bestaetigt seine IBAN fuer die neueste freigegebene Woche. p_iban = die IBAN, die er auf der
+-- Karte gesehen hat: wurde sie inzwischen geaendert (Buero, zweites Handy), wird nichts bestaetigt.
+drop function if exists public.bank_bestaetigen(text);
+create or replace function public.bank_bestaetigen(p_woche text, p_iban text)
 returns void language plpgsql security definer set search_path = public as $$
 declare v_id integer := public.mein_fahrer_id(); v_nr integer; b public.fahrer_bank; v_betrag numeric;
 begin
@@ -193,8 +195,10 @@ begin
   if p_woche is distinct from public.bank_woche() then
     raise exception 'Nur die aktuelle Woche kann bestätigt werden' using errcode = '22023'; end if;
   select notion_fahrer_id into v_nr from public.fahrer where id = v_id;
-  select * into b from public.fahrer_bank where notion_fahrer_id = v_nr;
+  select * into b from public.fahrer_bank where notion_fahrer_id = v_nr for update;
   if b.notion_fahrer_id is null then raise exception 'Bitte zuerst Bankdaten eintragen' using errcode = '22023'; end if;
+  if b.iban is distinct from public.iban_norm(p_iban) then
+    raise exception 'Deine IBAN wurde inzwischen geändert – bitte neu prüfen' using errcode = '22023'; end if;
   v_betrag := public.bank_betrag(v_id, p_woche);
   if coalesce(v_betrag, 0) <= 0 then raise exception 'Für diese Woche gibt es keine Auszahlung' using errcode = '22023'; end if;
   insert into public.bank_bestaetigung (woche, notion_fahrer_id, iban, kontoinhaber, betrag)
@@ -234,8 +238,8 @@ grant select on public.bank_uebersicht to authenticated;
 revoke all on function public.bank_schreiben(integer, text, text, text, text, text),
   public.bank_betrag(integer, text) from public, anon, authenticated;
 revoke all on function public.fahrer_app_bank(integer), public.fahrer_bank_setzen(text, text, text, text),
-  public.bank_bestaetigen(text), public.buero_bank_setzen(integer, text, text, text, text),
+  public.bank_bestaetigen(text, text), public.buero_bank_setzen(integer, text, text, text, text),
   public.bank_woche() from public, anon;
 grant execute on function public.fahrer_app_bank(integer), public.fahrer_bank_setzen(text, text, text, text),
-  public.bank_bestaetigen(text), public.buero_bank_setzen(integer, text, text, text, text),
+  public.bank_bestaetigen(text, text), public.buero_bank_setzen(integer, text, text, text, text),
   public.bank_woche() to authenticated;

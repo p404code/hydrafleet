@@ -45,7 +45,8 @@ insert into public.fahrer_iban (id, erstellt_am, vorname, nachname, telefon, kon
   -- Das Formular hat live keine Telefonnummern (12 von 13 leer): Zuordnung ueber den Namen
   (5, '2026-10-07', 'Vier', 'Dora', null, 'Dora Vier', 'DE89370400440532013000', null, null),     -- Reihenfolge vertauscht
   (6, '2026-10-07', 'Emil', 'Weiss', null, 'Emil Weiss', 'BG80BNBG96611020345678', null, null),   -- ueber name_aliases
-  (7, '2026-10-07', 'Gleich', 'Name', null, 'Gleich Name', 'LT121000011101001000', null, null);   -- zwei Fahrer passen
+  (7, '2026-10-07', 'Gleich', 'Name', null, 'Gleich Name', 'LT121000011101001000', null, null),   -- zwei Fahrer passen
+  (8, '2026-10-20', 'Hans', 'Neu', null, 'Hans Neu', 'DE89370400440532013000', null, null);       -- nach dem Stichtag: nie automatisch
 create function public.settlement_fahrer(p_telefon text, p_name text) returns integer language sql stable as $$
   select f.id from public.fahrer f
   where (coalesce(p_telefon,'') <> '' and public.tel_key(f.telefon) = public.tel_key(p_telefon)) or f.name = p_name
@@ -69,7 +70,8 @@ grant select on public.fahrer, public.settlements, public.abrechnung_freigaben t
 insert into public.fahrer values (1, 'Anna Fahr', '+436601111111', true, 101), (2, 'Bert Fahr', '+436602222222', true, 102),
                                  (3, 'Cem Fahr', '+436603333333', true, 103),
                                  (4, 'Dora Vier', null, true, 104), (5, 'Emil Fuenf', null, true, 105),
-                                 (6, 'Gleich Name', null, true, 106), (7, 'Name Gleich', null, true, 107);  -- 6/7: gleicher name_key
+                                 (6, 'Gleich Name', null, true, 106), (7, 'Name Gleich', null, true, 107),
+                                 (8, 'Hans Neu', null, true, 108);  -- 6/7: gleicher name_key
 create table public.name_aliases (csv_name text primary key, fahrer_name text not null);
 insert into public.name_aliases values ('emil weiss', 'Emil Fuenf');
 insert into public.fahrer_app_zugang values (101, '00000000-0000-0000-0000-000000000101', false),
@@ -102,7 +104,7 @@ try {
   await als(ANNA);
   let [a] = await q('select * from public.fahrer_app_bank()');
   assert.equal(a.iban, null); assert.equal(a.woche, '2026-W41'); assert.equal(Number(a.betrag), 450);
-  await nein(`select public.bank_bestaetigen('2026-W41')`, [], /zuerst Bankdaten/);
+  await nein(`select public.bank_bestaetigen('2026-W41', 'LT121000011101001000')`, [], /zuerst Bankdaten/);
   await nein(`select public.fahrer_bank_setzen('Anna Fahr', 'AT611904300234573202')`, [], /IBAN ungültig/);
   await nein(`select public.fahrer_bank_setzen(' ', 'AT611904300234573201')`, [], /Kontoinhaber/);
   await nein(`select public.fahrer_bank_setzen('Anna Fahr', 'AT611904300234573201', 'REV')`, [], /BIC/);
@@ -111,8 +113,10 @@ try {
   assert.equal(a.iban, 'LT121000011101001000'); assert.equal(a.kontoinhaber, 'Anna Fahr');
   assert.equal(a.bic, 'REVOLT21'); assert.equal(a.revtag, '@anna.f');
   // Bestaetigen: nur aktuelle Woche
-  await nein(`select public.bank_bestaetigen('2026-W40')`, [], /aktuelle Woche/);
-  await q(`select public.bank_bestaetigen('2026-W41')`);
+  await nein(`select public.bank_bestaetigen('2026-W40', 'LT121000011101001000')`, [], /aktuelle Woche/);
+  // Final-Review I2: bestaetigt wird nur die IBAN, die der Fahrer gesehen hat
+  await nein(`select public.bank_bestaetigen('2026-W41', 'AT611904300234573201')`, [], /inzwischen geändert/);
+  await q(`select public.bank_bestaetigen('2026-W41', 'lt12 1000 0111 0100 1000')`);
   [a] = await q('select * from public.fahrer_app_bank()');
   assert.equal(a.bestaetigt_iban, 'LT121000011101001000'); assert.ok(a.bestaetigt_am);
   // Gleiche Daten nochmal: kein Verlauf, Bestaetigung bleibt
@@ -136,13 +140,13 @@ try {
   // --- Bert: Betrag negativ -> Bestaetigen abgelehnt
   await als(BERT);
   await q(`select public.fahrer_bank_setzen('Bert Fahr', 'DE89370400440532013000')`);
-  await nein(`select public.bank_bestaetigen('2026-W41')`, [], /keine Auszahlung/);
+  await nein(`select public.bank_bestaetigen('2026-W41', 'DE89370400440532013000')`, [], /keine Auszahlung/);
   await raus();
 
   // --- Buero: sieht alles, kann nicht als Fahrer speichern/bestaetigen, kann ueber buero_bank_setzen eintragen
   await als(BUERO);
   await nein(`select public.fahrer_bank_setzen('X Y', 'DE89370400440532013000')`, [], /Fahrerapp/);
-  await nein(`select public.bank_bestaetigen('2026-W41')`, [], /Fahrerapp/);
+  await nein(`select public.bank_bestaetigen('2026-W41', 'DE89370400440532013000')`, [], /Fahrerapp/);
   [a] = await q('select * from public.fahrer_app_bank(1)');         // Vorschau Anna
   assert.equal(a.iban, 'AT611904300234573201');
   await q(`select public.buero_bank_setzen(103, 'Cem Fahr', 'GB82WEST12345698765432')`);
@@ -170,27 +174,32 @@ try {
     await db.exec(lies(uebernahme));
     let r = await q('select id, status, uebernommen_nr from public.fahrer_iban order by id');
     assert.deepEqual(r.map((x) => [x.id, x.status, x.uebernommen_nr]),
-      [[1, 'neu', null], [2, 'neu', null], [3, 'neu', null], [4, 'neu', null], [5, 'uebernommen', 104], [6, 'uebernommen', 105], [7, 'neu', null]]);
+      [[1, 'neu', null], [2, 'neu', null], [3, 'neu', null], [4, 'neu', null], [5, 'uebernommen', 104], [6, 'uebernommen', 105], [7, 'neu', null], [8, 'neu', null]]);
     // Cem neu aufsetzen: Buero-Eintrag weg, damit die Uebernahme greift (Verlauf bleibt, nur fahrer_bank leeren)
     await db.exec(`delete from public.fahrer_bank where notion_fahrer_id = 103`);
     await db.exec(lies(uebernahme));
     r = await q('select id, status, uebernommen_nr from public.fahrer_iban order by id');
     assert.deepEqual(r.map((x) => [x.id, x.status, x.uebernommen_nr]),
-      [[1, 'ueberholt', 103], [2, 'uebernommen', 103], [3, 'neu', null], [4, 'neu', null], [5, 'uebernommen', 104], [6, 'uebernommen', 105], [7, 'neu', null]]);
+      [[1, 'ueberholt', 103], [2, 'uebernommen', 103], [3, 'neu', null], [4, 'neu', null], [5, 'uebernommen', 104], [6, 'uebernommen', 105], [7, 'neu', null], [8, 'neu', null]]);
     const [c] = await q('select iban, bic, revtag, geaendert_von from public.fahrer_bank where notion_fahrer_id = 103');
     assert.deepEqual([c.iban, c.bic, c.revtag, c.geaendert_von], ['GB82WEST12345698765432', 'WESTGB2L', '@cem', 'formular']);
 
     await als(BUERO);
     const offen = await q('select id, grund from public.formular_iban_offen order by id');
-    assert.deepEqual(offen.map((x) => [x.id, x.grund]), [[3, 'kein passender Fahrer (Name/Telefon)'], [4, 'IBAN ungültig'], [7, 'mehrere Fahrer passen']]);
+    assert.deepEqual(offen.map((x) => [x.id, x.grund]), [[3, 'kein passender Fahrer (Name/Telefon)'], [4, 'IBAN ungültig'], [7, 'mehrere Fahrer passen'], [8, 'passt zu Hans Neu (Nr. 108)']]);
     await nein('select public.formular_iban_zuordnen(4, 101)', [], /IBAN ungültig/);
-    await q('select public.formular_iban_zuordnen(3, 102)');       // Buero ordnet Eintrag 3 Bert zu
+    // Final-Review I1: Bert hat schon Bankdaten -> nur mit ausdruecklichem Ueberschreiben
+    await nein('select public.formular_iban_zuordnen(3, 102)', [], /hat schon Bankdaten/);
+    await q('select public.formular_iban_zuordnen(3, 102, true)');       // Buero ordnet Eintrag 3 Bert zu
+    await q('select public.formular_iban_verwerfen(7)');
+    assert.equal((await q('select status from public.fahrer_iban where id = 7'))[0].status, 'abgelehnt');
     const [b] = await q(`select iban, geaendert_von from public.fahrer_bank where notion_fahrer_id = 102`);
     assert.deepEqual([b.iban, b.geaendert_von], ['AT611904300234573201', 'formular (Stefan)']);
-    assert.equal((await q('select count(*)::int n from public.formular_iban_offen'))[0].n, 2);
+    assert.equal((await q('select count(*)::int n from public.formular_iban_offen'))[0].n, 2);   // 4 (IBAN kaputt) und 8
     await raus();
     await als(ANNA);
     await nein('select public.formular_iban_zuordnen(4, 101)', [], /Nicht autorisiert/);
+    await nein('select public.formular_iban_verwerfen(4)', [], /Nicht autorisiert/);
     // Fahrer koennen ueber die Zuordnungsfunktion keine fremden Fahrer-Nummern erfragen
     assert.equal((await q(`select (public.formular_iban_fahrer('06603333333', 'Cem', 'Fahr')).p_nr as nr`))[0].nr, null);
     await raus();

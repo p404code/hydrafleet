@@ -624,7 +624,7 @@
             return '<section class="bank-karte offen"><div class="t">Auszahlung ' + esc(kw(b.woche)) + '</div>'
                 + '<div class="b num">' + fmt(betrag) + '</div>'
                 + '<div class="i">an ' + iban + ' · ' + esc(b.kontoinhaber) + '</div>'
-                + '<div class="acts"><button type="button" class="btn-primary" data-act="bank-ok" data-woche="' + esc(b.woche) + '"' + dis + '>Stimmt</button>'
+                + '<div class="acts"><button type="button" class="btn-primary" data-act="bank-ok" data-woche="' + esc(b.woche) + '" data-iban="' + esc(b.iban) + '"' + dis + '>Stimmt</button>'
                 + '<a class="btn-ghost" href="#bank/aendern">IBAN ändern</a></div></section>';
         }
 
@@ -942,7 +942,7 @@
         async function bankBestaetigen(btn) {
             if (btn.disabled || S.mode === 'vorschau') return;
             btn.disabled = true; btn.textContent = 'Speichere …';
-            const { error } = await sb.rpc('bank_bestaetigen', { p_woche: btn.getAttribute('data-woche') }).then(x => x, err => ({ error: err }));
+            const { error } = await sb.rpc('bank_bestaetigen', { p_woche: btn.getAttribute('data-woche'), p_iban: btn.getAttribute('data-iban') }).then(x => x, err => ({ error: err }));
             if (error) { alert(bankMeldung(error)); }
             await bankNeuLaden();
             render();

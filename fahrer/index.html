@@ -213,6 +213,20 @@
         @media (min-width: 600px) {
             main { max-width: 560px; margin: 0 auto; }
         }
+        .bank-karte { margin: 12px 12px 0; padding: 12px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; }
+        .bank-karte.offen { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-faint); }
+        .bank-karte.ok { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-mut); border-color: var(--border); }
+        .bank-karte .t { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-mut); }
+        .bank-karte .b { font-size: 20px; font-weight: 700; margin: 4px 0 2px; }
+        .bank-karte .i { font-size: 13px; overflow-wrap: anywhere; }
+        .bank-karte .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .bank-karte .acts .btn-primary, .bank-karte .acts .btn-ghost { height: 42px; }
+        .bank-form { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+        .bank-form input { height: 44px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--surface); color: var(--text); font-size: 15px; font-family: inherit; width: 100%; box-sizing: border-box; }
+        .bank-form input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-faint); }
+        .bank-form .feld-fehler { font-size: 11.5px; color: var(--err); min-height: 0; }
+        .bank-form .opt { font-weight: 400; text-transform: none; letter-spacing: 0; }
+        .bank-iban { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
     </style>
 </head>
 <body>
@@ -267,6 +281,7 @@
         </nav>
     </div>
 
+    <script src="/bank-logik.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script>
         const SUPABASE_URL = 'https://pkxcwfkfaaorwnbdmylg.supabase.co';
@@ -275,7 +290,7 @@
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         /* Zustand. mode: 'fahrer' (eigene Sitzung) oder 'vorschau' (Büro-Sitzung, ?vorschau=<fahrer_id>). */
-        const S = { mode: null, vorschauId: null, profil: null, abr: [], offen: [], loadedAt: 0, loading: false, lz: lzLeer(), st: stLeer() };
+        const S = { mode: null, vorschauId: null, profil: null, abr: [], offen: [], bank: null, bankFehler: false, loadedAt: 0, loading: false, lz: lzLeer(), st: stLeer() };
         /* Lohnzettel + Dienstgeber: eigener Ladezustand, lazy beim ersten Öffnen (Start oder Lohnzettel), nach >5 Min neu */
         function lzLeer() { return { rows: [], dg: [], err: false, loadedAt: 0, loading: false }; }
         function stLeer() { return { rows: [], err: false, loadedAt: 0, loading: false }; }
@@ -458,6 +473,10 @@
             S.profil = (res[0].data || [])[0] || null;
             S.abr = (res[1].data || []).slice().sort(nachWocheAb);
             S.offen = (res[2].data || []).slice().sort(nachWocheAb);
+            const bank = await (arg ? sb.rpc('fahrer_app_bank', arg) : sb.rpc('fahrer_app_bank'))
+                .then(r => r, e => ({ error: e }));
+            S.bankFehler = !!bank.error;
+            S.bank = bank.error ? null : ((bank.data || [])[0] || null);
             S.loadedAt = Date.now();
         }
 
@@ -554,17 +573,17 @@
         function route() {
             const h = decodeURIComponent((location.hash || '').replace(/^#/, ''));
             const parts = h.split('/');
-            const name = ['start', 'abrechnung', 'offen', 'kontakt', 'mehr', 'lohnzettel', 'fahrzeug', 'strafen'].indexOf(parts[0]) >= 0 ? parts[0] : 'start';
+            const name = ['start', 'abrechnung', 'offen', 'kontakt', 'mehr', 'lohnzettel', 'fahrzeug', 'strafen', 'bank'].indexOf(parts[0]) >= 0 ? parts[0] : 'start';
             return { name: name, arg: parts.slice(1).join('/') };
         }
-        const TAB_FOR = { start: 'start', abrechnung: 'abrechnung', offen: 'mehr', kontakt: 'mehr', mehr: 'mehr', lohnzettel: 'mehr', fahrzeug: 'fahrzeug', strafen: 'mehr' };
+        const TAB_FOR = { start: 'start', abrechnung: 'abrechnung', offen: 'mehr', kontakt: 'mehr', mehr: 'mehr', lohnzettel: 'mehr', fahrzeug: 'fahrzeug', strafen: 'mehr', bank: 'mehr' };
 
         function render() {
             if (!S.profil || document.getElementById('shell').hidden) return;
             const r = route();
             if ((r.name === 'start' || r.name === 'lohnzettel') && lzAlt() && !S.lz.loading) ladenLohn();
             if ((r.name === 'start' || r.name === 'strafen') && stAlt() && !S.st.loading) ladenStrafen();
-            const out = ({ start: viewStart, abrechnung: viewAbrechnung, offen: viewOffen, kontakt: viewKontakt, mehr: viewMehr, lohnzettel: viewLohnzettel, fahrzeug: viewFahrzeug, strafen: viewStrafen })[r.name](r.arg);
+            const out = ({ start: viewStart, abrechnung: viewAbrechnung, offen: viewOffen, kontakt: viewKontakt, mehr: viewMehr, lohnzettel: viewLohnzettel, fahrzeug: viewFahrzeug, strafen: viewStrafen, bank: (a) => a === 'aendern' ? viewBankAendern() : viewBank() })[r.name](r.arg);
             document.getElementById('topbar').className = 'topbar' + (out.back ? ' sub' : '');
             document.getElementById('topbar').innerHTML = out.back
                 ? '<a class="back" href="' + out.back + '" aria-label="Zurück">' + ICON_BACK + '</a><div class="title">' + esc(out.title) + '</div><div class="who">' + esc(out.right || '') + '</div>'
@@ -585,12 +604,36 @@
         }
         function wocheHref(woche) { return '#abrechnung/' + encodeURIComponent(woche); }
 
+        /* Bankdaten-Karte ganz oben auf Start (Spec 2026-10-15, Abschnitt 3) */
+        function bankKarte() {
+            if (S.bankFehler) return '';
+            const b = S.bank;
+            const vorschau = S.mode === 'vorschau';
+            const dis = vorschau ? ' disabled title="In der Vorschau nicht möglich"' : '';
+            if (!b || !b.iban) {
+                return '<section class="bank-karte offen"><div class="t">Bankdaten</div>'
+                    + '<div class="i" style="margin-top:4px">Bankdaten fehlen – damit wir dir überweisen können.</div>'
+                    + '<div class="acts" style="grid-template-columns:1fr"><a class="btn-primary" href="#bank/aendern">Eintragen</a></div></section>';
+            }
+            const betrag = num(b.betrag);
+            if (!b.woche || b.betrag == null || betrag <= 0) return '';
+            const iban = '<span class="bank-iban">' + esc(BankLogik.kurz(b.iban)) + '</span>';
+            if (b.bestaetigt_am && b.bestaetigt_iban === b.iban) {
+                return '<section class="bank-karte ok">' + ICON_CHECK + '<span>' + esc(kw(b.woche)) + ' bestätigt · ' + iban + '</span></section>';
+            }
+            return '<section class="bank-karte offen"><div class="t">Auszahlung ' + esc(kw(b.woche)) + '</div>'
+                + '<div class="b num">' + fmt(betrag) + '</div>'
+                + '<div class="i">an ' + iban + ' · ' + esc(b.kontoinhaber) + '</div>'
+                + '<div class="acts"><button type="button" class="btn-primary" data-act="bank-ok" data-woche="' + esc(b.woche) + '"' + dis + '>Stimmt</button>'
+                + '<a class="btn-ghost" href="#bank/aendern">IBAN ändern</a></div></section>';
+        }
+
         /* Start */
         function viewStart() {
             const offen = offenSumme();
             const offenKpi = kpi('Noch offen', fmt(offen), offen > 0.005 ? ' neg' : ' zero', '', '#offen');
             if (!S.abr.length) {
-                return { html: '<section class="hero"><div class="hero-row"><div class="hero-l"><div class="hero-t">Abrechnung</div><div class="hero-s">Noch keine Abrechnung freigegeben.</div></div></div>'
+                return { html: bankKarte() + '<section class="hero"><div class="hero-row"><div class="hero-l"><div class="hero-t">Abrechnung</div><div class="hero-s">Noch keine Abrechnung freigegeben.</div></div></div>'
                     + '<div class="kpis">' + offenKpi + '</div></section>'
                     + strafenStartHtml()
                     + '<div class="empty"><b>Noch keine Abrechnung freigegeben.</b><span>Sobald das Büro deine Woche freigibt, steht sie hier.</span></div>'
@@ -600,7 +643,7 @@
             const du = duBekommst(a);
             const range = weekRangeNumeric(a.woche);
             const sub = [range, a.freigegeben_am ? 'freigegeben ' + datum(a.freigegeben_am) : ''].filter(Boolean).join(' · ');
-            let html = '<section class="hero"><div class="hero-row">'
+            let html = bankKarte() + '<section class="hero"><div class="hero-row">'
                 + '<div class="hero-l"><div class="hero-t">' + esc(kw(a.woche)) + '</div><div class="hero-s">' + esc(sub) + '</div></div>'
                 + '<div class="hero-r"><div class="big num' + payCls(du) + '">' + fmt(du) + '</div><div class="big-l">Du bekommst</div></div>'
                 + '</div><div class="kpis">'
@@ -825,6 +868,36 @@
         }
 
         /* Mehr */
+        function viewBank() {
+            const b = S.bank;
+            if (S.bankFehler) return { back: '#mehr', title: 'Bankdaten', html: '<div class="empty"><b>Bankdaten gerade nicht verfügbar.</b><span>Bitte später erneut versuchen.</span></div>' };
+            if (!b || !b.iban) return { back: '#mehr', title: 'Bankdaten', html: '<div class="empty"><b>Noch keine Bankdaten.</b><span>Trag deine IBAN ein, damit wir dir überweisen können.</span><a class="btn-primary" href="#bank/aendern" style="margin-top:8px">Eintragen</a></div>' };
+            const html = '<div class="group" style="padding:0 12px">'
+                + kv('Kontoinhaber', esc(b.kontoinhaber))
+                + kv('IBAN', '<span class="bank-iban">' + esc(BankLogik.gruppiert(b.iban)) + '</span>')
+                + kv('BIC', esc(b.bic || '–'))
+                + kv('Revtag', esc(b.revtag || '–'))
+                + kv('Zuletzt geändert', b.geaendert_am ? datum(b.geaendert_am) : '–')
+                + '</div><div style="padding:12px"><a class="btn-ghost" href="#bank/aendern">Ändern</a></div>'
+                + '<div class="note">Eine neue IBAN gilt sofort für deine nächste Auszahlung.</div>';
+            return { back: '#mehr', title: 'Bankdaten', html: html };
+        }
+        function viewBankAendern() {
+            const b = S.bank || {};
+            const f = (id, label, wert, extra, opt) => '<label class="field"><span class="field-label">' + label + (opt ? ' <span class="opt">(optional)</span>' : '') + '</span>'
+                + '<input id="' + id + '" value="' + esc(wert || '') + '" ' + extra + '><span class="feld-fehler" id="' + id + '-f"></span></label>';
+            const vorschau = S.mode === 'vorschau';
+            const html = '<form class="bank-form" id="bankForm" novalidate>'
+                + f('bkInhaber', 'Kontoinhaber', b.kontoinhaber || (S.profil && S.profil.name), 'autocomplete="name" maxlength="140"')
+                + f('bkIban', 'IBAN', b.iban ? BankLogik.gruppiert(b.iban) : '', 'autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" maxlength="42" placeholder="LT12 1000 0111 0100 1000"')
+                + f('bkBic', 'BIC', b.bic, 'autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="11"', true)
+                + f('bkRevtag', 'Revtag', b.revtag, 'autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="41" placeholder="@deinname"', true)
+                + '<span class="feld-fehler" id="bkForm-f"></span>'
+                + '<button type="submit" class="btn-primary"' + (vorschau ? ' disabled title="In der Vorschau nicht möglich"' : '') + '>Speichern</button>'
+                + '<a class="btn-ghost" href="' + (b.iban ? '#bank' : '#start') + '">Abbrechen</a></form>';
+            return { back: b.iban ? '#bank' : '#start', title: b.iban ? 'Bankdaten ändern' : 'Bankdaten eintragen', html: html };
+        }
+
         function viewMehr() {
             const p = S.profil;
             const offen = offenSumme();
@@ -833,6 +906,7 @@
             if (p.kennzeichen) sub.push(esc(p.kennzeichen));
             let html = '<section class="profile"><b>' + esc(p.name) + '</b><span>' + sub.join(' · ') + '</span></section>'
                 + '<div class="group">'
+                + '<a class="item" href="#bank">' + ICON_CASH + '<span class="grow">Bankdaten</span><span style="font-size:12px;color:var(--text-mut)">' + (S.bank && S.bank.iban ? esc(BankLogik.kurz(S.bank.iban)) : 'fehlt') + '</span>' + ICON_CHEV + '</a>'
                 + '<a class="item" href="#lohnzettel">' + ICON_DOC + '<span class="grow">Lohnzettel</span>' + ICON_CHEV + '</a>'
                 + '<a class="item" href="#strafen">' + ICON_DOC + '<span class="grow">Strafen</span>' + ICON_CHEV + '</a>'
                 + '<a class="item" href="#offen">' + ICON_CASH + '<span class="grow">Offene Beträge</span><span class="num' + (offen > 0.005 ? ' neg' : ' zero') + '" style="font-size:13px;font-weight:700">' + fmt(offen) + '</span>' + ICON_CHEV + '</a>'
@@ -855,6 +929,49 @@
             else if (act === 'theme') { e.preventDefault(); toggleTheme(); }
             else if (act === 'retry') { e.preventDefault(); startApp(); }
             else if (act === 'pdf') { e.preventDefault(); pdfOeffnen(t); }
+            else if (act === 'bank-ok') { e.preventDefault(); bankBestaetigen(t); }
+        });
+        async function bankNeuLaden() {
+            const r = await sb.rpc('fahrer_app_bank').then(x => x, err => ({ error: err }));
+            if (!r.error) { S.bank = (r.data || [])[0] || null; S.bankFehler = false; }
+        }
+        function bankMeldung(err) {
+            const m = (err && err.message) || '';
+            return /IBAN|BIC|Revtag|Kontoinhaber|Bankdaten|Woche|Auszahlung|Fahrerapp/.test(m) ? m : 'Speichern fehlgeschlagen. Bitte erneut versuchen.';
+        }
+        async function bankBestaetigen(btn) {
+            if (btn.disabled || S.mode === 'vorschau') return;
+            btn.disabled = true; btn.textContent = 'Speichere …';
+            const { error } = await sb.rpc('bank_bestaetigen', { p_woche: btn.getAttribute('data-woche') }).then(x => x, err => ({ error: err }));
+            if (error) { alert(bankMeldung(error)); }
+            await bankNeuLaden();
+            render();
+        }
+        document.addEventListener('submit', async function(e) {
+            if (!e.target || e.target.id !== 'bankForm') return;
+            e.preventDefault();
+            if (S.mode === 'vorschau') return;
+            const wert = id => document.getElementById(id).value;
+            const setz = (id, txt) => { document.getElementById(id + '-f').textContent = txt; };
+            const fehler = {
+                bkInhaber: BankLogik.inhaberFehler(wert('bkInhaber')),
+                bkIban: BankLogik.ibanFehler(wert('bkIban')),
+                bkBic: BankLogik.bicFehler(wert('bkBic')),
+                bkRevtag: BankLogik.revtagFehler(wert('bkRevtag'))
+            };
+            Object.keys(fehler).forEach(id => setz(id, fehler[id]));
+            setz('bkForm', '');
+            const erstes = Object.keys(fehler).find(id => fehler[id]);
+            if (erstes) { document.getElementById(erstes).focus(); return; }
+            const knopf = e.target.querySelector('button[type=submit]');
+            knopf.disabled = true; knopf.textContent = 'Speichere …';
+            const { error } = await sb.rpc('fahrer_bank_setzen', {
+                p_kontoinhaber: wert('bkInhaber'), p_iban: wert('bkIban'),
+                p_bic: wert('bkBic') || null, p_revtag: wert('bkRevtag') || null
+            }).then(x => x, err => ({ error: err }));
+            if (error) { setz('bkForm', bankMeldung(error)); knopf.disabled = false; knopf.textContent = 'Speichern'; return; }
+            await bankNeuLaden();
+            location.hash = '#start';
         });
         window.addEventListener('hashchange', function() { render(); window.scrollTo(0, 0); });
         document.addEventListener('visibilitychange', async function() {

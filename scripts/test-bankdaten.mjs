@@ -31,6 +31,13 @@ create table public.fahrer_app_zugang (notion_fahrer_id integer primary key, aut
 create table public.abrechnung_freigaben (woche text primary key, freigegeben_am timestamptz default now());
 create table public.settlements (id serial primary key, woche text, fahrer_name text, telefon text, status text default 'berechnet',
   auszahlung numeric(10,2) default 0, lohn numeric default 0);
+create table public.fahrer_iban (id bigint primary key, erstellt_am timestamptz default now(), vorname text not null, nachname text not null,
+  telefon text, kontoinhaber text not null, iban text not null, bic text, revtag text, status text not null default 'neu', notiz text);
+insert into public.fahrer_iban (id, erstellt_am, vorname, nachname, telefon, kontoinhaber, iban, bic, revtag) values
+  (1, '2026-10-06', 'Cem', 'Fahr', '0660 3333333', 'Cem Fahr', 'DE89 3704 0044 0532 0130 00', null, null),
+  (2, '2026-10-08', 'Cem', 'Fahr', '06603333333', 'Cem Fahr', 'GB82WEST12345698765432', 'westgb2l', 'cem'),  -- neuester gewinnt
+  (3, '2026-10-07', 'Unbe', 'Kannt', '0699 0000000', 'Unbe Kannt', 'AT611904300234573201', null, null),       -- kein Fahrer
+  (4, '2026-10-07', 'Anna', 'Fahr', '+43 660 1111111', 'Anna Fahr', 'AT611904300234573202', null, null);    -- IBAN kaputt
 create function public.settlement_fahrer(p_telefon text, p_name text) returns integer language sql stable as $$
   select f.id from public.fahrer f
   where (coalesce(p_telefon,'') <> '' and public.tel_key(f.telefon) = public.tel_key(p_telefon)) or f.name = p_name
@@ -145,7 +152,32 @@ try {
   await nein('delete from public.fahrer_bank_verlauf', [], /nicht geändert/);
 
   if (existsSync(new URL(uebernahme, import.meta.url))) {
-    // Task 3 haengt hier seine Asserts an
+    // vorher: Cem hat (aus dem Buero-Test) GB82…; Uebernahme darf vorhandene Bankdaten NICHT ueberschreiben
+    await db.exec(lies(uebernahme));
+    let r = await q('select id, status, uebernommen_nr from public.fahrer_iban order by id');
+    assert.deepEqual(r.map((x) => [x.id, x.status, x.uebernommen_nr]),
+      [[1, 'neu', null], [2, 'neu', null], [3, 'neu', null], [4, 'neu', null]]);
+    // Cem neu aufsetzen: Buero-Eintrag weg, damit die Uebernahme greift (Verlauf bleibt, nur fahrer_bank leeren)
+    await db.exec(`delete from public.fahrer_bank where notion_fahrer_id = 103`);
+    await db.exec(lies(uebernahme));
+    r = await q('select id, status, uebernommen_nr from public.fahrer_iban order by id');
+    assert.deepEqual(r.map((x) => [x.id, x.status, x.uebernommen_nr]),
+      [[1, 'ueberholt', 103], [2, 'uebernommen', 103], [3, 'neu', null], [4, 'neu', null]]);
+    const [c] = await q('select iban, bic, revtag, geaendert_von from public.fahrer_bank where notion_fahrer_id = 103');
+    assert.deepEqual([c.iban, c.bic, c.revtag, c.geaendert_von], ['GB82WEST12345698765432', 'WESTGB2L', '@cem', 'formular']);
+
+    await als(BUERO);
+    const offen = await q('select id, grund from public.formular_iban_offen order by id');
+    assert.deepEqual(offen.map((x) => [x.id, x.grund]), [[3, 'kein Fahrer mit dieser Telefonnummer'], [4, 'IBAN ungültig']]);
+    await nein('select public.formular_iban_zuordnen(4, 101)', [], /IBAN ungültig/);
+    await q('select public.formular_iban_zuordnen(3, 102)');       // Buero ordnet Eintrag 3 Bert zu
+    const [b] = await q(`select iban, geaendert_von from public.fahrer_bank where notion_fahrer_id = 102`);
+    assert.deepEqual([b.iban, b.geaendert_von], ['AT611904300234573201', 'formular (Stefan)']);
+    assert.equal((await q('select count(*)::int n from public.formular_iban_offen'))[0].n, 1);
+    await raus();
+    await als(ANNA);
+    await nein('select public.formular_iban_zuordnen(4, 101)', [], /Nicht autorisiert/);
+    await raus();
   }
   console.log('OK');
 } catch (e) {

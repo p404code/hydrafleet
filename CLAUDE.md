@@ -181,6 +181,26 @@ HYDRAlink. Spec: `docs/superpowers/specs/2026-09-28-post-strafen-design.md`, Pla
 - **Zugänge einrichten:** `scripts/post-zugaenge-einrichten.js` (USP-Schlüssel + Anthropic,
   `pbpaste | … --nur-anthropic`, `… --nur-gmail` für das Gmail-App-Passwort). `scripts/gmail-zugang-speichern.js` (Google-OAuth) ist nicht mehr in Gebrauch.
 
+## Bankdaten (seit 2026-10-15)
+
+Spec `docs/superpowers/specs/2026-10-15-iban-fahrerapp-design.md`, Plan `docs/superpowers/plans/2026-10-15-iban-fahrerapp.md`.
+- Tabellen `fahrer_bank` (aktuell, je Notion-Nr.), `fahrer_bank_verlauf` (jede Änderung, Trigger sperrt Update/Delete),
+  `bank_bestaetigung` (je Woche). Lesen nur Büro; schreiben nur über `fahrer_bank_setzen` / `bank_bestaetigen` (Fahrer)
+  und `buero_bank_setzen` / `formular_iban_zuordnen` (Büro), alle über `bank_schreiben()` (nicht aufrufbar).
+  `bank_betrag()` ist ebenfalls nicht aufrufbar – sonst könnte ein Fahrer fremde Auszahlungen abfragen.
+- Neue IBAN gilt sofort (Entscheidung Betreiber); IBAN-/Inhaberwechsel löscht die Bestätigung der offenen Woche.
+- Fahrerapp: Karte ganz oben auf Start (Eintragen / „Auszahlung KWxx … Stimmt / IBAN ändern“ / bestätigt),
+  Mehr → Bankdaten. Dashboard: Fahrer/App → Detail „Bankdaten“, Filter „Bankdaten fehlen“, Spalte „Bank“,
+  Karte „Bankdaten aus dem Formular, nicht zugeordnet“.
+- IBAN-Prüfung doppelt mit gleichen Regeln: `bank-logik.js` (Browser, `node --test scripts/test-bank-logik.mjs`) und
+  `iban_gueltig()` (SQL; ersetzt seit 15.10. die ältere Funktion gleichen Namens, die der Check von `fahrer_iban` nutzt).
+  DB-Test: `PGLITE=<dir> node scripts/test-bankdaten.mjs`.
+- Das öffentliche Formular `~/Projects/iban-formular` (Netlify, `fahrer_iban`) sammelt kaum Telefonnummern –
+  `formular_iban_fahrer()` ordnet deshalb auch über den Namen (name_key, `name_aliases`) zu, nur bei genau einem
+  aktiven Fahrer. Übernommen am 15.10.: 10 Fahrer. Formular läuft noch; abschalten, wenn der Betreiber es sagt
+  (anon-Insert-Policy entfernen, Seite durch Hinweis ersetzen).
+- **Teil B (Revolut-Auszahlung) ist nur entworfen — nicht bauen ohne Auftrag.**
+
 ## Key Supabase Tables
 
 **Bestehend (altes System, nicht anfassen):**

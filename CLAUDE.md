@@ -199,7 +199,12 @@ Spec `docs/superpowers/specs/2026-10-15-iban-fahrerapp-design.md`, Plan `docs/su
   `formular_iban_fahrer()` ordnet deshalb auch über den Namen (name_key, `name_aliases`) zu, nur bei genau einem
   aktiven Fahrer. Übernommen am 15.10.: 10 Fahrer. Formular läuft noch; abschalten, wenn der Betreiber es sagt
   (anon-Insert-Policy entfernen, Seite durch Hinweis ersetzen).
-- **Teil B (Revolut-Auszahlung) ist nur entworfen — nicht bauen ohne Auftrag.**
+- **Revolut-CSV** (seit 2026-10-15): Abrechnung → „Revolut-CSV“ erzeugt eine Sammelüberweisung im Format der
+  Revolut-Vorlage (`Name,Recipient type,IBAN,Recipient bank country,Currency,Amount,Payment reference`, CRLF, Punkt).
+  Nur Fahrer mit bestätigter IBAN der Woche; IBAN/Inhaber aus `bank_bestaetigung`, Betrag änderbar. Jeder Export in
+  `auszahlung_export` (`auszahlung_liste`, `auszahlung_export_speichern`); zweimal je Fahrer/Woche nur ausdrücklich.
+  Blauer Punkt in der Übersicht mit Ring = schon exportiert. Welches Konto (Serdo/E&E) zahlt, entscheidet das Büro beim Hochladen.
+- **Teil B (Revolut-API, automatisch überweisen) ist nur entworfen — nicht bauen ohne Auftrag.**
 
 ## Key Supabase Tables
 

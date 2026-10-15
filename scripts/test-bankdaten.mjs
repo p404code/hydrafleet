@@ -204,6 +204,37 @@ try {
     assert.equal((await q(`select (public.formular_iban_fahrer('06603333333', 'Cem', 'Fahr')).p_nr as nr`))[0].nr, null);
     await raus();
   }
+  // --- Revolut-Export (migrations/2026-10-15-auszahlung-export.sql)
+  await db.exec(lies('../migrations/2026-10-15-auszahlung-export.sql'));
+  await als(ANNA);
+  await q(`select public.bank_bestaetigen('2026-W41', 'AT611904300234573201')`);   // Anna bestaetigt ihre aktuelle IBAN
+  await nein(`select * from public.auszahlung_liste('2026-W41')`, [], /Nicht autorisiert/);
+  await nein(`select * from public.auszahlung_export_speichern('2026-W41', '[{"nr":101,"betrag":450}]'::jsonb)`, [], /Nicht autorisiert/);
+  await raus();
+  await als(BUERO);
+  let li = await q(`select * from public.auszahlung_liste('2026-W41') order by name`);
+  assert.deepEqual(li.map((r) => [r.name, r.notion_fahrer_id, Number(r.du_bekommst), r.iban, r.kontoinhaber, Number(r.exportiert)]), [
+    ['Anna Fahr', 101, 450, 'AT611904300234573201', 'Anna Fahr', 0],        // zwei Zeilen (Alias) summiert, bestaetigt
+    ['Bert Fahr', 102, -200, null, null, 0]]);                               // negativ, nicht bestaetigt
+  // Speichern: Betrag aenderbar, IBAN/Inhaber kommen aus der Bestaetigung, nie vom Browser
+  let ex = await q(`select * from public.auszahlung_export_speichern('2026-W41', '[{"nr":101,"betrag":400.5}]'::jsonb)`);
+  assert.deepEqual(ex.map((r) => [r.name, r.iban, r.land, Number(r.betrag), r.referenz]),
+    [['Anna Fahr', 'AT611904300234573201', 'AT', 400.5, 'Auszahlung KW41 FHR-101']]);
+  await nein(`select * from public.auszahlung_export_speichern('2026-W41', '[{"nr":101,"betrag":400.5}]'::jsonb)`, [], /schon exportiert/);
+  ex = await q(`select * from public.auszahlung_export_speichern('2026-W41', '[{"nr":101,"betrag":49.5}]'::jsonb, true)`);
+  assert.equal(ex.length, 1);
+  await nein(`select * from public.auszahlung_export_speichern('2026-W41', '[{"nr":102,"betrag":10}]'::jsonb)`, [], /nicht bestätigt/);
+  await nein(`select * from public.auszahlung_export_speichern('2026-W41', '[{"nr":101,"betrag":0}]'::jsonb, true)`, [], /Betrag/);
+  await nein(`select * from public.auszahlung_export_speichern('2026-W40', '[{"nr":101,"betrag":10}]'::jsonb)`, [], /nicht bestätigt/);
+  await nein(`select * from public.auszahlung_export_speichern('2026-W41', '[]'::jsonb)`, [], /Keine Fahrer/);
+  li = await q(`select name, exportiert from public.auszahlung_liste('2026-W41') where notion_fahrer_id = 101`);
+  assert.equal(Number(li[0].exportiert), 450);
+  assert.equal((await q(`select count(*)::int n from public.auszahlung_export where woche = '2026-W41'`))[0].n, 2);
+  await raus();
+  await als(ANNA);
+  assert.equal((await q('select count(*)::int n from public.auszahlung_export'))[0].n, 0);   // Fahrer sehen keine Exporte
+  await raus();
+
   console.log('OK');
 } catch (e) {
   console.error('FEHLER: ' + (e && e.message || e));

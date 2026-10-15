@@ -32,3 +32,12 @@ test('BIC, Revtag, Kontoinhaber', () => {
   assert.match(B.revtagFehler('@ m'), /Revtag/);
   assert.match(B.inhaberFehler(' '), /Kontoinhaber/); assert.equal(B.inhaberFehler('Max Muster'), '');
 });
+test('Revolut-Sammelueberweisung: Kopfzeile und Zeilen wie die Vorlage (CRLF, Punkt als Dezimalzeichen)', () => {
+  const csv = B.revolutCsv([
+    { name: 'Anna Fahr', iban: 'LT121000011101001000', land: 'LT', betrag: 662.4, referenz: 'Auszahlung KW41 FHR-101' },
+    { name: 'Müller, "Bert"', iban: 'AT611904300234573201', land: 'AT', betrag: '1200', referenz: 'Auszahlung KW41 FHR-102' }]);
+  assert.equal(csv,
+    'Name,Recipient type,IBAN,Recipient bank country,Currency,Amount,Payment reference\r\n' +
+    'Anna Fahr,INDIVIDUAL,LT121000011101001000,LT,EUR,662.40,Auszahlung KW41 FHR-101\r\n' +
+    '"Müller, ""Bert""",INDIVIDUAL,AT611904300234573201,AT,EUR,1200.00,Auszahlung KW41 FHR-102\r\n');
+});

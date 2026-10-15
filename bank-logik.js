@@ -40,6 +40,16 @@
     const n = String(s == null ? '' : s).trim().replace(/\s+/g, ' ');
     return n.length >= 2 && n.length <= 140 ? '' : 'Kontoinhaber fehlt.';
   }
-  const api = { norm, ibanFehler, gruppiert, kurz, bicFehler, revtagFehler, inhaberFehler };
+  // Revolut Business Sammelueberweisung (Vorlage Revolut-BulkTransfer-EUR-to-AT.csv): Komma, CRLF,
+  // Betrag mit Punkt. zeilen: [{ name, iban, land, betrag, referenz }] aus auszahlung_export_speichern().
+  function csvFeld(v) { const t = String(v == null ? '' : v); return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }
+  function revolutCsv(zeilen) {
+    const kopf = 'Name,Recipient type,IBAN,Recipient bank country,Currency,Amount,Payment reference';
+    return [kopf].concat((zeilen || []).map(function (z) {
+      return [z.name, 'INDIVIDUAL', norm(z.iban), z.land || norm(z.iban).slice(0, 2), 'EUR', Number(z.betrag).toFixed(2), z.referenz]
+        .map(csvFeld).join(',');
+    })).join('\r\n') + '\r\n';
+  }
+  const api = { norm, ibanFehler, gruppiert, kurz, bicFehler, revtagFehler, inhaberFehler, revolutCsv };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.BankLogik = api;
 })(this);

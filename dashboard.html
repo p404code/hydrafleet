@@ -961,6 +961,7 @@
         dialog.rv-dialog .rv-zeile small.exp { color: var(--info); }
         dialog.rv-dialog .rv-zeile input[type=number] { width: 100%; box-sizing: border-box; text-align: right; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 5px 8px; font-size: 12.5px; color: var(--text); font-family: var(--mono); }
         dialog.rv-dialog .rv-summe { margin-right: auto; font-size: 12.5px; }
+        dialog.rv-dialog .rv-offen { color: var(--warn); }
         dialog.rv-dialog .rv-hinweis { font-size: 11.5px; color: var(--text-mut); margin: 0 0 6px; }
         .abr-zelle .abr-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .iban-punkt { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--info); margin-left: 6px; vertical-align: middle; flex: none; }
@@ -2408,14 +2409,14 @@
             const zeilen = RV.map(function (r, i) {
                 const betrag = parseFloat(r.du_bekommst) || 0, exp = parseFloat(r.exportiert) || 0;
                 const ok = !!r.iban && betrag > 0;
-                const grund = betrag <= 0 ? 'kein Betrag (' + fmt(betrag) + ')' : (!r.hat_iban ? 'keine IBAN hinterlegt' : (!r.iban ? 'IBAN für ' + week + ' nicht bestätigt' : ''));
-                const sub = ok ? esc(BankLogik.kurz(r.iban) + ' · ' + r.kontoinhaber) : esc(grund);
+                const grund = !r.iban ? 'keine IBAN hinterlegt' : (betrag <= 0 ? 'kein Betrag (' + fmt(betrag) + ')' : '');
+                const sub = ok ? esc(BankLogik.kurz(r.iban) + ' · ' + r.kontoinhaber) + (r.bestaetigt ? '' : ' · <span class="rv-offen">nicht bestätigt</span>') : esc(grund);
                 return '<label class="rv-zeile' + (ok ? '' : ' aus') + '"><input type="checkbox" data-rvi="' + i + '"' + (ok ? (exp ? '' : ' checked') : ' disabled') + '>' +
                     '<span><b>' + esc(r.name) + '</b><small>' + sub + '</small>' + (exp ? '<small class="exp">schon exportiert: ' + fmt(exp) + '</small>' : '') + '</span>' +
                     (ok ? '<input type="number" min="0.01" step="0.01" data-rvb="' + i + '" value="' + betrag.toFixed(2) + '" aria-label="Betrag">' : '<span></span>') + '</label>';
             }).join('');
             d.innerHTML = '<h3>Revolut-Sammelüberweisung · ' + esc(week) + '</h3>' +
-                '<p class="rv-hinweis">Nur Fahrer mit bestätigter IBAN. Die Datei in Revolut Business beim Konto hochladen, auf dem genug liegt (Serdo oder E&amp;E).</p>' +
+                '<p class="rv-hinweis">Fahrer mit hinterlegter IBAN; „nicht bestätigt“ = der Fahrer hat die IBAN für diese Woche noch nicht in der App bestätigt. Die Datei in Revolut Business beim Konto hochladen, auf dem genug liegt (Serdo oder E&amp;E).</p>' +
                 '<div class="wliste">' + (zeilen || '<div class="pk-leer" style="padding:10px 2px">Keine Fahrer in dieser Woche.</div>') + '</div>' +
                 '<div class="wfuss"><span class="rv-summe" id="rvSumme"></span><button class="btn" data-rv="zu">Abbrechen</button><button class="btn btn-primary" data-rv="los">CSV erzeugen</button></div>';
             rvSumme();
@@ -2432,7 +2433,8 @@
         function rvSumme() {
             const w = rvAuswahl();
             const sum = w.reduce(function (t, x) { return t + x.betrag; }, 0);
-            document.getElementById('rvSumme').textContent = w.length + ' Fahrer · ' + fmt(sum);
+            const offen = w.filter(function (x) { return !x.r.bestaetigt; }).length;
+            document.getElementById('rvSumme').textContent = w.length + ' Fahrer · ' + fmt(sum) + (offen ? ' · davon ' + offen + ' nicht bestätigt' : '');
         }
         async function rvKlick(e) {
             const b = e.target.closest('[data-rv]');

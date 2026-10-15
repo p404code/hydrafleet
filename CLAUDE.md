@@ -201,7 +201,8 @@ Spec `docs/superpowers/specs/2026-10-15-iban-fahrerapp-design.md`, Plan `docs/su
   (anon-Insert-Policy entfernen, Seite durch Hinweis ersetzen).
 - **Revolut-CSV** (seit 2026-10-15): Abrechnung → „Revolut-CSV“ erzeugt eine Sammelüberweisung im Format der
   Revolut-Vorlage (`Name,Recipient type,IBAN,Recipient bank country,Currency,Amount,Payment reference`, CRLF, Punkt).
-  Nur Fahrer mit bestätigter IBAN der Woche; IBAN/Inhaber aus `bank_bestaetigung`, Betrag änderbar. Jeder Export in
+  Fahrer mit hinterlegter IBAN; bestätigt → IBAN/Inhaber aus `bank_bestaetigung`, sonst aus `fahrer_bank` und als
+  „nicht bestätigt“ markiert (Korrektur Betreiber 15.10., `auszahlung_export.bestaetigt`). Betrag änderbar. Jeder Export in
   `auszahlung_export` (`auszahlung_liste`, `auszahlung_export_speichern`); zweimal je Fahrer/Woche nur ausdrücklich.
   Blauer Punkt in der Übersicht mit Ring = schon exportiert. Welches Konto (Serdo/E&E) zahlt, entscheidet das Büro beim Hochladen.
 - **Teil B (Revolut-API, automatisch überweisen) ist nur entworfen — nicht bauen ohne Auftrag.**

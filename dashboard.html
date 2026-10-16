@@ -2582,9 +2582,14 @@
         document.getElementById('printOverlay').addEventListener('click', function(e) { if (e.target === this) closePrintModal(); });
         document.getElementById('aliasOverlay').addEventListener('click', function(e) { if (e.target === this) closeAliasModal(); });
 
-        function openAliasModal() {
+        async function openAliasModal() {
             const noMatchDrivers = SETTLEMENTS.filter(function(s) { return s.woche === week && s.status && s.status.indexOf('WARNUNG_KEIN_FAHRER') >= 0; });
             if (!noMatchDrivers.length) return;
+            // Fahrerliste beim Oeffnen frisch laden (neue Fahrer aus dem Fuhrpark seit dem Seitenaufruf) und alphabetisch
+            const frisch = await getSupabase().from('fahrer').select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon').eq('aktiv', true)
+                .then(function (r) { return r; }, function (e) { return { error: e }; });
+            if (!frisch.error && frisch.data) FAHRER_LIST = frisch.data;
+            FAHRER_LIST = FAHRER_LIST.slice().sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'de', { sensitivity: 'base' }); });
             const opts = FAHRER_LIST.map(function(f) { return '<option value="'+esc(f.name)+'">'+esc(f.name)+'</option>'; }).join('');
             document.getElementById('aliasList').innerHTML = noMatchDrivers.map(function(s) {
                 const existing = NAME_ALIASES[s.fahrer_name.toLowerCase()] || '';

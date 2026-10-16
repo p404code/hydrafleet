@@ -173,6 +173,7 @@
         .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
         .chip-link { text-decoration: none; color: var(--text-mut); }
         .chip.lohn.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+        .chip.ueberw.active { background: var(--info); border-color: var(--info); color: #fff; }
         .chip.excluded.active { background: var(--err); border-color: var(--err); color: #fff; }
         .chip .cnt { opacity: .7; }
         select.chip { appearance: auto; }
@@ -1059,6 +1060,7 @@
                 <button class="chip" id="warningFilter">Schulden</button>
                 <button class="chip" id="warnOnlyFilter">Warnung</button>
                 <button class="chip lohn" id="lohnFilter">Lohn eingetragen <span class="cnt" id="lohnCount">0</span></button>
+                <button class="chip ueberw" id="ueberwiesenFilter" title="Blendet aus, wer in dieser Woche schon in einer Revolut-CSV war – übrig bleibt, wer noch fehlt">bereits überwiesen <span class="cnt" id="ueberwiesenCount">0</span></button>
                 <button class="chip excluded" id="excludedFilter">Ausgeschl. <span class="cnt" id="excludedCount">0</span></button>
                 <div class="sp"></div>
                 <button class="btn desktop-only" id="printAllBtn">Alle drucken</button>
@@ -1757,7 +1759,7 @@
         let supabaseClient = null;
         let SETTLEMENTS = [];
         let WEEKS = [];
-        let week = '', search = '', warn = false, warnOnly = false, lohnOnly = false, showExcluded = false, sortBy = 'name_asc', selectedDriver = null;
+        let week = '', search = '', warn = false, warnOnly = false, lohnOnly = false, ueberwiesenAus = false, showExcluded = false, sortBy = 'name_asc', selectedDriver = null;
         function isMobile() { return window.matchMedia('(max-width: 768px)').matches; }
         function weekRange(woche) {
             const m = /^(\d{4})-W(\d{2})$/.exec(woche || ''); // Sonderlabels wie '2026-W37k' bekommen bewusst kein Datum
@@ -2028,10 +2030,11 @@
         function initTheme() { const saved = localStorage.getItem('theme'); const html = document.documentElement; if (saved === 'dark') { html.setAttribute('data-theme', 'dark'); updateThemeUI(true); } else { html.removeAttribute('data-theme'); updateThemeUI(false); } }
         document.addEventListener('DOMContentLoaded', function() { initTheme(); try { const sess = JSON.parse(localStorage.getItem('hydralink_session') || 'null'); if (sess && sess.name) document.getElementById('sessionName').textContent = sess.name; } catch (e) {} updateExcludedUI(); updateSortUI(); 
             document.getElementById('themeToggle').addEventListener('click', toggleTheme); document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); }); var _searchTimer = null; document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); clearTimeout(_searchTimer); _searchTimer = setTimeout(render, 200); }); document.querySelectorAll('#abrTable th[data-sort]').forEach(function(th) { th.addEventListener('click', function() { toggleSort(th.dataset.sort); }); });
-            function syncAllChip() { document.getElementById('allFilter').classList.toggle('active', !warn && !warnOnly && !lohnOnly); }
-            document.getElementById('allFilter').addEventListener('click', function() { warn = false; warnOnly = false; lohnOnly = false; ['warningFilter','warnOnlyFilter','lohnFilter'].forEach(function(id) { document.getElementById(id).classList.remove('active'); }); syncAllChip(); render(); });
+            function syncAllChip() { document.getElementById('allFilter').classList.toggle('active', !warn && !warnOnly && !lohnOnly && !ueberwiesenAus); }
+            document.getElementById('allFilter').addEventListener('click', function() { warn = false; warnOnly = false; lohnOnly = false; ueberwiesenAus = false; ['warningFilter','warnOnlyFilter','lohnFilter','ueberwiesenFilter'].forEach(function(id) { document.getElementById(id).classList.remove('active'); }); syncAllChip(); render(); });
             document.getElementById('warningFilter').addEventListener('click', function() { warn = !warn; this.classList.toggle('active', warn); syncAllChip(); render(); });
             document.getElementById('warnOnlyFilter').addEventListener('click', function() { warnOnly = !warnOnly; this.classList.toggle('active', warnOnly); syncAllChip(); render(); });
+            document.getElementById('ueberwiesenFilter').addEventListener('click', function() { ueberwiesenAus = !ueberwiesenAus; this.classList.toggle('active', ueberwiesenAus); syncAllChip(); render(); });
             document.getElementById('lohnFilter').addEventListener('click', function() { lohnOnly = !lohnOnly; this.classList.toggle('active', lohnOnly); if (lohnOnly) { sortBy = 'lohn_desc'; updateSortUI(); } syncAllChip(); render(); });
             document.getElementById('excludedFilter').addEventListener('click', function() { showExcluded = !showExcluded; this.classList.toggle('active', showExcluded); document.getElementById('excludedPanel').classList.toggle('show', showExcluded); });
             window.matchMedia('(max-width: 768px)').addEventListener('change', function() {
@@ -2195,6 +2198,7 @@
                     && (!warn || s.auszahlung < 0)
                     && (!warnOnly || isWarnStatus)
                     && (!lohnOnly || lohnOf(s) > 0)
+                    && (!ueberwiesenAus || !(exportBetrag(s) > 0))
                     && !isExcluded;
             });
             const num = f => (a, b) => (f(b) || 0) - (f(a) || 0);
@@ -2382,9 +2386,17 @@
                 if (tel[b.name]) BANK_TEL[tel[b.name]] = b;
             });
         }
-        function ibanPunkt(s) {
+        function bankEintrag(s) {
             const tk = bankTelKey(s.telefon);
-            const b = (tk && BANK_TEL[tk]) || BANK_NAME[s.fahrer_name];
+            return (tk && BANK_TEL[tk]) || BANK_NAME[s.fahrer_name] || null;
+        }
+        // Summe, die fuer diese Abrechnungszeile (Woche + Fahrer) schon in Revolut-CSVs stand
+        function exportBetrag(s) {
+            const b = bankEintrag(s);
+            return b ? (BANK_EXPORT[s.woche + '|' + b.notion_fahrer_id] || 0) : 0;
+        }
+        function ibanPunkt(s) {
+            const b = bankEintrag(s);
             if (!b) return '';
             const best = b.bestaetigt_iban && b.bestaetigt_iban === b.iban;
             const kurz = typeof BankLogik !== 'undefined' ? BankLogik.kurz(b.iban) : '';
@@ -2496,8 +2508,10 @@
             document.getElementById('tableCount').textContent = ' (' + data.length + ')';
             const lohnRows = all.filter(function(s) { return lohnOf(s) > 0; });
             document.getElementById('lohnCount').textContent = lohnRows.length;
+            const ueberwRows = all.filter(function(s) { return exportBetrag(s) > 0; });
+            document.getElementById('ueberwiesenCount').textContent = ueberwRows.length;
             const hint = document.getElementById('lohnHint');
-            if (lohnOnly) { hint.innerHTML = 'Zeigt <b>' + data.length + ' Fahrer</b> mit eingetragenem Lohn, Summe Lohn <b class="num">' + fmt(data.reduce(function(a,s){ return a + lohnOf(s); }, 0)) + '</b>.'; hint.classList.remove('hidden'); } else { hint.classList.add('hidden'); }
+            if (lohnOnly) { hint.innerHTML = 'Zeigt <b>' + data.length + ' Fahrer</b> mit eingetragenem Lohn, Summe Lohn <b class="num">' + fmt(data.reduce(function(a,s){ return a + lohnOf(s); }, 0)) + '</b>.'; hint.classList.remove('hidden'); } else if (ueberwiesenAus) { hint.innerHTML = '<b>' + ueberwRows.length + '</b> bereits überwiesen (Revolut-CSV) ausgeblendet · noch offen: <b>' + data.length + ' Fahrer</b>, zusammen <b class="num">' + fmt(data.reduce(function(a,s){ return a + Math.max(0, (parseFloat(s.auszahlung) || 0) - lohnOf(s)); }, 0)) + '</b>.'; hint.classList.remove('hidden'); } else { hint.classList.add('hidden'); }
             const noMatchCount = all.filter(function(s) { return s.status && s.status.indexOf('WARNUNG_KEIN_FAHRER') >= 0; }).length;
             const aliasBannerEl = document.getElementById('aliasBanner');
             aliasBannerEl.style.display = noMatchCount > 0 ? 'flex' : 'none';

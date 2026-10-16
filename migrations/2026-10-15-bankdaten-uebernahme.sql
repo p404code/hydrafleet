@@ -99,8 +99,10 @@ begin
   select * into i from public.fahrer_iban where id = p_id and status = 'neu' for update;
   if i.id is null then raise exception 'Eintrag % nicht offen', p_id using errcode = 'P0002'; end if;
   if not public.iban_gueltig(i.iban) then raise exception 'IBAN ungültig – bitte beim Fahrer nachfragen' using errcode = '22023'; end if;
-  if not exists (select 1 from public.fahrer where aktiv and notion_fahrer_id = p_notion_fahrer_id) then
-    raise exception 'Kein aktiver Fahrer mit Nr. %', p_notion_fahrer_id using errcode = 'P0002'; end if;
+  -- Auch Notion-Fahrer ohne fahrer-Eintrag (noch nicht im Fuhrpark): Bankdaten haengen an der Notion-Nr.
+  if not exists (select 1 from public.fahrer where aktiv and notion_fahrer_id = p_notion_fahrer_id)
+     and not exists (select 1 from public.notion_fahrer where notion_fahrer_id = p_notion_fahrer_id) then
+    raise exception 'Kein Fahrer mit Nr. % (weder Fahrer-Liste noch Notion)', p_notion_fahrer_id using errcode = 'P0002'; end if;
   if not coalesce(p_ueberschreiben, false) and exists (select 1 from public.fahrer_bank where notion_fahrer_id = p_notion_fahrer_id) then
     raise exception 'Fahrer hat schon Bankdaten – nur mit ausdrücklichem Überschreiben' using errcode = 'P0001'; end if;
   perform public.bank_schreiben(p_notion_fahrer_id, i.kontoinhaber, i.iban, i.bic, i.revtag,

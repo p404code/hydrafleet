@@ -2723,7 +2723,7 @@
         /* Alles Rechnen passiert in der View public.fahrer_uebersicht.
            Hier wird nur gefiltert, sortiert und angezeigt. */
         let FZ_MIETE = {};   // fahrer.id -> {basis_miete, prozent_satz, prozent_schwelle}
-        let FZ_BANK = {}, FZ_BANK_DA = false, FB_OFFEN = [], fzBankForm = null, fzBankVerlauf = {};
+        let FZ_BANK = {}, FZ_BANK_DA = false, FB_OFFEN = [], FB_NOTION = [], fzBankForm = null, fzBankVerlauf = {};
         let FZ = [], fzFilter = 'alle', fzSearch = '', fzSort = 'name', fzDir = 1, fzSel = null, fzLoaded = false;
 
         function fzProbleme(f) { return (f.probleme || []).filter(Boolean); }
@@ -2777,7 +2777,11 @@
                 if (alt && !confirm('Dieser Fahrer hat schon Bankdaten.\n\nJetzt: ' + BankLogik.kurz(alt.iban) + ' · ' + alt.kontoinhaber +
                     '\nAus dem Formular: ' + (neu ? neu.iban_kurz + ' · ' + neu.kontoinhaber : '?') + '\n\nWirklich überschreiben?')) return;
                 b.disabled = true;
-                const { error } = await getSupabase().rpc('formular_iban_zuordnen', { p_id: parseInt(b.dataset.fbzu, 10), p_notion_fahrer_id: nr, p_ueberschreiben: !!alt });
+                let { error } = await getSupabase().rpc('formular_iban_zuordnen', { p_id: parseInt(b.dataset.fbzu, 10), p_notion_fahrer_id: nr, p_ueberschreiben: !!alt });
+                // Notion-Fahrer ohne Eintrag kennt FZ_BANK nicht - dann fragt erst die Datenbank
+                if (error && /schon Bankdaten/.test(error.message || '') && confirm('Dieser Fahrer hat schon Bankdaten. Mit den Daten aus dem Formular überschreiben?')) {
+                    ({ error } = await getSupabase().rpc('formular_iban_zuordnen', { p_id: parseInt(b.dataset.fbzu, 10), p_notion_fahrer_id: nr, p_ueberschreiben: true }));
+                }
                 if (error) { alert('Zuordnen fehlgeschlagen: ' + fgFehler(error)); b.disabled = false; return; }
                 showReToast('Bankdaten übernommen', 'success');
                 await ladeFahrer();
@@ -2790,19 +2794,21 @@
         async function ladeFahrer() {
             const sb = getSupabase();
             const still = function (q) { return q.then(function (r) { return r; }, function (e) { return { error: e }; }); };
-            const [res, ohne, mit, miete, bilder, bank, fbOffen] = await Promise.all([
+            const [res, ohne, mit, miete, bilder, bank, fbOffen, notion] = await Promise.all([
                 sb.from('fahrer_uebersicht').select('*'),
                 sb.from('plattform_konten').select('*').is('fahrer_id', null),
                 sb.from('plattform_konten').select('*').not('fahrer_id', 'is', null),
                 still(sb.from('fahrer').select('id,basis_miete,prozent_satz,prozent_schwelle')),
                 still(sb.from('uber_fahrzeuge').select('kennzeichen_key,marke,modell,baujahr,farbe,bild')),
                 still(sb.from('bank_uebersicht').select('*')),
-                still(sb.from('formular_iban_offen').select('*').order('erstellt_am'))
-            ]).catch(function (e) { return [{ error: e }, { error: e }, { error: e }, { error: e }, { error: e }, { error: e }, { error: e }]; });
+                still(sb.from('formular_iban_offen').select('*').order('erstellt_am')),
+                still(sb.from('notion_fahrer').select('notion_fahrer_id,name,telefon').not('notion_fahrer_id', 'is', null))
+            ]).catch(function (e) { return [{ error: e }, { error: e }, { error: e }, { error: e }, { error: e }, { error: e }, { error: e }, { error: e }]; });
             FZ_BANK = {};
             FZ_BANK_DA = !bank.error;
             if (!bank.error) (bank.data || []).forEach(function (b) { FZ_BANK[b.notion_fahrer_id] = b; });
             FB_OFFEN = fbOffen.error ? [] : (fbOffen.data || []);
+            FB_NOTION = notion.error ? [] : (notion.data || []);
             FZ_MIETE = {};
             if (!miete.error) (miete.data || []).forEach(function (m) { FZ_MIETE[m.id] = m; });
             if (!bilder.error) (bilder.data || []).forEach(function (b) { FP_UBER[b.kennzeichen_key] = b; });
@@ -2977,14 +2983,26 @@
             const karte = document.getElementById('fbKarte');
             karte.hidden = !FB_OFFEN.length;
             if (!FB_OFFEN.length) return;
-            const aktive = FZ.filter(function (f) { return f.aktiv && f.notion_fahrer_id != null; })
-                .sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'de'); });
+            const nachName = function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'de') || (a.notion_fahrer_id - b.notion_fahrer_id); };
+            const aktive = FZ.filter(function (f) { return f.aktiv && f.notion_fahrer_id != null; }).sort(nachName);
+            // Bankdaten haengen an der Notion-Nr.: auch wer nur in Notion steht (noch nicht im Fuhrpark), ist waehlbar
+            const mitEintrag = {};
+            aktive.forEach(function (f) { mitEintrag[f.notion_fahrer_id] = true; });
+            const nurNotion = FB_NOTION.filter(function (n) { return !mitEintrag[n.notion_fahrer_id]; }).sort(nachName);
+            const nk = function (t) { return String(t || '').replace(/[^a-zA-Z]/g, ' ').toLowerCase().split(' ').filter(Boolean).sort().join(' '); };
             document.getElementById('fbListe').innerHTML = FB_OFFEN.map(function (x) {
+                // Vorauswahl nur bei genau einem Namens-Treffer ueber beide Listen
+                const treffer = aktive.concat(nurNotion).filter(function (f) { return nk(f.name) && nk(f.name) === nk(x.name); });
+                const vor = treffer.length === 1 ? treffer[0].notion_fahrer_id : null;
+                const opt = function (f, zusatz) { return '<option value="' + f.notion_fahrer_id + '"' + (f.notion_fahrer_id === vor ? ' selected' : '') + '>' +
+                    esc(f.name) + ' · Nr. ' + f.notion_fahrer_id + (zusatz || '') + '</option>'; };
                 return '<div class="pk-card"><div class="pk-card-top"><b>' + esc(x.name) + '</b><span class="num">' + esc(x.iban_kurz) + '</span></div>' +
                     '<div class="pk-meta">' + esc([x.telefon || 'keine Nummer', x.kontoinhaber, x.grund].join(' · ')) + '</div>' +
                     (x.grund === 'IBAN ungültig' ? '' :
-                    '<select data-fbsel="' + x.id + '"><option value="">Fahrer wählen …</option>' + aktive.map(function (f) {
-                        return '<option value="' + f.notion_fahrer_id + '">' + esc(f.name) + ' · Nr. ' + f.notion_fahrer_id + '</option>'; }).join('') + '</select>' +
+                    '<select data-fbsel="' + x.id + '">' + (vor == null ? '<option value="">Fahrer wählen …</option>' : '') +
+                        '<optgroup label="Fahrer">' + aktive.map(function (f) { return opt(f); }).join('') + '</optgroup>' +
+                        (nurNotion.length ? '<optgroup label="Nur in Notion (noch kein Fahrer-Eintrag)">' + nurNotion.map(function (f) {
+                            return opt(f, f.telefon ? ' · ' + esc(f.telefon) : ''); }).join('') + '</optgroup>' : '') + '</select>' +
                     '<div class="detail-acts"><button class="btn-ghost" data-fbzu="' + x.id + '">Zuordnen</button>') +
                     (x.grund === 'IBAN ungültig' ? '<div class="detail-acts">' : '') +
                     '<button class="btn-ghost" data-fbweg="' + x.id + '">Verwerfen</button></div></div>';

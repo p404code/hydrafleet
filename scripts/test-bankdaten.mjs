@@ -73,6 +73,11 @@ insert into public.fahrer values (1, 'Anna Fahr', '+436601111111', true, 101), (
                                  (6, 'Gleich Name', null, true, 106), (7, 'Name Gleich', null, true, 107),
                                  (8, 'Hans Neu', null, true, 108);  -- 6/7: gleicher name_key
 create table public.name_aliases (csv_name text primary key, fahrer_name text not null);
+-- Notion-Fahrerseiten: 120 steht nur in Notion (kein fahrer-Eintrag, z. B. noch nicht im Fuhrpark)
+create table public.notion_fahrer (notion_page_id text primary key, notion_fahrer_id integer, name text, telefon text, status text);
+insert into public.notion_fahrer values ('p101', 101, 'Anna Fahr', null, null), ('p102', 102, 'Bert Fahr', null, null),
+  ('p103', 103, 'Cem Fahr', null, null), ('p120', 120, 'Nur Notion', null, null);
+grant select on public.notion_fahrer to authenticated;
 insert into public.name_aliases values ('emil weiss', 'Emil Fuenf');
 insert into public.fahrer_app_zugang values (101, '00000000-0000-0000-0000-000000000101', false),
                                             (102, '00000000-0000-0000-0000-000000000102', false);
@@ -152,7 +157,10 @@ try {
   assert.equal(a.iban, 'AT611904300234573201');
   await q(`select public.buero_bank_setzen(103, 'Cem Fahr', 'GB82WEST12345698765432')`);
   await nein(`select public.buero_bank_setzen(999, 'Niemand', 'GB82WEST12345698765432')`, [], /Fahrer/);
-  const ue = await q('select notion_fahrer_id, iban, geaendert_von, aenderungen from public.bank_uebersicht where iban is not null order by 1');
+  // Bankdaten gehen auch fuer Notion-Fahrer ohne fahrer-Eintrag (Korrektur Betreiber 16.10.)
+  await q(`select public.buero_bank_setzen(120, 'Nur Notion', 'BG80BNBG96611020345678')`);
+  assert.equal((await q('select iban from public.fahrer_bank where notion_fahrer_id = 120'))[0].iban, 'BG80BNBG96611020345678');
+  const ue = await q('select notion_fahrer_id, iban, geaendert_von, aenderungen from public.bank_uebersicht where iban is not null and notion_fahrer_id < 120 order by 1');
   assert.deepEqual(ue.map((r) => [r.notion_fahrer_id, r.iban, r.geaendert_von, r.aenderungen]), [
     [101, 'AT611904300234573201', 'fahrer', 2], [102, 'DE89370400440532013000', 'fahrer', 1], [103, 'GB82WEST12345698765432', 'Stefan', 1]]);
   const v = await q('select alt_iban, neu_iban, von from public.fahrer_bank_verlauf where notion_fahrer_id = 101 order by id');
@@ -192,11 +200,13 @@ try {
     // Final-Review I1: Bert hat schon Bankdaten -> nur mit ausdruecklichem Ueberschreiben
     await nein('select public.formular_iban_zuordnen(3, 102)', [], /hat schon Bankdaten/);
     await q('select public.formular_iban_zuordnen(3, 102, true)');       // Buero ordnet Eintrag 3 Bert zu
+    await q('select public.formular_iban_zuordnen(8, 120, true)');       // Notion-Fahrer ohne fahrer-Eintrag
+    assert.equal((await q('select status from public.fahrer_iban where id = 8'))[0].status, 'uebernommen');
     await q('select public.formular_iban_verwerfen(7)');
     assert.equal((await q('select status from public.fahrer_iban where id = 7'))[0].status, 'abgelehnt');
     const [b] = await q(`select iban, geaendert_von from public.fahrer_bank where notion_fahrer_id = 102`);
     assert.deepEqual([b.iban, b.geaendert_von], ['AT611904300234573201', 'formular (Stefan)']);
-    assert.equal((await q('select count(*)::int n from public.formular_iban_offen'))[0].n, 2);   // 4 (IBAN kaputt) und 8
+    assert.equal((await q('select count(*)::int n from public.formular_iban_offen'))[0].n, 1);   // nur noch 4 (IBAN kaputt)
     await raus();
     await als(ANNA);
     await nein('select public.formular_iban_zuordnen(4, 101)', [], /Nicht autorisiert/);

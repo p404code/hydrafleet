@@ -213,8 +213,10 @@ create or replace function public.buero_bank_setzen(p_notion_fahrer_id integer, 
 returns void language plpgsql security definer set search_path = public as $$
 begin
   if not public.is_app_user() then raise exception 'Nicht autorisiert' using errcode = '42501'; end if;
-  if not exists (select 1 from public.fahrer where aktiv and notion_fahrer_id = p_notion_fahrer_id) then
-    raise exception 'Kein aktiver Fahrer mit Nr. %', p_notion_fahrer_id using errcode = 'P0002'; end if;
+  -- Auch Notion-Fahrer ohne fahrer-Eintrag (noch nicht im Fuhrpark): Bankdaten haengen an der Notion-Nr.
+  if not exists (select 1 from public.fahrer where aktiv and notion_fahrer_id = p_notion_fahrer_id)
+     and not exists (select 1 from public.notion_fahrer where notion_fahrer_id = p_notion_fahrer_id) then
+    raise exception 'Kein Fahrer mit Nr. % (weder Fahrer-Liste noch Notion)', p_notion_fahrer_id using errcode = 'P0002'; end if;
   perform public.bank_schreiben(p_notion_fahrer_id, p_kontoinhaber, p_iban, p_bic, p_revtag,
                                 coalesce(auth.jwt()->'app_metadata'->>'app_name', 'Büro'));
 end $$;

@@ -69,6 +69,9 @@ if (schritt === 'zertifikat') {
   try { execFileSync('open', [u.toString()]); } catch { /* Link steht oben */ }
 } else if (schritt === 'token') {
   if (!arg) raus('Code fehlt');
+  // Der Code gilt nur einmal: erst sicherstellen, dass die Secrets danach auch gespeichert werden koennen
+  try { execFileSync(CLI, ['secrets', 'list', '--project-ref', PROJEKT], { stdio: 'ignore' }); }
+  catch { raus('Supabase-CLI nicht angemeldet – Code NICHT verbraucht. Erst: ' + CLI + ' login, dann neu zustimmen.'); }
   const code = arg.includes('code=') ? new URL(arg).searchParams.get('code') : arg.trim();
   const t = await tokenAnfrage({ grant_type: 'authorization_code', code });
   const geheim = { REVOLUT_PRIVATE_KEY: readFileSync(KEY, 'utf8'), REVOLUT_CLIENT_ID: t.clientId,

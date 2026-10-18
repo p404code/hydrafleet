@@ -999,6 +999,14 @@
         dialog.rv-dialog .bp-zeile small { display: block; color: var(--text-mut); font-size: 11.5px; }
         dialog.rv-dialog .bp-zeile .num { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
         dialog.rv-dialog .bp-warn { color: var(--warn); font-weight: 600; }
+        .mp-karte { margin: 10px 20px 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+        .mp-karte h4 { margin: 0 0 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-mut); }
+        .mp-zeile { display: grid; grid-template-columns: 110px 90px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--border); font-size: 12.5px; }
+        .mp-zeile:first-of-type { border-top: 0; }
+        .mp-zeile .num { font-family: var(--mono); text-align: right; }
+        .mp-zeile select { height: 30px; min-width: 0; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-2); color: var(--text); font: inherit; font-size: 12.5px; padding: 0 8px; }
+        .mp-zeile.fertig { color: var(--text-mut); }
+        @media (max-width: 768px) { .mp-karte { margin: 8px 12px 0; } .mp-zeile { grid-template-columns: 1fr auto; } .mp-zeile select { grid-column: 1 / -1; } }
         .uw-fertig { display: flex; flex-direction: column; gap: 4px; padding: 14px 0 10px; font-size: 13px; color: var(--text-mut); }
         .uw-fertig b { font-size: 16px; color: var(--accent); }
         dialog.rv-dialog .uw-z { cursor: default; grid-template-columns: 0 minmax(0, 1fr) 104px; }
@@ -1176,6 +1184,7 @@
                 <button class="btn" onclick="openAliasModal()">Jetzt zuordnen →</button>
             </div>
             <div class="alias-banner" id="apiBanner"><span id="apiBannerText"></span></div>
+            <section class="mp-karte" id="mpKarte" hidden></section>
             <div class="alias-banner" id="postenBanner">
                 <span id="postenBannerText"></span>
                 <button class="btn" onclick="postenNeuAnwenden()">Wieder einrechnen</button>
@@ -2157,6 +2166,7 @@
             document.getElementById('bpBtn').addEventListener('click', bpDialog);
             document.getElementById('bpMenueBtn').addEventListener('click', bpDialog);
             document.getElementById('uwAlle').addEventListener('change', uwAlleToggle);
+            document.getElementById('mpKarte').addEventListener('click', mpKlick);
             // Menue schliesst nach einem Klick darin und beim Klick daneben
             document.getElementById('azMenue').addEventListener('click', function (e) { if (e.target.closest('button')) { const m = this; setTimeout(function () { m.open = false; }, 0); } });
             document.addEventListener('click', function (e) { const m = document.getElementById('azMenue'); if (m.open && !m.contains(e.target)) m.open = false; });
@@ -2329,7 +2339,7 @@
             let data = SETTLEMENTS.filter(function(s) {
                 const isWarnStatus = !!(s.status && s.status.indexOf('WARNUNG') >= 0);
                 const isExcluded = excludedDrivers.includes(s.fahrer_name);
-                return s.woche === week && s.fahrer_name && s.fahrer_name !== '__TRANSFER__'
+                return s.woche === week && s.fahrer_name && s.fahrer_name.indexOf('__') !== 0
                     && s.fahrer_name.toLowerCase().indexOf(search) >= 0
                     && (!warn || s.auszahlung < 0)
                     && (!warnOnly || isWarnStatus)
@@ -2734,6 +2744,9 @@
             const mp = await getSupabase().from('mypos_umsaetze').select('terminal,betrag,fahrer_id,datei,letzte_buchung').eq('woche', w).then(function (r) { return r; }, function () { return {}; });
             if (w !== week) return;
             AZ.mypos = (mp && mp.data) || [];
+            const mz = await getSupabase().from('mypos_zuordnungen').select('id,mypos_zeile_id,terminal,betrag,ziel_name,vorher,nachher,zugeordnet_von,zugeordnet_am').eq('woche', w).is('zurueck_am', null).then(function (r) { return r; }, function () { return {}; });
+            if (w !== week) return;
+            AZ.mpz = (mz && mz.data) || [];
             uwAufraeumen();
             render();
             if (freigabeVon(w) && AZ.rows.some(function (r) { return r.status === 'revolut_offen'; })) azKontoLaden();
@@ -2802,6 +2815,63 @@
                 + (mypos === 0 && !mp.length ? '<b>myPOS fehlt noch</b> – vor dem Freigeben die CSVs hochladen, sie überschreiben die Werte. ' : '')
                 + (ohne.length ? '<b>' + ohne.length + ' myPOS-Terminal(s) ohne Fahrer</b> (' + esc(ohne.map(function (m) { return m.terminal; }).join(', ')) + ', zusammen ' + fmt(ohne.reduce(function (t, m) { return t + (parseFloat(m.betrag) || 0); }, 0)) + ') – in Notion zuordnen. ' : '')
                 + (a.ohne_fahrer ? a.ohne_fahrer + ' Bolt-/Uber-Konto/Konten ohne Fahrer. ' : '') + '</span>';
+        }
+        /* Nicht zugeordnete myPOS-Zahlungen (__MYPOS:<Terminal>__ vom AbrechnungsBot): einem Fahrer der Woche zuordnen.
+           Die Datenbank rechnet Umsatz, Prozent und Auszahlung nach (mypos_zuordnen); rueckgaengig ueber mypos_zuordnung_zurueck. */
+        function renderMyposKarte() {
+            const el = document.getElementById('mpKarte');
+            const offen = SETTLEMENTS.filter(function (s) { return s.woche === week && s.status === 'MYPOS_UNASSIGNED' && String(s.fahrer_name).indexOf('__MYPOS:') === 0; });
+            const fertig = AZ.woche === week ? (AZ.mpz || []) : [];
+            el.hidden = !offen.length && !fertig.length;
+            if (el.hidden) return;
+            const fahrer = SETTLEMENTS.filter(function (s) { return s.woche === week && s.status === 'berechnet' && String(s.fahrer_name).indexOf('__') !== 0; })
+                .sort(function (a, b) { return String(a.fahrer_name).localeCompare(String(b.fahrer_name), 'de'); });
+            const opts = fahrer.map(function (f) { return '<option value="' + f.id + '">' + esc(f.fahrer_name) + '</option>'; }).join('');
+            const terminal = function (n) { return String(n).replace(/^__MYPOS:/, '').replace(/__$/, ''); };
+            el.innerHTML = '<h4>myPOS ohne Fahrer · ' + offen.length + ' · ' + fmt(offen.reduce(function (t, s) { return t + (parseFloat(s.mypos_summe) || 0); }, 0)) + '</h4>'
+                + offen.map(function (s) {
+                    return '<div class="mp-zeile"><b>' + esc(terminal(s.fahrer_name)) + '</b><span class="num">' + fmt(s.mypos_summe) + '</span>'
+                        + '<select data-mpsel="' + s.id + '"><option value="">Fahrer wählen …</option>' + opts + '</select>'
+                        + '<button class="uw-k go" data-mpzu="' + s.id + '">Zuordnen</button></div>';
+                }).join('')
+                + fertig.map(function (z) {
+                    return '<div class="mp-zeile fertig"><b>' + esc(z.terminal) + '</b><span class="num">' + fmt(z.betrag) + '</span>'
+                        + '<span>→ ' + esc(z.ziel_name) + ' · Auszahlung ' + fmt(z.vorher.auszahlung) + ' → ' + fmt(z.nachher.auszahlung)
+                        + (parseFloat(z.vorher.prozent_abzug) !== parseFloat(z.nachher.prozent_abzug) ? ' · % ' + fmt(z.vorher.prozent_abzug) + ' → ' + fmt(z.nachher.prozent_abzug) : '') + '</span>'
+                        + '<button class="uw-k" data-mpzurueck="' + z.id + '">rückgängig</button></div>';
+                }).join('');
+        }
+        async function mpKlick(e) {
+            const zu = e.target.closest('[data-mpzu]'), zurueck = e.target.closest('[data-mpzurueck]');
+            if (!zu && !zurueck) return;
+            const b = zu || zurueck;
+            if (b.disabled) return;
+            let res;
+            if (zu) {
+                const sel = document.querySelector('[data-mpsel="' + zu.dataset.mpzu + '"]'), ziel = sel ? parseInt(sel.value, 10) : NaN;
+                if (!ziel) { alert('Bitte einen Fahrer wählen.'); return; }
+                const m = SETTLEMENTS.filter(function (s) { return s.id === parseInt(zu.dataset.mpzu, 10); })[0];
+                if (!confirm(fmt(m ? m.mypos_summe : 0) + ' myPOS an ' + sel.options[sel.selectedIndex].text + ' zuordnen?\n\nUmsatz, Prozent und Auszahlung werden nachgerechnet.')) return;
+                b.disabled = true;
+                res = await getSupabase().rpc('mypos_zuordnen', { p_mypos_id: parseInt(zu.dataset.mpzu, 10), p_ziel_id: ziel });
+                if (!res.error && res.data) showReToast(res.data.fahrer + ': Auszahlung ' + fmt(res.data.auszahlung_vorher) + ' → ' + fmt(res.data.auszahlung_nachher)
+                    + (parseFloat(res.data.prozent_vorher) !== parseFloat(res.data.prozent_nachher) ? ' · % ' + fmt(res.data.prozent_vorher) + ' → ' + fmt(res.data.prozent_nachher) : ''), 'success');
+            } else {
+                if (!confirm('Zuordnung zurücknehmen? Die Werte des Fahrers werden wiederhergestellt.')) return;
+                b.disabled = true;
+                res = await getSupabase().rpc('mypos_zuordnung_zurueck', { p_id: parseInt(zurueck.dataset.mpzurueck, 10) });
+                if (!res.error) showReToast('Zuordnung zurückgenommen', 'success');
+            }
+            if (res.error) { alert(fgFehler(res.error)); b.disabled = false; return; }
+            await neuLadenWocheBehalten();
+        }
+        // loadData() springt auf die neueste Woche - hier soll man in der gerade offenen Woche bleiben
+        async function neuLadenWocheBehalten() {
+            const w = week;
+            await loadData();
+            if (w && WEEKS.indexOf(w) >= 0 && week !== w) {
+                week = w; document.getElementById('weekFilter').value = w; render(); ladeAuszahlung(w);
+            }
         }
         function renderUwLeiste(data) {
             const el = document.getElementById('uwLeiste'), txt = document.getElementById('uwLeisteText'), go = document.getElementById('uwGo'), alle = document.getElementById('uwAlle');
@@ -2919,7 +2989,7 @@
         function render() {
             renderPostenBanner();
             const data = getData();
-            const all = SETTLEMENTS.filter(function(s) { return s.woche === week && s.fahrer_name !== '__TRANSFER__' && !excludedDrivers.includes(s.fahrer_name); });
+            const all = SETTLEMENTS.filter(function(s) { return s.woche === week && String(s.fahrer_name || '').indexOf('__') !== 0 && !excludedDrivers.includes(s.fahrer_name); });
             const warnCount = all.filter(function(s) { return (s.status && s.status.indexOf('WARNUNG') >= 0) || s.auszahlung < 0; }).length;
             const totalAbzug = data.reduce(function(a,s) { return a + (s.abzug_gesamt || 0); }, 0);
             const totalMieten = data.reduce(function(a,s) { return a + (s.miete || 0); }, 0);
@@ -2948,6 +3018,7 @@
             document.getElementById('lohnCount').textContent = lohnRows.length;
             renderUwLeiste(data);
             renderApiBanner(all);
+            renderMyposKarte();
             const hint = document.getElementById('lohnHint');
             if (lohnOnly) { hint.innerHTML = 'Zeigt <b>' + data.length + ' Fahrer</b> mit eingetragenem Lohn, Summe Lohn <b class="num">' + fmt(data.reduce(function(a,s){ return a + lohnOf(s); }, 0)) + '</b>.'; hint.classList.remove('hidden'); } else { hint.classList.add('hidden'); }
             const noMatchCount = all.filter(function(s) { return s.status && s.status.indexOf('WARNUNG_KEIN_FAHRER') >= 0; }).length;

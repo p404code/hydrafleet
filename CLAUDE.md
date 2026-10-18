@@ -267,6 +267,13 @@ Ziel des Betreibers: Großteil über Revolut, kleiner Rest bar. **Eine Stelle re
   in der DB, sind aber vorerst ohne UI** (Entscheidung Betreiber 19.10.).
 - Test: `PGLITE=<dir> node scripts/test-bankdaten.mjs` (Abschnitt Auszahlungs-Status).
 
+**myPOS ohne Fahrer zuordnen** (seit 19.10., `2026-10-19-mypos-zuordnen.sql`): Karte `mpKarte` in der Abrechnung listet die
+Bot-Zeilen `__MYPOS:<Terminal>__` (Status `MYPOS_UNASSIGNED`). `mypos_zuordnen(myposZeile, fahrerZeile)` addiert den Betrag als myPOS-Umsatz
+und rechnet `bruttoumsatz_gesamt`, `wir_bekommen`, `prozent_abzug` (`prozent_nach_regel`, wie der Bot), `abzug_gesamt`, `auszahlung` nach
+(Prozent als Differenz); die myPOS-Zeile wird `MYPOS_ZUGEORDNET`. Verlauf `mypos_zuordnungen`, `mypos_zuordnung_zurueck` nur solange
+die Fahrer-Zeile unverändert ist. Ein Neu-Upload rechnet die Woche neu → Terminal in Notion zuordnen. Test: `scripts/test-mypos-zuordnen.mjs`.
+`__…`-Zeilen erscheinen nicht mehr in der Tabelle und zählen nicht zu den Kennzahlen.
+
 ## Automatische Abrechnung (seit 2026-10-19, Bolt + Uber; myPOS folgt)
 
 Betreiber 18.10.: „morgen um 5:00 die automatische Abrechnung, als Übersicht rein wie nach einem CSV-Upload“.

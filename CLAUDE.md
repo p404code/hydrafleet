@@ -278,6 +278,12 @@ Migration `2026-10-18-abrechnung-api-automatisch.sql`.
   brauchen aber `X-Session` aus dem neuen Gateway). Dashboard zeigt `apiBanner`, solange die Woche automatisch und ohne myPOS ist.
   Der normale CSV-Upload überschreibt die Zeilen (Bot-Upsert auf `woche, fahrer_name`) – **vor dem Freigeben hochladen**.
 - Auszahlungswerte ohne CSV kommen aus dem Fahrer-Stamm (`fahrer.basis_miete`, `mietmodell`, `prozent_*`).
+- **myPOS aus dem Kontoauszug** (seit 18.10., `2026-10-18-mypos-umsaetze.sql`): `mypos_umsaetze` (Woche, Terminal, Summe, Notion-Fahrertext,
+  `fahrer_id` über `mypos_fahrer_id()` – Name/`name_key`/Alias, nur eindeutig). `api_abrechnung` nimmt `mypos_summe` aus der CSV,
+  sonst aus `mypos_umsaetze`; `abrechnung_api_schreiben` schreibt es mit. Quelle: myPOS-Export `account_transactions_*.xlsx`
+  (Spalten „Terminal name“, „Amount“), Terminal → Fahrer aus dem n8n-Webhook `/webhook/mypos-terminals` (gleiche Regeln wie der Bot:
+  leerer Text zählt nicht, letzter Eintrag gewinnt). KW42 am 18.10. von Claude importiert (25 Terminals zugeordnet, 4 ohne Fahrer,
+  120,88 €). Import künftiger Wochen: noch von Hand (Datei schicken) – Upload im Dashboard fehlt.
 
 ## Key Supabase Tables
 

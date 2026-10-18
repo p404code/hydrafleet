@@ -2713,6 +2713,9 @@
             const lauf = await getSupabase().from('abrechnung_api_laeufe').select('ergebnis,zeit,anzahl,ohne_fahrer').eq('woche', w).then(function (r) { return r; }, function () { return {}; });
             if (w !== week) return;
             AZ.api = ((lauf && lauf.data) || [])[0] || null;
+            const mp = await getSupabase().from('mypos_umsaetze').select('terminal,betrag,fahrer_id,datei,letzte_buchung').eq('woche', w).then(function (r) { return r; }, function () { return {}; });
+            if (w !== week) return;
+            AZ.mypos = (mp && mp.data) || [];
             uwAufraeumen();
             render();
             if (freigabeVon(w) && AZ.rows.some(function (r) { return r.status === 'revolut_offen'; })) azKontoLaden();
@@ -2767,10 +2770,17 @@
             const el = document.getElementById('apiBanner');
             const a = AZ.woche === week ? AZ.api : null;
             const mypos = all.reduce(function (t, s) { return t + (parseFloat(s.mypos_summe) || 0); }, 0);
-            const zeigen = !!a && a.ergebnis === 'geschrieben' && mypos === 0;
+            const mp = AZ.woche === week ? (AZ.mypos || []) : [];
+            const ohne = mp.filter(function (m) { return m.fahrer_id == null; });
+            const zeigen = !!a && a.ergebnis === 'geschrieben';
             el.style.display = zeigen ? 'flex' : 'none';
-            if (zeigen) document.getElementById('apiBannerText').innerHTML = '<span><strong>' + esc(week.replace(/^\d{4}-W0?/, 'KW ')) + ' wurde automatisch aus Bolt + Uber abgerechnet</strong> (' + esc(fzZeit(a.zeit)) + '). '
-                + '<b>myPOS fehlt noch</b> – vor dem Freigeben die CSVs hochladen, sie überschreiben die Werte.' + (a.ohne_fahrer ? ' ' + a.ohne_fahrer + ' Konto/Konten ohne Fahrer.' : '') + '</span>';
+            if (!zeigen) return;
+            const kw = esc(week.replace(/^\d{4}-W0?/, 'KW '));
+            const quelle = mp.length ? 'Bolt + Uber + myPOS-Auszug' + (mp[0].letzte_buchung ? ' (bis ' + esc(fzZeit(mp[0].letzte_buchung)) + ')' : '') : 'Bolt + Uber';
+            document.getElementById('apiBannerText').innerHTML = '<span><strong>' + kw + ' wurde automatisch abgerechnet</strong> aus ' + quelle + ', ' + esc(fzZeit(a.zeit)) + '. '
+                + (mypos === 0 && !mp.length ? '<b>myPOS fehlt noch</b> – vor dem Freigeben die CSVs hochladen, sie überschreiben die Werte. ' : '')
+                + (ohne.length ? '<b>' + ohne.length + ' myPOS-Terminal(s) ohne Fahrer</b> (' + esc(ohne.map(function (m) { return m.terminal; }).join(', ')) + ', zusammen ' + fmt(ohne.reduce(function (t, m) { return t + (parseFloat(m.betrag) || 0); }, 0)) + ') – in Notion zuordnen. ' : '')
+                + (a.ohne_fahrer ? a.ohne_fahrer + ' Bolt-/Uber-Konto/Konten ohne Fahrer. ' : '') + '</span>';
         }
         function renderUwLeiste(data) {
             const el = document.getElementById('uwLeiste'), txt = document.getElementById('uwLeisteText'), go = document.getElementById('uwGo'), alle = document.getElementById('uwAlle');

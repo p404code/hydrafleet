@@ -1007,6 +1007,12 @@
         .mp-zeile select { height: 30px; min-width: 0; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-2); color: var(--text); font: inherit; font-size: 12.5px; padding: 0 8px; }
         .mp-zeile.fertig { color: var(--text-mut); }
         @media (max-width: 768px) { .mp-karte { margin: 8px 12px 0; } .mp-zeile { grid-template-columns: 1fr auto; } .mp-zeile select { grid-column: 1 / -1; } }
+        .az-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 20px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-mut); }
+        .az-status > b { color: var(--text); font-size: 12.5px; margin-right: 4px; }
+        .az-status .uw-b { height: 22px; font-weight: 500; }
+        .az-status .uw-b b { font-weight: 700; }
+        .az-status a { color: var(--accent); cursor: pointer; text-decoration: underline; margin-left: 4px; }
+        @media (max-width: 768px) { .az-status { padding: 8px 12px; } }
         .uw-fertig { display: flex; flex-direction: column; gap: 4px; padding: 14px 0 10px; font-size: 13px; color: var(--text-mut); }
         .uw-fertig b { font-size: 16px; color: var(--accent); }
         dialog.rv-dialog .uw-z { cursor: default; grid-template-columns: 0 minmax(0, 1fr) 104px; }
@@ -1147,6 +1153,7 @@
                     </div>
                 </div>
             </div>
+            <div class="az-status" id="azStatus" hidden></div>
             <div class="toolbar">
                 <input type="text" class="search" id="searchInput" placeholder="Fahrer suchen">
                 <button class="chip active" id="allFilter">Alle</button>
@@ -2168,6 +2175,13 @@
             document.getElementById('bpMenueBtn').addEventListener('click', bpDialog);
             document.getElementById('uwAlle').addEventListener('change', uwAlleToggle);
             document.getElementById('mpKarte').addEventListener('click', mpKlick);
+            document.getElementById('azStatus').addEventListener('click', function (e) {
+                const a = e.target.closest('[data-azstw]'); if (!a) return;
+                const w = a.dataset.azstw; if (WEEKS.indexOf(w) < 0) return;
+                week = w; document.getElementById('weekFilter').value = w; render(); ladeAuszahlung(w);
+            });
+            azStatusLaden();
+            setInterval(function () { if (!document.hidden) azStatusLaden(); }, 120000);
             // Menue schliesst nach einem Klick darin und beim Klick daneben
             document.getElementById('azMenue').addEventListener('click', function (e) { if (e.target.closest('button')) { const m = this; setTimeout(function () { m.open = false; }, 0); } });
             document.addEventListener('click', function (e) { const m = document.getElementById('azMenue'); if (m.open && !m.contains(e.target)) m.open = false; });
@@ -2738,6 +2752,7 @@
             const res = await getSupabase().rpc('auszahlung_status', { p_woche: w }).then(function (r) { return r; }, function (e) { return { error: e }; });
             if (w !== week) return;
             AZ = { woche: w, rows: res.error ? [] : (res.data || []), byRow: {}, fehler: res.error ? fgFehler(res.error) : null };
+            azStatusLaden();
             AZ.rows.forEach(function (r) { (r.zeilen || []).forEach(function (id) { AZ.byRow[id] = r; }); });
             const lauf = await getSupabase().from('abrechnung_api_laeufe').select('ergebnis,zeit,anzahl,ohne_fahrer').eq('woche', w).then(function (r) { return r; }, function () { return {}; });
             if (w !== week) return;
@@ -2878,6 +2893,42 @@
             if (w && WEEKS.indexOf(w) >= 0 && week !== w) {
                 week = w; document.getElementById('weekFilter').value = w; render(); ladeAuszahlung(w);
             }
+        }
+        /* Status der automatischen Abrechnung (abrechnung_api_status): immer fuer die letzte abgeschlossene Woche */
+        let AZ_STATUS = null;
+        async function azStatusLaden() {
+            const res = await getSupabase().rpc('abrechnung_api_status').then(function (r) { return r; }, function () { return {}; });
+            AZ_STATUS = res && !res.error ? res.data : null;
+            renderAzStatus();
+        }
+        function renderAzStatus() {
+            const el = document.getElementById('azStatus'), st = AZ_STATUS;
+            el.hidden = !st;
+            if (!st) return;
+            const uhr = function (t) { return t ? new Date(t).toLocaleString('de-AT', { weekday: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Vienna' }) : ''; };
+            const tag = function (cls, txt) { return '<span class="uw-b ' + cls + '">' + txt + '</span>'; };
+            const kw = esc(String(st.woche).replace(/^\d{4}-W0?/, 'KW '));
+            const geplant = new Date(String(st.lauf_geplant).replace(' ', 'T') + ':00').getTime();
+            const vorbei = Date.now() > geplant + 3 * 3600 * 1000;   // ab ca. 08:00 Wien gilt "noch nicht da" als Problem
+            const sync = function (name, x, einheit) {
+                if (x.zeilen > 0) return tag('ok', name + ' ✓ <b>' + x.zeilen + '</b> ' + einheit + (x.zuletzt ? ' · ' + esc(uhr(x.zuletzt)) : ''));
+                if (x.fehler) return tag('err', name + ': ' + esc(String(x.fehler).slice(0, 80)));
+                return tag(vorbei ? 'err' : 'offen', name + (vorbei ? ' fehlt' : ' geplant Mo 04:1x'));
+            };
+            const a = st.abrechnung, z = st.zeilen || 0, m = st.mypos, fr = st.freigabe;
+            let mypos;
+            if (parseFloat(st.mypos_csv) > 0 && !(a && a.ergebnis === 'geschrieben')) mypos = tag('ok', 'myPOS ✓ aus CSV');
+            else if (m) mypos = tag(m.ohne_fahrer ? 'warn' : 'ok', 'myPOS-Auszug ✓ ' + fmt(m.summe) + (m.letzte_buchung ? ' bis ' + esc(uhr(m.letzte_buchung)) : '') + (m.ohne_fahrer ? ' · ' + m.ohne_fahrer + ' Terminal(s) ohne Fahrer' : ''));
+            else mypos = tag('warn', 'myPOS fehlt – Auszug schicken oder CSV hochladen');
+            let abr;
+            if (a && a.ergebnis === 'geschrieben') abr = tag('ok', 'Abrechnung ✓ <b>' + (a.anzahl || 0) + '</b> Fahrer · ' + esc(uhr(a.zeit)));
+            else if (z > 0) abr = tag('ok', 'Abrechnung ✓ aus CSV · ' + z + ' Zeilen');
+            else if (a && a.ergebnis === 'unvollstaendig') abr = tag(vorbei ? 'err' : 'warn', 'Abrechnung wartet: ' + esc(a.hinweis || 'unvollständig'));
+            else abr = tag(vorbei ? 'err' : 'offen', vorbei ? 'Abrechnung fehlt' : 'Abrechnung geplant Mo 05:00');
+            const frei = fr ? tag('ok', 'Freigegeben ✓ ' + esc(uhr(fr.am)) + ' · ' + esc(fr.von) + ' – Fahrer sehen es')
+                            : tag(z > 0 ? 'warn' : 'offen', z > 0 ? 'Noch nicht freigegeben' : 'Freigabe folgt automatisch');
+            el.innerHTML = '<b>Automatische Abrechnung ' + kw + '</b>' + sync('Bolt', st.bolt, 'Fahrten') + sync('Uber', st.uber, 'Fahrer') + mypos + abr + frei
+                + (z > 0 && week !== st.woche ? '<a data-azstw="' + esc(st.woche) + '">' + kw + ' öffnen</a>' : '');
         }
         function renderUwLeiste(data) {
             const el = document.getElementById('uwLeiste'), txt = document.getElementById('uwLeisteText'), go = document.getElementById('uwGo'), alle = document.getElementById('uwAlle');

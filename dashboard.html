@@ -1152,6 +1152,7 @@
                 <button class="chip active" id="allFilter">Alle</button>
                 <button class="chip" id="azOffenFilter">Offen <span class="cnt" id="azOffenCnt"></span></button>
                 <button class="chip" id="azFertigFilter">Überwiesen <span class="cnt" id="azFertigCnt"></span></button>
+                <button class="chip" id="azIbanFilter" title="Hat eine IBAN, bekommt Geld, ist aber noch nicht überwiesen (auch Kassabuch-Wochen und ungeprüfte Bankdaten)">IBAN, nicht überwiesen <span class="cnt" id="azIbanCnt"></span></button>
                 <div class="sp"></div>
                 <details class="az-menue" id="azMenue"><summary class="btn" title="Weitere Funktionen">⋯</summary>
                     <div class="az-menue-liste">
@@ -2149,14 +2150,14 @@
         document.addEventListener('DOMContentLoaded', function() { initTheme(); try { const sess = JSON.parse(localStorage.getItem('hydralink_session') || 'null'); if (sess && sess.name) document.getElementById('sessionName').textContent = sess.name; } catch (e) {} updateExcludedUI(); updateSortUI(); 
             document.getElementById('themeToggle').addEventListener('click', toggleTheme); document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); ladeAuszahlung(week); }); var _searchTimer = null; document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); clearTimeout(_searchTimer); _searchTimer = setTimeout(render, 200); }); document.querySelectorAll('#abrTable th[data-sort]').forEach(function(th) { th.addEventListener('click', function() { toggleSort(th.dataset.sort); }); });
             function syncAllChip() { document.getElementById('allFilter').classList.toggle('active', !warn && !warnOnly && !lohnOnly && !ausFilter); }
-            document.getElementById('allFilter').addEventListener('click', function() { warn = false; warnOnly = false; lohnOnly = false; ausFilter = ''; ['warningFilter','warnOnlyFilter','lohnFilter','azOffenFilter','azFertigFilter'].forEach(function(id) { document.getElementById(id).classList.remove('active'); }); syncAllChip(); render(); });
+            document.getElementById('allFilter').addEventListener('click', function() { warn = false; warnOnly = false; lohnOnly = false; ausFilter = ''; ['warningFilter','warnOnlyFilter','lohnFilter','azOffenFilter','azFertigFilter','azIbanFilter'].forEach(function(id) { document.getElementById(id).classList.remove('active'); }); syncAllChip(); render(); });
             document.getElementById('warningFilter').addEventListener('click', function() { warn = !warn; this.classList.toggle('active', warn); syncAllChip(); render(); });
             document.getElementById('warnOnlyFilter').addEventListener('click', function() { warnOnly = !warnOnly; this.classList.toggle('active', warnOnly); syncAllChip(); render(); });
-            ['azOffenFilter', 'azFertigFilter'].forEach(function (id) {
+            ['azOffenFilter', 'azFertigFilter', 'azIbanFilter'].forEach(function (id) {
                 document.getElementById(id).addEventListener('click', function () {
-                    const f = id === 'azOffenFilter' ? 'offen' : 'ueberwiesen';
+                    const f = id === 'azOffenFilter' ? 'offen' : (id === 'azFertigFilter' ? 'ueberwiesen' : 'iban');
                     ausFilter = ausFilter === f ? '' : f;
-                    ['azOffenFilter', 'azFertigFilter'].forEach(function (x) { document.getElementById(x).classList.toggle('active', x === id && ausFilter === f); });
+                    ['azOffenFilter', 'azFertigFilter', 'azIbanFilter'].forEach(function (x) { document.getElementById(x).classList.toggle('active', x === id && ausFilter === f); });
                     syncAllChip(); render();
                 });
             });
@@ -2756,7 +2757,12 @@
         function azFilterOk(s) {
             if (!ausFilter) return true;
             const r = azVon(s);
+            if (ausFilter === 'iban') return azIbanOffen(r);
             return ausFilter === 'offen' ? azOffen(r) : (!!r && r.status === 'ueberwiesen');
+        }
+        // IBAN hinterlegt, bekommt Geld, aber noch nicht (ganz) ueberwiesen - auch Kassabuch-Wochen und ungepruefte Bankdaten
+        function azIbanOffen(r) {
+            return !!r && !!r.iban_ende && parseFloat(r.offen) > 0 && ['revolut_offen', 'bar_offen', 'bar_woche', 'rest_offen'].indexOf(r.status) >= 0;
         }
         function azDatum(t) { return t ? new Date(t).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit' }) : ''; }
         function azTitel(r) {
@@ -2881,6 +2887,8 @@
             const offen = nach(['revolut_offen']), lauf = nach(['entwurf', 'unterwegs']), ok = nach(['ueberwiesen']);
             document.getElementById('azOffenCnt').textContent = rows.length ? rows.filter(azOffen).length : '';
             document.getElementById('azFertigCnt').textContent = rows.length ? ok.length : '';
+            const ibanOffen = rows.filter(azIbanOffen);
+            document.getElementById('azIbanCnt').textContent = rows.length ? ibanOffen.length : '';
             // Kopf-Checkbox: Stand der anwaehlbaren Zeilen in der gefilterten Liste
             const sichtbar = {}; data.forEach(function (s) { const r = azVon(s); if (uwWaehlbar(r)) sichtbar[r.notion_fahrer_id] = UW_SEL.has(r.notion_fahrer_id); });
             const ids = Object.keys(sichtbar), nSel = ids.filter(function (k) { return sichtbar[k]; }).length;
@@ -2894,7 +2902,8 @@
             else if (AZ_KONTO.fehler && AZ_KONTO.woche === week) konto = '<span class="neg">Kontostand: ' + esc(AZ_KONTO.fehler) + '</span>';
             else if (fr && offen.length) konto = 'Kontostand wird geladen …';
             const haupt = sel.length ? sel.length + ' ausgewählt · ' + fmt(selSumme) : offen.length + ' offen · ' + fmt(sum(offen, function (r) { return r.offen; }));
-            const neben = [lauf.length ? lauf.length + ' im Entwurf' : '', ok.length + ' überwiesen', fr ? konto : 'Erst die Woche freigeben'].filter(Boolean).join(' · ');
+            const ibanText = ibanOffen.length ? '<b class="neg">' + ibanOffen.length + ' mit IBAN noch nicht überwiesen · ' + fmt(sum(ibanOffen, function (r) { return r.offen; })) + '</b>' : '';
+            const neben = [ibanText, lauf.length ? lauf.length + ' im Entwurf' : '', ok.length + ' überwiesen', fr ? konto : 'Erst die Woche freigeben'].filter(Boolean).join(' · ');
             txt.innerHTML = '<b class="uw-l-h">' + haupt + '</b><span class="uw-l-s">' + neben + '</span>';
             go.disabled = !fr || !sel.length;
             go.title = fr ? 'Revolut-Entwurf für die angehakten Fahrer anlegen' : 'Erst die Woche freigeben';

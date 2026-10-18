@@ -258,7 +258,8 @@ Ziel des Betreibers: Großteil über Revolut, kleiner Rest bar. **Eine Stelle re
 - Rest (`rest_offen`) wird immer bar beglichen – ein zweiter Revolut-Posten je Woche/Fahrer geht wegen `unique(woche, nr)` nicht.
 - Dashboard Abrechnung (Redesign 19.10., Plan von Fable): **Auswahl per Häkchen in der Tabelle** (nur Status *revolut_offen*,
   Woche freigegeben, nicht von der Vorschau gesperrt; keine Vorauswahl), Kopf-Häkchen `uwAlle` = alle überweisbaren der gefilterten
-  Liste, Leiste `uwLeiste` (Auswahl, Summe, Kontostand) mit Knopf **„Überweisen“** `uwGo` → Dialog `uwDialog` (Vorschau, „Entwurf
+  Liste, Filter **„IBAN, nicht überwiesen“** (`azIbanOffen`: IBAN da, Betrag offen, Status revolut_offen/bar_offen/bar_woche/rest_offen),
+  Leiste `uwLeiste` (Auswahl, Summe, Kontostand, rot „n mit IBAN noch nicht überwiesen“) mit Knopf **„Überweisen“** `uwGo` → Dialog `uwDialog` (Vorschau, „Entwurf
   anlegen“, Ergebnis). Status-Badges (`uwZelle`, `UW_BADGE`), Filter Alle·Offen·Überwiesen, Rest im ⋯-Menü (`azMenue`, u. a.
   „Revolut-Stand prüfen“ = Aktion status). Je Zeile Knopf **„Überweisen“** (nur dieser Fahrer, `uwDialog([nr])`), bei *bar_woche*
   Knopf **„noch offen“** (`auszahlung_weg_setzen(..,'revolut')` – Kassabuch-Woche nur teilweise bar bezahlt, z. B. KW41; seit 18.10.

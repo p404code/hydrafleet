@@ -260,7 +260,10 @@ Ziel des Betreibers: Großteil über Revolut, kleiner Rest bar. **Eine Stelle re
   Woche freigegeben, nicht von der Vorschau gesperrt; keine Vorauswahl), Kopf-Häkchen `uwAlle` = alle überweisbaren der gefilterten
   Liste, Leiste `uwLeiste` (Auswahl, Summe, Kontostand) mit Knopf **„Überweisen“** `uwGo` → Dialog `uwDialog` (Vorschau, „Entwurf
   anlegen“, Ergebnis). Status-Badges (`uwZelle`, `UW_BADGE`), Filter Alle·Offen·Überwiesen, Rest im ⋯-Menü (`azMenue`, u. a.
-  „Revolut-Stand prüfen“ = Aktion status). **Bar/Kassabuch (`bar_auszahlen`, `auszahlung_weg_setzen`, `bar_rueckgaengig`) bleiben
+  „Revolut-Stand prüfen“ = Aktion status). Je Zeile Knopf **„Überweisen“** (nur dieser Fahrer, `uwDialog([nr])`), bei *bar_woche*
+  Knopf **„noch offen“** (`auszahlung_weg_setzen(..,'revolut')` – Kassabuch-Woche nur teilweise bar bezahlt, z. B. KW41; seit 18.10.
+  gilt *bar_woche* nur ohne Hand-Umstellung). **„Bankdaten prüfen“** (Leiste + ⋯-Menü, `bpDialog`): alle ungeprüften mit voller
+  IBAN, Kontoinhaber ≠ Name / IBAN neu markiert, abhaken → `bank_pruefen` je Fahrer. **Bar/Kassabuch (`bar_auszahlen`, `auszahlung_weg_setzen`, `bar_rueckgaengig`) bleiben
   in der DB, sind aber vorerst ohne UI** (Entscheidung Betreiber 19.10.).
 - Test: `PGLITE=<dir> node scripts/test-bankdaten.mjs` (Abschnitt Auszahlungs-Status).
 

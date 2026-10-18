@@ -990,6 +990,15 @@
         .uw-b.aus::before { display: none; }
         .uw-sub { margin-left: 8px; font-size: 11px; color: var(--text-mut); font-family: var(--sans); font-variant-numeric: tabular-nums; vertical-align: middle; }
         #contentAbrechnungen .side-panel { top: calc(var(--nav-h) + 49px + 51px); max-height: calc(100vh - var(--nav-h) - 49px - 51px); }
+        .uw-k { font: inherit; font-size: 11px; font-weight: 600; height: 22px; padding: 0 9px; margin-left: 8px; border-radius: 6px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); cursor: pointer; vertical-align: middle; }
+        .uw-k:hover { border-color: var(--accent); color: var(--accent); }
+        .uw-k.go { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+        .uw-k.go:hover { filter: brightness(1.06); color: var(--accent-ink); }
+        dialog.rv-dialog .bp-zeile { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 2px; border-bottom: 1px solid var(--border); font-size: 12.5px; cursor: pointer; }
+        dialog.rv-dialog .bp-zeile b { display: block; font-weight: 600; }
+        dialog.rv-dialog .bp-zeile small { display: block; color: var(--text-mut); font-size: 11.5px; }
+        dialog.rv-dialog .bp-zeile .num { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+        dialog.rv-dialog .bp-warn { color: var(--warn); font-weight: 600; }
         .uw-fertig { display: flex; flex-direction: column; gap: 4px; padding: 14px 0 10px; font-size: 13px; color: var(--text-mut); }
         .uw-fertig b { font-size: 16px; color: var(--accent); }
         dialog.rv-dialog .uw-z { cursor: default; grid-template-columns: 0 minmax(0, 1fr) 104px; }
@@ -1017,6 +1026,8 @@
             #abrTable th.uw-st, #abrTable td.uw-st { padding-left: 6px; }
             .uw-b { font-size: 10.5px; padding: 0 6px; }
             .uw-sub { display: none; } /* Grund steht in der aufgeklappten Detail-Zeile */
+            #abrTable tr:not(.detail-row) .uw-k { display: none; } /* Knoepfe stehen in der aufgeklappten Zeile */
+            #bpBtn { display: none; }
             .az-menue-liste { position: fixed; left: 12px; right: 12px; top: 120px; }
         }
         .rb-stand { font-size: 11.5px; color: var(--text-mut); margin-left: auto; margin-right: 8px; }
@@ -1144,6 +1155,7 @@
                         <button class="btn" id="printAllBtn">Alle drucken</button>
                         <button class="btn" id="exportBtn">Export</button>
                         <button class="btn" id="refreshBtn">Neu laden</button>
+                        <button class="btn" id="bpMenueBtn">Bankdaten prüfen</button>
                         <button class="btn" id="azStatusBtn" title="Stand der Entwürfe bei Revolut nachsehen (freigegeben, verworfen, abgelehnt)">Revolut-Stand prüfen</button>
                         <button class="btn" id="azAbrufenBtn" title="Überweisungen vom Serdo-Konto bei Revolut holen">Revolut abrufen</button>
                         <button class="btn" id="revolutBtn" title="Sammelüberweisung als Datei – nur falls die Revolut-API nicht geht">Revolut-CSV (Notfall)</button>
@@ -1152,11 +1164,13 @@
             </div>
             <div class="uw-leiste hidden" id="uwLeiste">
                 <div class="uw-l-txt" id="uwLeisteText"></div>
+                <button class="btn" id="bpBtn" hidden title="Ungeprüfte Bankdaten ansehen und bestätigen">Bankdaten prüfen</button>
                 <button class="uw-go" id="uwGo" disabled>Überweisen</button>
             </div>
             <div class="hint hidden" id="lohnHint"></div>
             <dialog class="lo-wahl rv-dialog" id="rvDialog"></dialog>
             <dialog class="lo-wahl rv-dialog" id="uwDialog"></dialog>
+            <dialog class="lo-wahl rv-dialog" id="bpDialog"></dialog>
             <div class="alias-banner" id="aliasBanner">
                 <span><strong id="aliasBannerCount">0</strong> Fahrer ohne Zuordnung in dieser Woche</span>
                 <button class="btn" onclick="openAliasModal()">Jetzt zuordnen →</button>
@@ -2139,7 +2153,9 @@
             });
             document.getElementById('azAbrufenBtn').addEventListener('click', azAbrufen);
             document.getElementById('azStatusBtn').addEventListener('click', azStatusPruefen);
-            document.getElementById('uwGo').addEventListener('click', uwDialog);
+            document.getElementById('uwGo').addEventListener('click', function () { uwDialog(); });
+            document.getElementById('bpBtn').addEventListener('click', bpDialog);
+            document.getElementById('bpMenueBtn').addEventListener('click', bpDialog);
             document.getElementById('uwAlle').addEventListener('change', uwAlleToggle);
             // Menue schliesst nach einem Klick darin und beim Klick daneben
             document.getElementById('azMenue').addEventListener('click', function (e) { if (e.target.closest('button')) { const m = this; setTimeout(function () { m.open = false; }, 0); } });
@@ -2175,6 +2191,7 @@
                 return false;
             }
             document.getElementById('tableBody').addEventListener('click', function(e) {
+                if (uwZeilenKnopf(e)) return;
                 const cb = e.target.closest('td.uw-cb');
                 if (cb) {
                     e.stopPropagation();
@@ -2189,7 +2206,7 @@
                 const row = e.target.closest('tr[data-row]');
                 if (row) selectDriver(row.dataset.row);
             });
-            document.getElementById('detailPanel').addEventListener('click', detailActions);
+            document.getElementById('detailPanel').addEventListener('click', function (e) { if (!uwZeilenKnopf(e)) detailActions(e); });
             ['tableBody', 'detailPanel'].forEach(function(id) {
                 const el = document.getElementById(id);
                 el.addEventListener('change', function(e) { const t = e.target; if (t && t.classList && t.classList.contains('lohn-input')) { saveLohn(parseInt(t.getAttribute('data-lohn-id'), 10), t.value); } });
@@ -2628,12 +2645,13 @@
             getData().forEach(function (s) { const r = azVon(s); if (uwWaehlbar(r)) { if (on) UW_SEL.add(r.notion_fahrer_id); else UW_SEL.delete(r.notion_fahrer_id); } });
             render();
         }
-        async function uwDialog() {
-            if (!week || !UW_SEL.size) return;
+        async function uwDialog(nrs) {
+            const liste = Array.isArray(nrs) ? nrs : Array.from(UW_SEL);
+            if (!week || !liste.length) return;
             if (!freigabeVon(week)) { alert('Überweisen geht erst, wenn die Woche freigegeben ist.'); return; }
             const d = document.getElementById('uwDialog');
             if (!d.dataset.bereit) { d.dataset.bereit = '1'; d.addEventListener('click', uwKlick); d.addEventListener('close', function () { UW = null; AZ_KONTO.zeit = 0; ladeAuszahlung(week); }); }
-            UW = { nrs: Array.from(UW_SEL), vorschau: null, fehler: null, ergebnis: null, laeuft: false };
+            UW = { nrs: liste, vorschau: null, fehler: null, ergebnis: null, laeuft: false };
             d.innerHTML = '<h3>Überweisen · ' + esc(week) + '</h3><p class="rv-hinweis">Lade Kontostand …</p>';
             if (!d.open) d.showModal();
             try { UW.vorschau = await rdFn({ aktion: 'vorschau', woche: week }); } catch (e) { UW.fehler = rdFehlerText(e); }
@@ -2684,7 +2702,7 @@
             UW.laeuft = true; UW.fehler = null; uwZeichnen();
             try {
                 const res = await rdFn({ aktion: 'anlegen', woche: week, nrs: nrs });
-                UW.ergebnis = res; UW_SEL.clear();
+                UW.ergebnis = res; nrs.forEach(function (nr) { UW_SEL.delete(nr); });
                 showReToast('Revolut-Entwurf angelegt: ' + res.anzahl + ' Fahrer · ' + fmt(res.summe), 'success');
             } catch (err) { if (UW) UW.fehler = rdFehlerText(err); }
             if (UW) { UW.laeuft = false; uwZeichnen(); }
@@ -2745,7 +2763,10 @@
             if (r.status === 'revolut_offen' && r.revolut_fehler) sub = r.revolut_fehler;
             const g = uwGrund(r);
             if (g) sub = g;
-            return '<span class="uw-b ' + b[0] + '" title="' + esc(azTitel(r)) + '">' + esc(t) + '</span>' + (sub ? '<span class="uw-sub">' + esc(sub) + '</span>' : '');
+            let knopf = '';
+            if (uwWaehlbar(r)) knopf = '<button class="uw-k go" data-uwein="' + r.notion_fahrer_id + '" title="Nur diesen Fahrer überweisen (' + esc(fmt(r.offen)) + ')">Überweisen</button>';
+            else if (r.status === 'bar_woche' && freigabeVon(s.woche)) knopf = '<button class="uw-k" data-uwoffen="' + r.notion_fahrer_id + '" title="Hat in dieser Woche noch nichts bekommen – überweisbar machen">noch offen</button>';
+            return '<span class="uw-b ' + b[0] + '" title="' + esc(azTitel(r)) + '">' + esc(t) + '</span>' + (sub ? '<span class="uw-sub">' + esc(sub) + '</span>' : '') + knopf;
         }
         function azDetailHtml(s) {
             const r = azVon(s);
@@ -2808,6 +2829,81 @@
             go.disabled = !fr || !sel.length;
             go.title = fr ? 'Revolut-Entwurf für die angehakten Fahrer anlegen' : 'Erst die Woche freigeben';
             go.textContent = 'Überweisen' + (sel.length ? ' · ' + sel.length : '');
+            const bp = document.getElementById('bpBtn'), ungeprueft = rows.filter(function (r) { return r.iban_ende && !r.geprueft && parseFloat(r.betrag) > 0; }).length;
+            bp.hidden = !ungeprueft; bp.textContent = 'Bankdaten prüfen · ' + ungeprueft;
+        }
+        // Knoepfe in der Zeile/Detail: einzeln ueberweisen, "noch offen" (Kassabuch-Woche, nur teilweise bar bezahlt)
+        function uwZeilenKnopf(e) {
+            const ein = e.target.closest('[data-uwein]'), off = e.target.closest('[data-uwoffen]');
+            if (!ein && !off) return false;
+            e.stopPropagation();
+            if (ein) { uwDialog([parseInt(ein.dataset.uwein, 10)]); return true; }
+            uwNochOffen(off);
+            return true;
+        }
+        async function uwNochOffen(b) {
+            const nr = parseInt(b.dataset.uwoffen, 10), r = AZ.rows.filter(function (x) { return x.notion_fahrer_id === nr; })[0];
+            if (!r) return;
+            if (!r.iban_ende) { alert(r.name + ' hat keine Bankdaten – überweisen geht nicht.'); return; }
+            if (!r.geprueft) { if (confirm(r.name + ': Bankdaten sind noch ungeprüft.\n\nJetzt die Bankdaten prüfen?')) bpDialog(); return; }
+            if (!confirm(r.name + ' hat für ' + week.replace(/^\d{4}-W0?/, 'KW ') + ' noch nichts bekommen (' + fmt(r.betrag) + ')?\n\nDann wird er überweisbar.')) return;
+            b.disabled = true;
+            const { error } = await getSupabase().rpc('auszahlung_weg_setzen', { p_woche: AZ.woche, p_nr: nr, p_weg: 'revolut' });
+            if (error) { alert(fgFehler(error)); b.disabled = false; return; }
+            showReToast(r.name + ': überweisbar', 'success');
+            AZ_KONTO.zeit = 0;
+            await ladeAuszahlung(week);
+        }
+        /* Bankdaten pruefen: alle ungeprueften auf einen Blick (volle IBAN, Kontoinhaber), abhaken, in einem Rutsch bestaetigen.
+           bank_pruefen bekommt die IBAN mit, die man gesehen hat - wurde sie inzwischen geaendert, wird nichts bestaetigt. */
+        let BP = [];
+        async function bpDialog() {
+            const d = document.getElementById('bpDialog');
+            if (!d.dataset.bereit) { d.dataset.bereit = '1'; d.addEventListener('click', bpKlick); d.addEventListener('change', bpSumme); }
+            document.getElementById('azMenue').open = false;
+            d.innerHTML = '<h3>Bankdaten prüfen</h3><p class="rv-hinweis">Lade …</p>';
+            if (!d.open) d.showModal();
+            const res = await getSupabase().from('bank_uebersicht').select('notion_fahrer_id,name,kontoinhaber,iban,bic,revtag,geaendert_am,geaendert_von,iban_geaendert_am,geprueft').not('iban', 'is', null).eq('geprueft', false);
+            if (res.error) { d.innerHTML = '<h3>Bankdaten prüfen</h3><p class="rd-kopf"><span class="neg">' + esc(fgFehler(res.error)) + '</span></p><div class="wfuss"><button class="btn" data-bp="zu">Schließen</button></div>'; return; }
+            const diese = {}; (AZ.woche === week ? AZ.rows : []).forEach(function (r) { if (parseFloat(r.betrag) > 0) diese[r.notion_fahrer_id] = r.betrag; });
+            BP = (res.data || []).sort(function (a, b) { return ((b.notion_fahrer_id in diese) - (a.notion_fahrer_id in diese)) || String(a.name).localeCompare(String(b.name), 'de'); });
+            const nk = function (t) { return String(t || '').toLowerCase().replace(/[^a-zäöüß]/g, ' ').split(' ').filter(Boolean).sort().join(' '); };
+            d.innerHTML = '<h3>Bankdaten prüfen · ' + BP.length + ' ungeprüft</h3>'
+                + '<p class="rv-hinweis">Vergleiche Kontoinhaber und IBAN mit dem, was der Fahrer dir gegeben hat. Erst geprüfte Bankdaten lassen sich überweisen. Oben stehen die Fahrer mit Auszahlung in ' + esc(week) + '.</p>'
+                + '<div class="wliste">' + (BP.length ? BP.map(function (b, i) {
+                    const neu = b.iban_geaendert_am && Date.now() - new Date(b.iban_geaendert_am).getTime() < 14 * 864e5;
+                    const anders = nk(b.kontoinhaber) !== nk(b.name);
+                    return '<label class="bp-zeile"><input type="checkbox" data-bpi="' + i + '"><span><b>' + esc(b.name) + (b.notion_fahrer_id in diese ? ' · ' + esc(fmt(diese[b.notion_fahrer_id])) : '') + '</b>'
+                        + '<small>' + esc(b.kontoinhaber) + (anders ? ' <span class="bp-warn">· Kontoinhaber ≠ Name</span>' : '') + (neu ? ' <span class="bp-warn">· IBAN neu seit ' + esc(fzZeit(b.iban_geaendert_am).slice(0, 10)) + '</span>' : '')
+                        + ' · eingetragen von ' + esc(b.geaendert_von || '–') + '</small></span>'
+                        + '<span class="num">' + esc(BankLogik.gruppiert(b.iban)) + (b.revtag ? '<small>' + esc(b.revtag) + '</small>' : '') + '</span></label>';
+                }).join('') : '<div class="pk-leer" style="padding:10px 2px">Alle hinterlegten Bankdaten sind geprüft.</div>') + '</div>'
+                + '<div class="wfuss"><span class="rv-summe" id="bpSumme"></span><button class="btn" data-bp="alle">Alle anhaken</button><button class="btn" data-bp="zu">Schließen</button>'
+                + '<button class="uw-go" data-bp="los" disabled>Bestätigen</button></div>';
+            bpSumme();
+        }
+        function bpAuswahl() { return Array.prototype.slice.call(document.querySelectorAll('#bpDialog [data-bpi]:checked')).map(function (c) { return BP[parseInt(c.dataset.bpi, 10)]; }); }
+        function bpSumme() {
+            const el = document.getElementById('bpSumme'); if (!el) return;
+            const n = bpAuswahl().length, b = document.querySelector('#bpDialog [data-bp="los"]');
+            el.textContent = n + ' ausgewählt'; if (b) { b.disabled = !n; b.textContent = 'Bestätigen' + (n ? ' · ' + n : ''); }
+        }
+        async function bpKlick(e) {
+            const b = e.target.closest('[data-bp]'); if (!b) return;
+            const d = document.getElementById('bpDialog');
+            if (b.dataset.bp === 'zu') { d.close(); AZ_KONTO.zeit = 0; ladeAuszahlung(week); return; }
+            if (b.dataset.bp === 'alle') { d.querySelectorAll('[data-bpi]').forEach(function (c) { c.checked = true; }); bpSumme(); return; }
+            const w = bpAuswahl(); if (!w.length) return;
+            if (!confirm(w.length + ' Bankdaten als geprüft bestätigen?\n\nDanach kann an diese IBANs überwiesen werden.')) return;
+            b.disabled = true; b.textContent = 'Bestätige …';
+            const fehler = [];
+            for (const x of w) {
+                const { error } = await getSupabase().rpc('bank_pruefen', { p_notion_fahrer_id: x.notion_fahrer_id, p_iban: x.iban });
+                if (error) fehler.push(x.name + ': ' + fgFehler(error));
+            }
+            showReToast((w.length - fehler.length) + ' Bankdaten bestätigt', fehler.length ? 'error' : 'success');
+            if (fehler.length) alert('Nicht bestätigt:\n' + fehler.join('\n'));
+            await bpDialog();
         }
         async function azAbrufen() {
             const b = document.getElementById('azAbrufenBtn');

@@ -417,6 +417,7 @@ try {
       ('2026-W41', 'Dora Vier', null, 50, 0);
     update public.fahrer_bank set geprueft = true where notion_fahrer_id = 101;`);
   await db.exec(lies('../migrations/2026-10-19-auszahlung-status.sql'));
+  await db.exec(lies('../migrations/2026-10-18-kassawoche-noch-offen.sql'));
   const stand = async (w) => Object.fromEntries((await q(`select * from public.auszahlung_status('${w}')`))
     .map((r) => [r.notion_fahrer_id, [r.status, Number(r.betrag), Number(r.offen)]]));
   await als(ANNA);
@@ -481,6 +482,18 @@ try {
   await als(BUERO);
   assert.deepEqual((await stand('2026-W41'))[104], ['bar_woche', 50, 50]);
   await nein(`select public.bar_auszahlen('2026-W41', 104)`, [], /gesamt im Kassabuch/);
+  // Teilweise bar bezahlt: einzelne Fahrer der Kassabuch-Woche als "noch offen" auf Revolut stellen
+  await raus();
+  await db.exec(`update public.revolut_buchungen set notion_fahrer_id = null, zuordnung = 'hand' where notion_fahrer_id = 103`);
+  await als(BUERO);
+  assert.equal((await stand('2026-W41'))[103][0], 'bar_woche');
+  await nein(`select public.auszahlung_weg_setzen('2026-W41', 103, 'revolut')`, [], /ungeprüft/);
+  await raus();
+  await db.exec(`update public.fahrer_bank set geprueft = true where notion_fahrer_id = 103`);
+  await als(BUERO);
+  await q(`select public.auszahlung_weg_setzen('2026-W41', 103, 'revolut')`);
+  assert.deepEqual((await stand('2026-W41'))[103], ['revolut_offen', 300, 300]);
+  assert.equal((await stand('2026-W41'))[104][0], 'bar_woche');   // andere bleiben gesperrt
   await raus();
   // Fahrerapp: nur Ueberweisungen, nie bar
   await db.exec(`insert into public.revolut_zahlungen (woche, notion_fahrer_id, name, betrag, iban_ende, empfaenger, referenz, status, erstellt_von)

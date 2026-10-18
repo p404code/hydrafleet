@@ -392,6 +392,126 @@ try {
   assert.equal(Number((await q(`select seit_freigabe_ueberwiesen s from public.revolut_kandidaten('2026-W41') where notion_fahrer_id = 103`))[0].s), 0);
   await raus();
 
+  // --- Auszahlungs-Status (migrations/2026-10-19-auszahlung-status.sql)
+  // Kassabuch-Nachbau (nur was bar_auszahlen braucht; das echte Kassabuch hat Pruefsummen und Sperr-Trigger)
+  await db.exec(`
+    create table public.kassabuch (id bigserial primary key, nr serial, datum date default current_date, art text, betrag numeric,
+      name text, text text, storno_von bigint, angelegt_von text, quelle text default 'hand', woche_abr text, posten_id bigint,
+      constraint kassabuch_quelle_check check (quelle in ('hand', 'abrechnung', 'posten', 'anfang')));
+    create function public.kassa_kw(p_woche text) returns text language sql immutable as
+      $$ select 'KW ' || coalesce(nullif(ltrim(substr(p_woche, 7), '0'), ''), '0') $$;
+    create function public.kassa_einfuegen(p_art text, p_betrag numeric, p_text text, p_quelle text, p_woche_abr text,
+      p_posten_id bigint, p_storno_von bigint) returns public.kassabuch language plpgsql security definer as $$
+      declare r public.kassabuch; begin
+        if not public.is_app_user() then raise exception 'Nicht autorisiert'; end if;
+        insert into public.kassabuch (art, betrag, name, text, storno_von, angelegt_von, quelle, woche_abr, posten_id)
+        values (p_art, round(p_betrag, 2), auth.jwt()->'app_metadata'->>'app_name', p_text, p_storno_von,
+                auth.jwt()->'app_metadata'->>'app_name', p_quelle, p_woche_abr, p_posten_id) returning * into r;
+        return r; end $$;
+    create view public.abrechnung_posten_offen as select null::text as woche where false;
+    grant select on public.kassabuch to authenticated;
+    insert into public.abrechnung_freigaben (woche) values ('2026-W42');
+    insert into public.settlements (woche, fahrer_name, telefon, auszahlung, lohn) values
+      ('2026-W42', 'Anna Fahr', '+436601111111', 80, 0), ('2026-W42', 'Anna Alias', '+436601111111', 20, 0),
+      ('2026-W42', 'Dora Vier', null, 200, 0), ('2026-W42', 'Emil Fuenf', null, 0, 0), ('2026-W42', 'Cem Fahr', '+436603333333', 150, 0),
+      ('2026-W41', 'Dora Vier', null, 50, 0);
+    update public.fahrer_bank set geprueft = true where notion_fahrer_id = 101;`);
+  await db.exec(lies('../migrations/2026-10-19-auszahlung-status.sql'));
+  const stand = async (w) => Object.fromEntries((await q(`select * from public.auszahlung_status('${w}')`))
+    .map((r) => [r.notion_fahrer_id, [r.status, Number(r.betrag), Number(r.offen)]]));
+  await als(ANNA);
+  await nein(`select * from public.auszahlung_status('2026-W42')`, [], /Nicht autorisiert/);
+  await nein(`select public.bar_auszahlen('2026-W42', 104)`, [], /Nicht autorisiert/);
+  assert.equal((await q('select count(*)::int n from public.fahrer_app_auszahlung()'))[0].n, 0);   // nichts ueberwiesen
+  await raus();
+  await als(BUERO);
+  assert.deepEqual(await stand('2026-W42'), { 101: ['revolut_offen', 100, 100], 103: ['bar_offen', 150, 150],
+    104: ['bar_offen', 200, 200], 105: ['nichts', 0, 0] });
+  assert.equal((await q(`select array_length(zeilen, 1) n from public.auszahlung_status('2026-W42') where notion_fahrer_id = 101`))[0].n, 2);   // Alias
+  // W41: Anna per CSV (450) UND per Entwurf (450) bezahlt -> zu viel (genau das soll auffallen), Bert Schulden,
+  // Cem: CSV-Export hat eine echte Buchung mit gleicher Referenz (als Vorschuss markiert) -> CSV zaehlt nicht, offen
+  const w41 = await stand('2026-W41');
+  assert.deepEqual([w41[101][0], w41[102][0], w41[103][0]], ['zu_viel', 'schulden', 'bar_offen']);
+  assert.deepEqual((await q(`select public.referenz_kw('Auszahlung KW41/26 FHR-1') a, public.referenz_kw('W40') b,
+    public.referenz_kw('40b') c, public.referenz_kw('Rechnung 17') d, public.referenz_kw('1232600103') e`))[0], { a: 41, b: 40, c: 40, d: null, e: null });
+  assert.deepEqual(w41[104], ['bar_offen', 50, 50]);
+  await raus();
+  await db.exec('set role service_role');
+  assert.deepEqual((await q(`select notion_fahrer_id nr, betrag from public.revolut_kandidaten('2026-W42')`)).map((r) => [r.nr, Number(r.betrag)]), [[101, 100]]);
+  await raus();
+  await als(BUERO);
+  // Weg umstellen
+  await nein(`select public.auszahlung_weg_setzen('2026-W42', 103, 'revolut')`, [], /ungeprüft/);
+  await q(`select public.auszahlung_weg_setzen('2026-W42', 101, 'bar')`);
+  assert.deepEqual((await stand('2026-W42'))[101], ['bar_offen', 100, 100]);
+  await raus();
+  await db.exec('set role service_role');
+  assert.equal((await q(`select count(*)::int n from public.revolut_kandidaten('2026-W42')`))[0].n, 0);   // bar -> kein Revolut
+  await raus();
+  await als(BUERO);
+  await q(`select public.auszahlung_weg_setzen('2026-W42', 101, 'revolut')`);
+  // Bar auszahlen: Kassabuch-Ausgabe, nie zweimal
+  const ba = (await q(`select * from public.bar_auszahlen('2026-W42', 104)`))[0];
+  assert.equal(Number(ba.betrag), 200);
+  let kb = (await q(`select art, betrag, quelle, woche_abr, text from public.kassabuch where id = $1`, [ba.kassabuch_id]))[0];
+  assert.deepEqual([kb.art, Number(kb.betrag), kb.quelle, kb.woche_abr, kb.text], ['aus', 200, 'bar', '2026-W42', 'Auszahlung KW 42 · Dora Vier']);
+  assert.deepEqual((await stand('2026-W42'))[104], ['bar_ok', 200, 0]);
+  await nein(`select public.bar_auszahlen('2026-W42', 104)`, [], /Nicht bar auszahlbar/);
+  await nein(`select public.bar_auszahlen('2026-W42', 101)`, [], /Nicht bar auszahlbar/);   // Revolut-Fahrer
+  await nein(`select public.auszahlung_weg_setzen('2026-W42', 104, 'revolut')`, [], /nichts bezahlt/);
+  await raus();
+  // Wochenbuchung gesperrt, sobald bar je Fahrer gebucht ist
+  await nein(`insert into public.kassabuch (art, betrag, name, quelle, woche_abr) values ('aus', 1, 'x', 'abrechnung', '2026-W42')`, [], /je Fahrer bar/);
+  // Betrag steigt nachtraeglich -> Rest offen, Rest bar
+  await db.exec(`update public.settlements set auszahlung = 230 where woche = '2026-W42' and fahrer_name = 'Dora Vier'`);
+  await als(BUERO);
+  assert.deepEqual((await stand('2026-W42'))[104], ['rest_offen', 230, 30]);
+  const rest = (await q(`select * from public.bar_auszahlen('2026-W42', 104)`))[0];
+  assert.equal(Number(rest.betrag), 30);
+  assert.deepEqual((await stand('2026-W42'))[104], ['bar_ok', 230, 0]);
+  // Rueckgaengig: Gegenbuchung, Zeile bleibt
+  await q(`select public.bar_rueckgaengig($1)`, [ba.id]);
+  kb = (await q(`select art, betrag, quelle, storno_von from public.kassabuch order by id desc limit 1`))[0];
+  assert.deepEqual([kb.art, Number(kb.betrag), kb.quelle, Number(kb.storno_von)], ['ein', 200, 'bar', Number(ba.kassabuch_id)]);
+  assert.deepEqual((await stand('2026-W42'))[104], ['rest_offen', 230, 200]);
+  await nein(`select public.bar_rueckgaengig($1)`, [ba.id], /Schon rückgängig/);
+  await raus();
+  // Woche schon gesamt im Kassabuch: Bar-Fahrer "bar_woche", kein bar_auszahlen
+  await db.exec(`insert into public.kassabuch (art, betrag, name, quelle, woche_abr) values ('aus', 999, 'Stefan', 'abrechnung', '2026-W41')`);
+  await als(BUERO);
+  assert.deepEqual((await stand('2026-W41'))[104], ['bar_woche', 50, 50]);
+  await nein(`select public.bar_auszahlen('2026-W41', 104)`, [], /gesamt im Kassabuch/);
+  await raus();
+  // Fahrerapp: nur Ueberweisungen, nie bar
+  await db.exec(`insert into public.revolut_zahlungen (woche, notion_fahrer_id, name, betrag, iban_ende, empfaenger, referenz, status, erstellt_von)
+    values ('2026-W42', 101, 'Anna Fahr', 100, '3000', 'iban', 'Auszahlung KW42/26 FHR-101', 'entwurf', 'Stefan')`);
+  await als(ANNA);
+  let app = await q('select status from public.fahrer_app_auszahlung()');
+  assert.deepEqual(app.map((r) => r.status), ['wird_ueberwiesen']);
+  await raus();
+  await db.exec(`update public.revolut_zahlungen set status = 'completed' where woche = '2026-W42' and notion_fahrer_id = 101`);
+  await als(ANNA);
+  app = await q('select status, iban_ende from public.fahrer_app_auszahlung()');
+  assert.deepEqual(app.map((r) => [r.status, r.iban_ende]), [['ueberwiesen', '3000']]);
+  await raus();
+  await als(BERT);   // Bert hat in W42 keine Abrechnung
+  assert.equal((await q('select count(*)::int n from public.fahrer_app_auszahlung()'))[0].n, 0);
+  await raus();
+  await db.exec('set role anon');
+  await nein(`select * from public.auszahlung_status('2026-W42')`, [], /permission denied/);
+  await raus();
+  await als(BUERO);
+  await nein(`select * from public.auszahlung_status_basis('2026-W42')`, [], /permission denied/);
+  await raus();
+  // Ueberweisung mit KW in der Referenz zaehlt auch, wenn sie vor dem (spaeter erneuerten) Freigabe-Zeitpunkt lief
+  await db.exec(`update public.abrechnung_freigaben set freigegeben_am = '2026-10-21' where woche = '2026-W42';
+    insert into public.revolut_buchungen (id, typ, state, erstellt_am, betrag, referenz, gegen_name, notion_fahrer_id, zuordnung)
+    values ('tx-w42', 'transfer', 'completed', '2026-10-19 08:00+00', 150, 'Auszahlung KW42 FHR-103', 'Cem', 103, 'referenz'),
+           ('tx-w42alt', 'transfer', 'completed', '2026-10-22 08:00+00', 99, 'Auszahlung KW41 FHR-103', 'Cem', 103, 'referenz')`);
+  await als(BUERO);
+  assert.deepEqual((await stand('2026-W42'))[103], ['ueberwiesen', 150, 0]);   // KW41-Referenz zaehlt nicht fuer W42
+  await raus();
+
   console.log('OK');
 } catch (e) {
   console.error('FEHLER: ' + (e && e.message || e)); console.error(e && e.stack);

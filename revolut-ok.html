@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <meta name="referrer" content="no-referrer">
+    <title>Revolut verbunden</title>
+    <!-- Rueckleitung nach der Zustimmung in Revolut Business (OAuth-Redirect-URI).
+         Zeigt nur den Einmal-Code fuer scripts/revolut-einrichten.mjs; nichts wird gespeichert oder gesendet.
+         Ohne den privaten Schluessel des Betreibers ist der Code wertlos und verfaellt nach ~2 Minuten. -->
+    <style>
+        :root { --bg: #FBFBFC; --text: #16181D; --mut: #6B7280; --box: #fff; --line: #E5E7EB; --gold: #F5B51B; }
+        @media (prefers-color-scheme: dark) { :root { --bg: #0F1115; --text: #E8EAED; --mut: #9AA0A6; --box: #171A20; --line: #2A2E36; } }
+        body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 Inter, system-ui, sans-serif; display: grid; place-items: center; min-height: 100vh; padding: 16px; box-sizing: border-box; }
+        main { max-width: 460px; width: 100%; }
+        h1 { font-size: 18px; margin: 0 0 8px; } h1 b { color: var(--gold); }
+        p { color: var(--mut); margin: 0 0 14px; }
+        code { display: block; background: var(--box); border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-size: 14px; overflow-wrap: anywhere; user-select: all; }
+        button { margin-top: 10px; height: 40px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--box); color: var(--text); font: inherit; cursor: pointer; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>HYDRA<b>link</b> · Revolut</h1>
+    <p id="t">Kein Code in der Adresse.</p>
+    <code id="c" hidden></code>
+    <button id="k" hidden>Kopieren</button>
+</main>
+<script>
+    (function () {
+        var q = new URLSearchParams(location.search), code = q.get('code'), fehler = q.get('error');
+        var t = document.getElementById('t'), c = document.getElementById('c'), k = document.getElementById('k');
+        if (fehler) { t.textContent = 'Revolut meldet: ' + fehler; return; }
+        if (!code) return;
+        t.textContent = 'Zustimmung erteilt. Diesen Code jetzt im Terminal bei „node scripts/revolut-einrichten.mjs token“ einfügen (gilt ca. 2 Minuten):';
+        c.textContent = code; c.hidden = false; k.hidden = false;
+        k.onclick = function () { navigator.clipboard.writeText(code).then(function () { k.textContent = 'Kopiert'; }); };
+        history.replaceState(null, '', location.pathname);   // Code nicht im Verlauf lassen
+    })();
+</script>
+</body>
+</html>

@@ -297,8 +297,49 @@ try {
   await nein(`select public.bank_pruefen(101, 'x')`, [], /permission denied/);
   await raus();
 
+  // --- Revolut-API (migrations/2026-10-18-revolut-zahlungen.sql)
+  await db.exec(`create role service_role bypassrls; grant usage on schema public to service_role;`);
+  await db.exec(lies('../migrations/2026-10-18-revolut-zahlungen.sql'));
+  await db.exec(`grant select, insert, update on public.revolut_zahlungen, public.revolut_webhook_events, public.fahrer_bank to service_role`);
+  await als(BUERO);
+  await q(`select public.bank_pruefen(101, 'DE89370400440532013000')`);
+  await raus();
+  await db.exec('set role service_role');
+  let rk = await q(`select * from public.revolut_kandidaten('2026-W41')`);
+  assert.deepEqual(rk.map((r) => [r.notion_fahrer_id, Number(r.betrag), r.geprueft, Number(r.csv_exportiert) > 0]),
+    [[101, 450, true, true], [102, -200, false, false], [103, 300, false, true]]);
+  assert.equal((await q(`select count(*)::int n from public.revolut_kandidaten('2026-W39')`))[0].n, 0);   // nicht freigegeben
+  // Gegenpartei nur bei unveraenderter, gepruefter IBAN
+  assert.equal((await q(`select public.revolut_counterparty_setzen(101, 'AT611904300234573201', 'cp1', 'acc1', 'iban') ok`))[0].ok, false);
+  assert.equal((await q(`select public.revolut_counterparty_setzen(101, 'DE89370400440532013000', 'cp1', 'acc1', 'iban') ok`))[0].ok, true);
+  const P = (nr, ref) => JSON.stringify([{ nr, name: 'Anna Fahr', betrag: 450, iban_ende: '3000', empfaenger: 'iban', referenz: ref, cp: 'cp1' }]);
+  assert.deepEqual((await q(`select public.revolut_reservieren('2026-W41', $1::jsonb, 'Stefan') nr`, [P(101, 'Auszahlung KW41/26 FHR-101')])).map((r) => r.nr), [101]);
+  assert.equal((await q(`select public.revolut_reservieren('2026-W41', $1::jsonb, 'Stefan') nr`, [P(101, 'Auszahlung KW41/26 FHR-101')])).length, 0);   // nie doppelt
+  await db.exec(`update public.revolut_zahlungen set status = 'entwurf', revolut_draft_id = 'd1'`);
+  assert.equal((await q(`select public.revolut_reservieren('2026-W41', $1::jsonb, 'Stefan') nr`, [P(101, 'Auszahlung KW41/26 FHR-101')])).length, 0);
+  await db.exec(`update public.revolut_zahlungen set status = 'verworfen'`);
+  assert.equal((await q(`select public.revolut_reservieren('2026-W41', $1::jsonb, 'Stefan') nr`, [P(101, 'Auszahlung KW41/26 FHR-101')])).length, 1);   // nach Verwerfen neu
+  assert.deepEqual(Object.values((await q(`select status, revolut_draft_id from public.revolut_zahlungen`))[0]), ['reserviert', null]);
+  rk = await q(`select zahlung_status, counterparty_id from public.revolut_kandidaten('2026-W41') where notion_fahrer_id = 101`);
+  assert.deepEqual(Object.values(rk[0]), ['reserviert', 'cp1']);
+  await raus();
+  // Bankdaten geaendert (auch per Hand/SQL) -> Gegenpartei und Pruefung weg
+  await db.exec(`update public.fahrer_bank set bic = 'DEUTDEFF' where notion_fahrer_id = 101`);
+  assert.deepEqual(Object.values((await q(`select geprueft, revolut_counterparty_id, revolut_counterparty_account_id from public.fahrer_bank where notion_fahrer_id = 101`))[0]),
+    [false, null, null]);
+  await als(BUERO);
+  assert.equal((await q('select count(*)::int n from public.revolut_zahlungen'))[0].n, 1);
+  await nein(`select * from public.revolut_kandidaten('2026-W41')`, [], /permission denied/);
+  await nein(`select public.revolut_reservieren('2026-W41', '[]'::jsonb, 'x')`, [], /permission denied/);
+  await nein(`insert into public.revolut_zahlungen (woche, notion_fahrer_id, name, betrag, empfaenger, referenz, erstellt_von) values ('x', 1, 'x', 1, 'iban', 'r', 'x')`, [], /permission denied/);
+  await raus();
+  await als(ANNA);
+  assert.equal((await q('select count(*)::int n from public.revolut_zahlungen'))[0].n, 0);   // Fahrer sehen nichts
+  await nein('select * from public.revolut_webhook_events', [], /permission denied/);
+  await raus();
+
   console.log('OK');
 } catch (e) {
-  console.error('FEHLER: ' + (e && e.message || e));
+  console.error('FEHLER: ' + (e && e.message || e)); console.error(e && e.stack);
   process.exit(1);
 }

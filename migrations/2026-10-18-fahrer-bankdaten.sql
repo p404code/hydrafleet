@@ -182,3 +182,6 @@ end $$;
 revoke all on function public.bank_bestaetigen(text, text) from public, anon, authenticated;
 revoke all on function public.fahrer_app_bank(integer), public.bank_pruefen(integer, text) from public, anon;
 grant execute on function public.fahrer_app_bank(integer), public.bank_pruefen(integer, text) to authenticated;
+
+-- Advisor: fester search_path
+alter function public.iban_maskiert(text) set search_path = public;

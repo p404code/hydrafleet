@@ -111,13 +111,15 @@ Geld entscheidet weiterhin das alte System.
 | `notion-sync` | Notion API (`/v1/data_sources/{id}/query`) | `fuhrpark`, `notion_fahrer`, setzt `fahrer.notion_fahrer_id` wo leer |
 | `post-eingang` | PDF vom USP-Skript oder Upload, Claude-Auslese | `post_eingang`, Storage `post` |
 | `post-senden` | SMTP Gmail (`sw.hydrafleet@gmail.com`, App-Passwort) | `post_ausgang`, Status in `post_eingang` |
+| `revolut-auszahlung` | Revolut Business API (Serdo, READ+WRITE) | `revolut_zahlungen`, Gegenpartei in `fahrer_bank` |
+| `revolut-webhook` | Revolut-Webhook (HMAC, `verify_jwt = false`) | Status in `revolut_zahlungen`, `revolut_webhook_events` |
 
 Jeder Lauf schreibt eine Zeile nach `sync_runs`.
 
 **Aufrufschutz (seit 2026-09-28):** Die drei Syncs nehmen nur den service_role-Key
 (Zeitplan) oder Buero-User (`app_metadata.app_role` admin/user) an, sonst 403 —
 der anon-Key steht im Frontend und ist ein gueltiges JWT. Die Rolle wird aus dem
-Token gelesen, die Signatur prueft das Gateway: `verify_jwt` NIE abschalten.
+Token gelesen, die Signatur prueft das Gateway: `verify_jwt` NIE abschalten (einzige Ausnahme: `revolut-webhook`, HMAC-geschützt).
 `uber-probe` ist stillgelegt (410) und kann im Supabase-Dashboard geloescht werden.
 
 ### Zeitplan (`pg_cron`)
@@ -210,7 +212,23 @@ Spec `docs/superpowers/specs/2026-10-15-iban-fahrerapp-design.md`, Plan `docs/su
   seit 18.10.). Betrag änderbar. Jeder Export in
   `auszahlung_export` (`auszahlung_liste`, `auszahlung_export_speichern`); zweimal je Fahrer/Woche nur ausdrücklich.
   Blauer Punkt in der Übersicht mit Ring = schon exportiert. Welches Konto (Serdo/E&E) zahlt, entscheidet das Büro beim Hochladen.
-- **Teil B (Revolut-API, Payment-Drafts) beauftragt am 18.10.2026** — Sandbox zuerst, Produktion erst nach OK des Betreibers.
+- **Revolut-API (seit 18.10.2026, Sandbox; Produktion erst nach OK des Betreibers)** – nur **Serdo**-Konto, Scopes READ + WRITE,
+  **kein PAY**: `revolut-auszahlung` legt nur Payment-Drafts an, freigegeben wird in der Revolut-App.
+  Migration `2026-10-18-revolut-zahlungen.sql`, Logik `_shared/revolut-logik.ts` (`node --test scripts/test-revolut-logik.mjs`).
+  - Dashboard: Abrechnung → „Revolut-Entwurf“ (nur freigegebene Woche) → Vorschau mit Kontostand/Fehlbetrag, Auswahl, „Entwurf anlegen“,
+    „Status“. Betrag = „Du bekommst“ aus der DB (`revolut_kandidaten`), nie aus dem Browser.
+  - Rein nur: Bankdaten geprüft, Betrag > 0, nicht schon per Revolut-CSV exportiert, keine aktive Zahlung. Je Woche+Fahrer eine Zeile in
+    `revolut_zahlungen` (unique), vorher atomar reserviert (`revolut_reservieren`). `verworfen`/`failed`/`declined` dürfen neu.
+  - Referenz `Auszahlung KW42/26 FHR-<nr>`; darüber ordnet `revolut-webhook` die Buchung zu. „Status“ sucht zuerst die Buchung zur
+    Referenz und setzt einen verschwundenen Entwurf erst dann auf `verworfen` – sonst droht doppelte Zahlung. Hängt eine Zeile auf
+    `reserviert` (Function abgebrochen), in Revolut nachsehen und von Hand klären – nicht einfach löschen.
+  - Gegenpartei in `fahrer_bank.revolut_counterparty_id/_account_id/revolut_empfaenger` (Revtag vor IBAN). Trigger
+    `fahrer_bank_revolut_zurueck`: jede Änderung an IBAN/Inhaber/BIC/Revtag löscht Gegenpartei + Prüfung.
+  - Secrets nur als Edge-Function-Secrets (setzt der Betreiber): `REVOLUT_PRIVATE_KEY`, `REVOLUT_CLIENT_ID`, `REVOLUT_REFRESH_TOKEN`,
+    `REVOLUT_ACCOUNT_ID`, `REVOLUT_WEBHOOK_SECRET`, `REVOLUT_ENV` (`sandbox` | `production`). Access-Token je Aufruf, nie gespeichert.
+    Einrichten: `scripts/revolut-einrichten.mjs` (link → token → konten → webhook), Redirect `hydrafleet.pages.dev/revolut-ok`.
+  - `revolut-webhook` läuft als einzige Function mit `verify_jwt = false` (Revolut schickt kein Supabase-JWT); Schutz ist die
+    HMAC-Signatur (`Revolut-Signature`, max. 5 Min alt). Ohne Secret wird alles mit 401 abgelehnt. Doppelte Events: `revolut_webhook_events`.
 
 ## Key Supabase Tables
 

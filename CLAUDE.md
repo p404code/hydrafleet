@@ -236,7 +236,9 @@ Spec `docs/superpowers/specs/2026-10-15-iban-fahrerapp-design.md`, Plan `docs/su
     IBAN eines einzigen Fahrers (auch frühere aus dem Verlauf). Nicht zugeordnet: Karte „Revolut-Überweisungen ohne Fahrer“
     im Fahrer-Reiter. Fahrer-Detail „Überweisungen (Revolut)“, Fahrerapp Bankdaten → `fahrer_app_ueberweisungen`.
     Vor jedem Entwurf werden die letzten 14 Tage neu geholt; wer seit der Freigabe der Woche schon Geld bekam
-    (`revolut_kandidaten.seit_freigabe_ueberwiesen`, Referenz mit anderer KW zählt nicht), bleibt draußen.
+    (`revolut_kandidaten.seit_freigabe_ueberwiesen`, Referenz mit anderer KW zählt nicht), bleibt draußen – außer die Überweisung ist
+    als **Vorschuss** markiert (`revolut_buchungen.vorschuss`, `revolut_buchung_vorschuss`, Knopf im Fahrer-Detail). Bar Ausgezahltes
+    (Kassabuch) sieht die Sperre NICHT; ältere Wochen zeigen im Dialog deshalb einen Warnhinweis (Entwürfe bewusst für alle Wochen).
   - `revolut-webhook` läuft als einzige Function mit `verify_jwt = false` (Revolut schickt kein Supabase-JWT); Schutz ist die
     HMAC-Signatur (`Revolut-Signature`, max. 5 Min alt). Ohne Secret wird alles mit 401 abgelehnt. Doppelte Events: `revolut_webhook_events`.
 

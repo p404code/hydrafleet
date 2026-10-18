@@ -952,7 +952,9 @@
         .fz-bank-fehler { color: var(--err); font-size: 11.5px; }
         .fz-bank-verlauf { font-size: 11.5px; color: var(--text-mut); display: grid; gap: 3px; margin-top: 6px; }
         .fz-ueberw { display: grid; gap: 2px; font-size: 12px; margin-top: 4px; }
-        .fz-ueberw div { display: grid; grid-template-columns: 78px minmax(0, 1fr) auto; gap: 8px; }
+        .fz-ueberw div { display: grid; grid-template-columns: 78px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; }
+        .fz-ueberw button { font: inherit; font-size: 10.5px; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--border); background: none; color: var(--text-mut); cursor: pointer; }
+        .fz-ueberw button.an { color: var(--warn); border-color: var(--warn); }
         .fz-ueberw span:nth-child(2) { color: var(--text-mut); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .fz-ueberw .num { text-align: right; } .fz-ueberw .weg { color: var(--err); text-decoration: line-through; }
         .rb-stand { font-size: 11.5px; color: var(--text-mut); margin-left: auto; margin-right: 8px; }
@@ -2552,6 +2554,7 @@
                 : '<span class="neg">Kontostand nicht abrufbar: ' + esc(r.konto_fehler || '') + '</span>';
             d.innerHTML = '<h3>Revolut-Entwurf · ' + esc(week) + (r.umgebung === 'sandbox' ? '<span class="rd-sandbox">SANDBOX</span>' : '') + '</h3>' +
                 '<p class="rd-kopf">' + kopf + '</p>' +
+                (rdAeltereWoche() ? '<p class="rd-kopf"><span class="neg">Ältere Woche: Bar Ausgezahltes (Kassabuch) und Überweisungen von anderen Konten sieht das System nicht – vor dem Freigeben in Revolut prüfen, wer schon bezahlt ist.</span></p>' : '') +
                 '<p class="rv-hinweis">Nur Fahrer mit vom Büro geprüften Bankdaten und positivem „Du bekommst“. Der Entwurf wird in Revolut angelegt – überwiesen wird erst, wenn du ihn in der Revolut-App freigibst.</p>' +
                 '<div class="wliste">' +
                 (posten ? '<div class="rd-titel">Kommt in den Entwurf</div>' + posten : '<div class="pk-leer" style="padding:10px 2px">Niemand offen für den Entwurf.</div>') +
@@ -2560,6 +2563,10 @@
                 '<div class="wfuss"><span class="rv-summe" id="rdSumme"></span><button class="btn" data-rd="status" title="Stand der Entwürfe und Überweisungen bei Revolut nachsehen">Status</button>' +
                 '<button class="btn" data-rd="zu">Schließen</button><button class="btn btn-primary" data-rd="los"' + (posten ? '' : ' disabled') + '>Entwurf anlegen</button></div>';
             rdSumme();
+        }
+        function rdAeltereWoche() {
+            const neueste = FREIGABEN.map(function (f) { return f.woche === '2026-W37k' ? '2026-W36' : f.woche; }).sort().pop();
+            return !!neueste && (week === '2026-W37k' ? '2026-W36' : week) < neueste;
         }
         function rdAuswahl() {
             return Array.prototype.slice.call(document.querySelectorAll('#rdDialog [data-rdi]:checked')).map(function (c) { return RD.posten[parseInt(c.dataset.rdi, 10)]; });
@@ -3023,7 +3030,8 @@
                     const weg = b.state !== 'completed' && b.state !== 'pending';
                     return '<div title="' + esc((b.gegen_name || '') + (b.gegen_iban ? ' · ' + BankLogik.kurz(b.gegen_iban) : '') + ' · ' + (b.state || '') + ' · zugeordnet über ' + (b.zuordnung || '')) + '">' +
                         '<span>' + esc(fzZeit(b.erstellt_am).slice(0, 10)) + '</span><span>' + esc(b.referenz || b.gegen_name || '') + (b.state === 'pending' ? ' · unterwegs' : '') + '</span>' +
-                        '<span class="num' + (weg ? ' weg' : '') + '">' + fmt(b.betrag) + '</span></div>';
+                        '<span class="num' + (weg ? ' weg' : '') + '">' + fmt(b.betrag) + '</span>' +
+                        '<button class="' + (b.vorschuss ? 'an' : '') + '" data-rbvor="' + esc(b.id) + '" data-rbnr="' + nr + '" data-an="' + (b.vorschuss ? '1' : '') + '" title="Vorschuss zählt nicht als Wochenauszahlung (keine Sperre für den Revolut-Entwurf)">' + (b.vorschuss ? 'Vorschuss' : 'Vorschuss?') + '</button></div>';
                 }).join('') + '</div>';
         }
 
@@ -3389,10 +3397,21 @@
             const bAuf = e.target.closest('[data-fzbankauf]');
             if (bAuf) { fzBankForm = parseInt(bAuf.dataset.fzbankauf, 10); renderFahrer(); return; }
             if (e.target.closest('[data-fzbankzu]')) { fzBankForm = null; renderFahrer(); return; }
+            const bVo = e.target.closest('[data-rbvor]');
+            if (bVo) {
+                e.stopPropagation();
+                const an = !bVo.dataset.an, nr = parseInt(bVo.dataset.rbnr, 10);
+                if (!confirm(an ? 'Als Vorschuss markieren? Dann zählt diese Überweisung nicht als Auszahlung der Woche.' : 'Vorschuss-Markierung entfernen?')) return;
+                bVo.disabled = true;
+                const { error } = await getSupabase().rpc('revolut_buchung_vorschuss', { p_id: bVo.dataset.rbvor, p_vorschuss: an });
+                if (error) { alert('Speichern fehlgeschlagen: ' + fgFehler(error)); bVo.disabled = false; return; }
+                (fzUeberw[nr] || []).forEach(function (x) { if (x.id === bVo.dataset.rbvor) x.vorschuss = an; });
+                renderFahrer(); return;
+            }
             const bUe = e.target.closest('[data-fzueberw]');
             if (bUe) {
                 const nr = parseInt(bUe.dataset.fzueberw, 10);
-                const r = await getSupabase().from('revolut_buchungen').select('erstellt_am,betrag,referenz,state,gegen_name,gegen_iban,zuordnung')
+                const r = await getSupabase().from('revolut_buchungen').select('id,erstellt_am,betrag,referenz,state,gegen_name,gegen_iban,zuordnung,vorschuss')
                     .eq('notion_fahrer_id', nr).order('erstellt_am', { ascending: false }).limit(500);
                 fzUeberw[nr] = r.error ? [] : (r.data || []); renderFahrer(); return;
             }

@@ -378,6 +378,19 @@ try {
   rk = await q(`select notion_fahrer_id nr, seit_freigabe_ueberwiesen s from public.revolut_kandidaten('2026-W41') order by 1`);
   assert.deepEqual(rk.map((r) => [r.nr, Number(r.s)]), [[101, 0], [102, 0], [103, 300]]);
   await raus();
+  // Vorschuss (migrations/2026-10-18-revolut-vorschuss.sql): zaehlt nicht fuer die Sperre
+  await db.exec(lies('../migrations/2026-10-18-revolut-vorschuss.sql'));
+  await als(ANNA);
+  await nein(`select public.revolut_buchung_vorschuss('tx-ref', true)`, [], /Nicht autorisiert/);
+  await raus();
+  await als(BUERO);
+  await q(`select public.revolut_buchung_vorschuss('tx-ref', true)`);
+  await nein(`select public.revolut_buchung_vorschuss('gibts-nicht', true)`, [], /nicht gefunden/);
+  assert.deepEqual(Object.values((await q(`select vorschuss, vorschuss_von from public.revolut_buchungen where id = 'tx-ref'`))[0]), [true, 'Stefan']);
+  await raus();
+  await db.exec('set role service_role');
+  assert.equal(Number((await q(`select seit_freigabe_ueberwiesen s from public.revolut_kandidaten('2026-W41') where notion_fahrer_id = 103`))[0].s), 0);
+  await raus();
 
   console.log('OK');
 } catch (e) {

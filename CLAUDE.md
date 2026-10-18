@@ -264,6 +264,21 @@ Ziel des Betreibers: Großteil über Revolut, kleiner Rest bar. **Eine Stelle re
   in der DB, sind aber vorerst ohne UI** (Entscheidung Betreiber 19.10.).
 - Test: `PGLITE=<dir> node scripts/test-bankdaten.mjs` (Abschnitt Auszahlungs-Status).
 
+## Automatische Abrechnung (seit 2026-10-19, Bolt + Uber; myPOS folgt)
+
+Betreiber 18.10.: „morgen um 5:00 die automatische Abrechnung, als Übersicht rein wie nach einem CSV-Upload“.
+Migration `2026-10-18-abrechnung-api-automatisch.sql`.
+- `pg_cron` **`montag-frueh`** (`*/5 1-6 * * 1` UTC) ruft `montag_frueh()`, die nach **Wiener** Uhr entscheidet (Zeitumstellung egal):
+  04:10 Bolt-Sync, 04:15/04:25/04:40 Uber-Sync (`nur_offene`), 05:00 `abrechnung_api_schreiben(<Vorwoche>)`,
+  Wiederholung 05:30/06:00/07:15 falls Bolt/Uber noch fehlen. Die alten Zeitpläne (Bolt 04:00 UTC, Uber 05:00 UTC) bleiben.
+- `abrechnung_api_schreiben(woche[, p_probe])` schreibt `api_abrechnung` → `settlements` **nur wenn die Woche noch leer ist**
+  (CSV schon da = nichts anfassen) und Bolt + Uber gesynct sind. Konten ohne Fahrer → `WARNUNG_KEIN_FAHRER`. Stand in
+  `abrechnung_api_laeufe`. `p_probe := true` rechnet nur (Prüfung KW41: 30.772,14 € vs. CSV 30.770,14 €, bekannte 2-€-Abweichung).
+- **myPOS fehlt** (kein API-Zugang, neues myPOS-Konto folgt; die alten Zugangsdaten liegen im Vault, `mypos_transactions_api`,
+  brauchen aber `X-Session` aus dem neuen Gateway). Dashboard zeigt `apiBanner`, solange die Woche automatisch und ohne myPOS ist.
+  Der normale CSV-Upload überschreibt die Zeilen (Bot-Upsert auf `woche, fahrer_name`) – **vor dem Freigeben hochladen**.
+- Auszahlungswerte ohne CSV kommen aus dem Fahrer-Stamm (`fahrer.basis_miete`, `mietmodell`, `prozent_*`).
+
 ## Key Supabase Tables
 
 **Bestehend (altes System, nicht anfassen):**

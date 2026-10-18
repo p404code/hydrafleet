@@ -1161,6 +1161,7 @@
                 <span><strong id="aliasBannerCount">0</strong> Fahrer ohne Zuordnung in dieser Woche</span>
                 <button class="btn" onclick="openAliasModal()">Jetzt zuordnen →</button>
             </div>
+            <div class="alias-banner" id="apiBanner"><span id="apiBannerText"></span></div>
             <div class="alias-banner" id="postenBanner">
                 <span id="postenBannerText"></span>
                 <button class="btn" onclick="postenNeuAnwenden()">Wieder einrechnen</button>
@@ -2709,6 +2710,9 @@
             if (w !== week) return;
             AZ = { woche: w, rows: res.error ? [] : (res.data || []), byRow: {}, fehler: res.error ? fgFehler(res.error) : null };
             AZ.rows.forEach(function (r) { (r.zeilen || []).forEach(function (id) { AZ.byRow[id] = r; }); });
+            const lauf = await getSupabase().from('abrechnung_api_laeufe').select('ergebnis,zeit,anzahl,ohne_fahrer').eq('woche', w).then(function (r) { return r; }, function () { return {}; });
+            if (w !== week) return;
+            AZ.api = ((lauf && lauf.data) || [])[0] || null;
             uwAufraeumen();
             render();
             if (freigabeVon(w) && AZ.rows.some(function (r) { return r.status === 'revolut_offen'; })) azKontoLaden();
@@ -2757,6 +2761,16 @@
             } catch (e) { AZ_KONTO.fehler = rdFehlerText(e); }
             uwAufraeumen();
             render();
+        }
+        // Automatische Abrechnung aus Bolt + Uber (abrechnung_api_schreiben): solange kein myPOS drin ist, deutlich warnen
+        function renderApiBanner(all) {
+            const el = document.getElementById('apiBanner');
+            const a = AZ.woche === week ? AZ.api : null;
+            const mypos = all.reduce(function (t, s) { return t + (parseFloat(s.mypos_summe) || 0); }, 0);
+            const zeigen = !!a && a.ergebnis === 'geschrieben' && mypos === 0;
+            el.style.display = zeigen ? 'flex' : 'none';
+            if (zeigen) document.getElementById('apiBannerText').innerHTML = '<span><strong>' + esc(week.replace(/^\d{4}-W0?/, 'KW ')) + ' wurde automatisch aus Bolt + Uber abgerechnet</strong> (' + esc(fzZeit(a.zeit)) + '). '
+                + '<b>myPOS fehlt noch</b> – vor dem Freigeben die CSVs hochladen, sie überschreiben die Werte.' + (a.ohne_fahrer ? ' ' + a.ohne_fahrer + ' Konto/Konten ohne Fahrer.' : '') + '</span>';
         }
         function renderUwLeiste(data) {
             const el = document.getElementById('uwLeiste'), txt = document.getElementById('uwLeisteText'), go = document.getElementById('uwGo'), alle = document.getElementById('uwAlle');
@@ -2827,6 +2841,7 @@
             const lohnRows = all.filter(function(s) { return lohnOf(s) > 0; });
             document.getElementById('lohnCount').textContent = lohnRows.length;
             renderUwLeiste(data);
+            renderApiBanner(all);
             const hint = document.getElementById('lohnHint');
             if (lohnOnly) { hint.innerHTML = 'Zeigt <b>' + data.length + ' Fahrer</b> mit eingetragenem Lohn, Summe Lohn <b class="num">' + fmt(data.reduce(function(a,s){ return a + lohnOf(s); }, 0)) + '</b>.'; hint.classList.remove('hidden'); } else { hint.classList.add('hidden'); }
             const noMatchCount = all.filter(function(s) { return s.status && s.status.indexOf('WARNUNG_KEIN_FAHRER') >= 0; }).length;

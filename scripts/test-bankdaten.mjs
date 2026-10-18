@@ -364,6 +364,9 @@ try {
   assert.equal((await q(`select public.revolut_gegenpartei_zuordnen('iban:AT611904300234573201', 102) n`))[0].n, 0);
   assert.equal((await q(`select notion_fahrer_id nr from public.revolut_buchungen where id = 'tx-ib2'`))[0].nr, 102);
   await nein(`select public.revolut_gegenpartei_zuordnen('name:x', 999)`, [], /Kein Fahrer/);
+  // "kein Fahrer" fuer eine Gegenpartei darf eine Auszahlung mit FHR-Referenz nie ueberstimmen
+  await q(`select public.revolut_gegenpartei_zuordnen('name:cem', null)`);
+  assert.deepEqual(Object.values((await q(`select notion_fahrer_id, zuordnung from public.revolut_buchungen where id = 'tx-ref'`))[0]), [103, 'referenz']);
   await raus();
   await als(ANNA);
   await nein(`select public.revolut_gegenpartei_zuordnen('name:x', 101)`, [], /Nicht autorisiert/);

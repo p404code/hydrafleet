@@ -6,8 +6,8 @@
 -- nach revolut_buchungen (Revolut-Transaktions-id = Schluessel, kein doppelter Import).
 -- Zuordnung zum Fahrer (revolut_buchungen_zuordnen), in dieser Reihenfolge:
 --   1. eigener Entwurf (revolut_zahlungen.revolut_transaction_id)
---   2. Hand-Zuordnung der Gegenpartei durch das Buero (revolut_gegenpartei_zuordnung; Fahrer null = "kein Fahrer")
---   3. Referenz "FHR-<nr>" (Revolut-CSV seit 15.10., Entwuerfe)
+--   2. Referenz "FHR-<nr>" (Revolut-CSV seit 15.10., Entwuerfe) - eindeutig je Ueberweisung, schlaegt die Hand-Zuordnung
+--   3. Hand-Zuordnung der Gegenpartei durch das Buero (revolut_gegenpartei_zuordnung; Fahrer null = "kein Fahrer")
 --   4. Empfaenger-IBAN = aktuelle oder fruehere IBAN genau eines Fahrers (fahrer_bank + fahrer_bank_verlauf)
 --   Sonst bleibt sie offen ("nicht zugeordnet"); geraten wird nicht.
 -- Schutz: revolut_kandidaten meldet, was ein Fahrer seit der Freigabe der Woche schon bekommen hat
@@ -97,12 +97,12 @@ begin
   neu as (
     select b.id,
       case when rz.notion_fahrer_id is not null then rz.notion_fahrer_id
-           when h.schluessel is not null then h.notion_fahrer_id
            when ref.nr is not null then ref.nr
+           when h.schluessel is not null then h.notion_fahrer_id
            else ib.nr end as nr,
       case when rz.notion_fahrer_id is not null then 'entwurf'
-           when h.schluessel is not null then 'hand'
            when ref.nr is not null then 'referenz'
+           when h.schluessel is not null then 'hand'
            when ib.nr is not null then 'iban' end as art
     from public.revolut_buchungen b
     left join public.revolut_zahlungen rz on rz.revolut_transaction_id = b.id

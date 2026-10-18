@@ -232,7 +232,7 @@ Spec `docs/superpowers/specs/2026-10-15-iban-fahrerapp-design.md`, Plan `docs/su
   - **Überweisungshistorie** (`2026-10-18-revolut-buchungen.sql`): `revolut_buchungen` spiegelt alle ausgehenden Überweisungen
     seit Kontoeröffnung (Aktion `buchungen_abrufen`, täglich 05:45 per `pg_cron` `revolut-buchungen-taeglich`, Knopf „Revolut abrufen“;
     der erste Abruf holt die Historie über mehrere Läufe, Stand in `revolut_abruf`). Zuordnung `revolut_buchungen_zuordnen()`:
-    eigener Entwurf → Hand-Zuordnung der Gegenpartei (`revolut_gegenpartei_zuordnung`, null = kein Fahrer) → Referenz `FHR-<nr>` →
+    eigener Entwurf → Referenz `FHR-<nr>` (schlägt die Hand-Zuordnung) → Hand-Zuordnung der Gegenpartei (`revolut_gegenpartei_zuordnung`, null = kein Fahrer) →
     IBAN eines einzigen Fahrers (auch frühere aus dem Verlauf). Nicht zugeordnet: Karte „Revolut-Überweisungen ohne Fahrer“
     im Fahrer-Reiter. Fahrer-Detail „Überweisungen (Revolut)“, Fahrerapp Bankdaten → `fahrer_app_ueberweisungen`.
     Vor jedem Entwurf werden die letzten 14 Tage neu geholt; wer seit der Freigabe der Woche schon Geld bekam

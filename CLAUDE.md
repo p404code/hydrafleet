@@ -226,7 +226,9 @@ Spec `docs/superpowers/specs/2026-10-15-iban-fahrerapp-design.md`, Plan `docs/su
     `fahrer_bank_revolut_zurueck`: jede Änderung an IBAN/Inhaber/BIC/Revtag löscht Gegenpartei + Prüfung.
   - Secrets nur als Edge-Function-Secrets (setzt der Betreiber): `REVOLUT_PRIVATE_KEY`, `REVOLUT_CLIENT_ID`, `REVOLUT_REFRESH_TOKEN`,
     `REVOLUT_ACCOUNT_ID`, `REVOLUT_WEBHOOK_SECRET`, `REVOLUT_ENV` (`sandbox` | `production`). Access-Token je Aufruf, nie gespeichert.
-    Einrichten: `scripts/revolut-einrichten.mjs` (link → token → konten → webhook), Redirect `hydrafleet.pages.dev/revolut-ok`.
+    Einrichten: `scripts/revolut-einrichten.mjs` (zertifikat → link <client-id> → token <code> → pruefen), Redirect
+    `hydrafleet.pages.dev/revolut-ok`. Schlüssel in `~/revolut` (0700). Das Skript setzt die Secrets selbst über die Supabase-CLI
+    (`~/.hydrafleet-supabase-cli`, einmal `supabase login`) und gibt Token/Secrets nie aus.
   - `revolut-webhook` läuft als einzige Function mit `verify_jwt = false` (Revolut schickt kein Supabase-JWT); Schutz ist die
     HMAC-Signatur (`Revolut-Signature`, max. 5 Min alt). Ohne Secret wird alles mit 401 abgelehnt. Doppelte Events: `revolut_webhook_events`.
 

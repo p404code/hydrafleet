@@ -1,16 +1,17 @@
-// Revolut Business API einrichten (Serdo-Konto). Laeuft NUR lokal im eigenen Terminal des Betreibers -
-// nicht ueber Claude (`!`), denn Refresh-Token und Webhook-Secret werden hier einmal angezeigt.
-// Nichts wird gespeichert; die Werte traegt der Betreiber selbst als Edge-Function-Secrets ein
-// (Supabase → Edge Functions → Secrets).
+// Revolut Business API einrichten (nur Serdo-Konto). Schluessel liegen in ~/revolut (nur fuer den Benutzer lesbar).
+// Refresh-Token, Webhook-Secret und privater Schluessel werden NIE ausgegeben, sondern direkt als
+// Edge-Function-Secrets in Supabase gesetzt (Supabase-CLI, einmal `supabase login` noetig).
 //
-//   export REVOLUT_KEY_FILE=~/revolut/privatecert.pem REVOLUT_CLIENT_ID=… REVOLUT_ENV=sandbox
-//   node scripts/revolut-einrichten.mjs link      1. Zustimmungs-Link (im Browser oeffnen, bestaetigen)
-//   node scripts/revolut-einrichten.mjs token     2. Code von hydrafleet.pages.dev/revolut-ok eingeben → Refresh-Token
-//   node scripts/revolut-einrichten.mjs konten    3. Konten mit id (→ REVOLUT_ACCOUNT_ID)
-//   node scripts/revolut-einrichten.mjs webhook   4. Webhook anlegen → Signing-Secret (→ REVOLUT_WEBHOOK_SECRET)
-import { readFileSync } from 'node:fs';
-import { createInterface } from 'node:readline/promises';
+//   node scripts/revolut-einrichten.mjs zertifikat           publiccert.cer in die Zwischenablage (fuer Revolut)
+//   node scripts/revolut-einrichten.mjs link <client-id>     Zustimmungs-Link oeffnen (Client-ID wird gemerkt)
+//   node scripts/revolut-einrichten.mjs token <code|url>     Code tauschen → Secrets setzen, Konto waehlen, Webhook anlegen
+//   node scripts/revolut-einrichten.mjs konto <account-id>   REVOLUT_ACCOUNT_ID setzen (falls mehrere EUR-Konten)
+//   node scripts/revolut-einrichten.mjs pruefen              welche Secrets gesetzt sind (nur Namen)
+// REVOLUT_ENV=production fuer die Produktion (erst nach OK des Betreibers). Standard: sandbox.
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { clientAssertion } from '../supabase/functions/_shared/revolut-logik.ts';
 
 const PROD = process.env.REVOLUT_ENV === 'production';
@@ -18,57 +19,86 @@ const API = PROD ? 'https://b2b.revolut.com/api' : 'https://sandbox-b2b.revolut.
 const APP = PROD ? 'https://business.revolut.com' : 'https://sandbox-business.revolut.com';
 const REDIRECT = 'https://hydrafleet.pages.dev/revolut-ok';
 const ISS = new URL(REDIRECT).host;
-const WEBHOOK = 'https://pkxcwfkfaaorwnbdmylg.supabase.co/functions/v1/revolut-webhook';
+const PROJEKT = 'pkxcwfkfaaorwnbdmylg';
+const WEBHOOK = `https://${PROJEKT}.supabase.co/functions/v1/revolut-webhook`;
+const DIR = join(homedir(), 'revolut');
+const KEY = join(DIR, 'privatecert.pem'), CERT = join(DIR, 'publiccert.cer');
+const CID = join(DIR, PROD ? 'client_id.produktion' : 'client_id.sandbox');
+const CLI = process.env.SUPABASE_CLI || join(homedir(), '.hydrafleet-supabase-cli/node_modules/.bin/supabase');
 
-const schritt = process.argv[2];
-const clientId = process.env.REVOLUT_CLIENT_ID;
-if (!clientId) { console.error('REVOLUT_CLIENT_ID fehlt (Revolut Business → Settings → APIs → Business API).'); process.exit(2); }
+const [schritt, arg] = process.argv.slice(2);
+const raus = (t) => { console.error(t); process.exit(1); };
 console.log(`Umgebung: ${PROD ? 'PRODUKTION' : 'Sandbox'}`);
 
-const frage = async (t) => { const rl = createInterface({ input: process.stdin, output: process.stdout }); const a = await rl.question(t); rl.close(); return a.trim(); };
-function schluessel() {
-  const f = (process.env.REVOLUT_KEY_FILE || '').replace(/^~/, homedir());
-  if (!f) { console.error('REVOLUT_KEY_FILE fehlt (Pfad zu privatecert.pem).'); process.exit(2); }
-  return readFileSync(f, 'utf8');
+// Secrets ueber eine kurzlebige Datei (0600) setzen - nie auf der Kommandozeile, nie im Terminal
+function secretsSetzen(werte) {
+  const datei = join(DIR, `.secrets-${process.pid}.env`);
+  const zeile = (k, v) => `${k}="${String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r?\n/g, '\\n')}"`;
+  writeFileSync(datei, Object.entries(werte).map(([k, v]) => zeile(k, v)).join('\n') + '\n', { mode: 0o600 });
+  try { execFileSync(CLI, ['secrets', 'set', '--project-ref', PROJEKT, '--env-file', datei], { stdio: ['ignore', 'ignore', 'pipe'] }); }
+  catch (e) { raus('Secrets setzen fehlgeschlagen: ' + String(e.stderr || e.message).split('\n').filter(Boolean).slice(-2).join(' ') +
+    '\n→ einmal im eigenen Terminal: ' + CLI + ' login'); }
+  finally { if (existsSync(datei)) unlinkSync(datei); }
+  console.log('In Supabase gesetzt: ' + Object.keys(werte).join(', '));
 }
 async function tokenAnfrage(felder) {
+  const clientId = readFileSync(CID, 'utf8').trim();
   const body = new URLSearchParams({ ...felder, client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-    client_assertion: await clientAssertion(schluessel(), clientId, ISS) });
+    client_assertion: await clientAssertion(readFileSync(KEY, 'utf8'), clientId, ISS) });
   const r = await fetch(`${API}/1.0/auth/token`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) { console.error(`Revolut ${r.status}: ${j.error || ''} ${j.error_description || ''}`); process.exit(1); }
-  return j;
+  if (!r.ok) raus(`Revolut ${r.status}: ${j.error || ''} ${j.error_description || ''}`);
+  return { ...j, clientId };
 }
-async function access() {
-  const refresh = process.env.REVOLUT_REFRESH_TOKEN || await frage('Refresh-Token: ');
-  return (await tokenAnfrage({ grant_type: 'refresh_token', refresh_token: refresh, client_id: clientId })).access_token;
+async function rv(token, pfad, init = {}) {
+  const r = await fetch(`${API}${pfad}`, { ...init, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(init.headers || {}) } });
+  const t = await r.text();
+  if (!r.ok) raus(`Revolut ${r.status} bei ${pfad}: ${t.slice(0, 300)}`);
+  return t ? JSON.parse(t) : null;
 }
 
-if (schritt === 'link') {
+if (schritt === 'zertifikat') {
+  execFileSync('pbcopy', { input: readFileSync(CERT) });
+  console.log('publiccert.cer ist in der Zwischenablage (öffentlich, unbedenklich). In Revolut: Settings → APIs → Business API → einfügen.');
+} else if (schritt === 'link') {
+  if (!arg) raus('Client-ID fehlt: node scripts/revolut-einrichten.mjs link <client-id>');
+  writeFileSync(CID, arg.trim() + '\n', { mode: 0o600 });
   const u = new URL(`${APP}/app-confirm`);
-  u.search = new URLSearchParams({ client_id: clientId, redirect_uri: REDIRECT, response_type: 'code', scope: 'READ,WRITE' }).toString();
-  console.log('\nIm Browser öffnen, im Revolut-Konto (Serdo) zustimmen – Rechte nur READ + WRITE, KEIN PAY:\n\n' + u + '\n');
-  console.log('Danach zeigt hydrafleet.pages.dev/revolut-ok den Code. Er gilt nur ~2 Minuten → sofort Schritt "token".');
+  u.search = new URLSearchParams({ client_id: arg.trim(), redirect_uri: REDIRECT, response_type: 'code', scope: 'READ,WRITE' }).toString();
+  console.log('\nZustimmen (nur READ + WRITE, KEIN PAY):\n' + u);
+  try { execFileSync('open', [u.toString()]); } catch { /* Link steht oben */ }
 } else if (schritt === 'token') {
-  const roh = await frage('Code (oder die ganze Adresse aus dem Browser): ');
-  const code = roh.includes('code=') ? new URL(roh).searchParams.get('code') : roh;
-  const j = await tokenAnfrage({ grant_type: 'authorization_code', code });
-  console.log('\nREVOLUT_REFRESH_TOKEN (als Edge-Function-Secret eintragen, nirgends sonst speichern):\n\n' + j.refresh_token + '\n');
-  if (j.refresh_token_expires_in) console.log(`Gültig noch ${Math.round(j.refresh_token_expires_in / 86400)} Tage.`);
-} else if (schritt === 'konten') {
-  const t = await access();
-  const r = await fetch(`${API}/1.0/accounts`, { headers: { Authorization: `Bearer ${t}` } });
-  const konten = await r.json();
-  if (!r.ok) { console.error(`Revolut ${r.status}: ${JSON.stringify(konten)}`); process.exit(1); }
-  console.log('\nREVOLUT_ACCOUNT_ID = id des EUR-Kontos, von dem ausgezahlt wird:\n');
-  for (const k of konten) console.log(`${k.id}  ${k.currency}  ${String(k.balance).padStart(12)}  ${k.name || ''}  ${k.state}`);
-} else if (schritt === 'webhook') {
-  const t = await access();
-  const r = await fetch(`${API}/2.0/webhooks`, { method: 'POST', headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
+  if (!arg) raus('Code fehlt');
+  const code = arg.includes('code=') ? new URL(arg).searchParams.get('code') : arg.trim();
+  const t = await tokenAnfrage({ grant_type: 'authorization_code', code });
+  const geheim = { REVOLUT_PRIVATE_KEY: readFileSync(KEY, 'utf8'), REVOLUT_CLIENT_ID: t.clientId,
+    REVOLUT_REFRESH_TOKEN: t.refresh_token, REVOLUT_ENV: PROD ? 'production' : 'sandbox' };
+  if (t.refresh_token_expires_in) console.log(`Refresh-Token gültig: ${Math.round(t.refresh_token_expires_in / 86400)} Tage`);
+
+  const konten = (await rv(t.access_token, '/1.0/accounts')).filter((k) => k.currency === 'EUR' && k.state === 'active');
+  console.log('\nEUR-Konten:');
+  for (const k of konten) console.log(`  ${k.id}  ${String(k.balance).padStart(12)} EUR  ${k.name || ''}`);
+  if (konten.length === 1) geheim.REVOLUT_ACCOUNT_ID = konten[0].id;
+  else console.log('Mehrere/keine EUR-Konten → danach: node scripts/revolut-einrichten.mjs konto <id>');
+
+  // Webhook: vorhandenen fuer dieselbe URL ersetzen, damit es genau ein Signing-Secret gibt
+  const hooks = await rv(t.access_token, '/2.0/webhooks');
+  for (const h of hooks || []) if (h.url === WEBHOOK) await rv(t.access_token, `/2.0/webhooks/${h.id}`, { method: 'DELETE' });
+  const h = await rv(t.access_token, '/2.0/webhooks', { method: 'POST',
     body: JSON.stringify({ url: WEBHOOK, events: ['TransactionCreated', 'TransactionStateChanged'] }) });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) { console.error(`Revolut ${r.status}: ${JSON.stringify(j)}`); process.exit(1); }
-  console.log(`\nWebhook angelegt (${j.id}) → ${j.url}\n\nREVOLUT_WEBHOOK_SECRET (als Edge-Function-Secret eintragen):\n\n${j.signing_secret}\n`);
+  if (!h.signing_secret) raus('Webhook angelegt, aber Revolut hat kein Signing-Secret geliefert');
+  geheim.REVOLUT_WEBHOOK_SECRET = h.signing_secret;
+  console.log(`Webhook ${h.id} → ${h.url}`);
+  secretsSetzen(geheim);
+} else if (schritt === 'konto') {
+  if (!/^[0-9a-f-]{36}$/i.test(arg || '')) raus('Konto-id (UUID) fehlt');
+  secretsSetzen({ REVOLUT_ACCOUNT_ID: arg });
+} else if (schritt === 'pruefen') {
+  let aus;
+  try { aus = execFileSync(CLI, ['secrets', 'list', '--project-ref', PROJEKT, '-o', 'json'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); }
+  catch (e) { raus('Supabase-CLI nicht angemeldet → einmal im eigenen Terminal: ' + CLI + ' login'); }
+  const namen = JSON.parse(aus).map((s) => s.name).filter((n) => n.startsWith('REVOLUT_'));
+  console.log('Gesetzt: ' + (namen.join(', ') || 'keine'));
 } else {
-  console.log('Schritte: link | token | konten | webhook (siehe Kopf dieser Datei)');
+  console.log('Schritte: zertifikat | link <client-id> | token <code> | konto <id> | pruefen (siehe Kopf)');
 }

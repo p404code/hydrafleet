@@ -30,13 +30,14 @@ test('auswahl: nur gepruefte, positive, nicht schon ausgezahlte', () => {
     K({ notion_fahrer_id: 7, name: 'Entwurf', zahlung_status: 'entwurf' }),
     K({ notion_fahrer_id: 8, name: 'Verworfen', zahlung_status: 'verworfen', betrag: 10 }),
     K({ notion_fahrer_id: 9, name: 'Ab', betrag: 5 }),
+    K({ notion_fahrer_id: 10, name: 'App', seit_freigabe_ueberwiesen: '80.5' }),
   ], '2026-W42', [1, 8]);
   assert.deepEqual(r.posten.map((p) => [p.notion_fahrer_id, p.betrag_eur, p.referenz]),
     [[1, 450, 'Auszahlung KW42/26 FHR-1'], [8, 10, 'Auszahlung KW42/26 FHR-8']]);
   assert.equal(r.summe, 460);
   assert.deepEqual(r.uebersprungen.map((u) => [u.notion_fahrer_id, u.grund]), [
     [2, 'negativer Betrag'], [3, 'kein Betrag'], [4, 'keine Bankdaten'], [5, 'Bankdaten ungeprüft'],
-    [6, 'schon per Revolut-CSV exportiert'], [7, 'schon bei Revolut (entwurf)'], [9, 'abgewählt']]);
+    [6, 'schon per Revolut-CSV exportiert'], [7, 'schon bei Revolut (entwurf)'], [9, 'abgewählt'], [10, 'seit Freigabe schon überwiesen (80.50 €)']]);
   assert.equal(auswahl([K({})], '2026-W42').posten.length, 1);   // ohne Auswahl: alle
 });
 
@@ -80,4 +81,20 @@ test('webhook-signatur', async () => {
   assert.equal(await signaturGueltig('anders', sig, ts, body, 1760000000000), false);
   assert.equal(await signaturGueltig('geheim', sig, ts, body, 1760000000000 + 6 * 60 * 1000), false);   // zu alt
   assert.equal(await signaturGueltig('geheim', null, ts, body), false);
+});
+
+test('buchung aus revolut-transaktion', async () => {
+  const { gegenparteienKarte, buchungAusTransaktion } = await import('../supabase/functions/_shared/revolut-logik.ts');
+  const k = gegenparteienKarte([{ id: 'cp1', name: 'Anna Fahr', accounts: [{ id: 'acc1', iban: 'lt12 1000 0111 0100 1000' }] }, { id: 'cp2', name: 'Bert' }]);
+  const tx = { id: 't1', type: 'transfer', state: 'completed', created_at: '2026-10-13T08:00:00Z', completed_at: '2026-10-13T08:01:00Z',
+    reference: 'Auszahlung KW41 FHR-101', legs: [{ leg_id: 'l1', account_id: 'src', amount: -450.004, currency: 'EUR', description: 'To Anna Fahr',
+      counterparty: { id: 'cp1', account_id: 'acc1', account_type: 'external' } }] };
+  assert.deepEqual(buchungAusTransaktion(tx, k), { id: 't1', typ: 'transfer', state: 'completed', erstellt_am: '2026-10-13T08:00:00Z',
+    abgeschlossen_am: '2026-10-13T08:01:00Z', konto_id: 'src', betrag: 450, waehrung: 'EUR', referenz: 'Auszahlung KW41 FHR-101',
+    beschreibung: 'To Anna Fahr', gegen_counterparty_id: 'cp1', gegen_account_id: 'acc1', gegen_name: 'Anna Fahr', gegen_iban: 'LT121000011101001000' });
+  // Revolut-intern (kein Konto in der Liste): Name ueber die Gegenpartei, sonst aus der Beschreibung
+  assert.equal(buchungAusTransaktion({ ...tx, legs: [{ ...tx.legs[0], counterparty: { id: 'cp2' } }] }, k).gegen_name, 'Bert');
+  assert.equal(buchungAusTransaktion({ ...tx, legs: [{ ...tx.legs[0], counterparty: null, description: 'To Cem Neu' }] }, k).gegen_name, 'Cem Neu');
+  assert.equal(buchungAusTransaktion({ ...tx, legs: [{ ...tx.legs[0], amount: 20 }] }, k), null);     // Eingang
+  assert.equal(buchungAusTransaktion({ ...tx, type: 'card_payment' }, k), null);                     // keine Ueberweisung
 });

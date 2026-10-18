@@ -6,6 +6,7 @@ export type Kandidat = {
   kontoinhaber: string | null; iban: string | null; bic: string | null; revtag: string | null;
   geprueft: boolean; counterparty_id: string | null; counterparty_account_id: string | null; empfaenger: string | null;
   csv_exportiert: number | string | null; zahlung_status: string | null; zahlung_betrag: number | string | null;
+  seit_freigabe_ueberwiesen?: number | string | null;
 };
 export type Posten = Kandidat & { betrag_eur: number; referenz: string };
 export type Uebersprungen = { notion_fahrer_id: number; name: string; betrag: number; grund: string };
@@ -37,6 +38,7 @@ export function auswahl(kand: Kandidat[], woche: string, gewaehlt: number[] | nu
     if (!k.iban) { weg("keine Bankdaten"); continue; }
     if (!k.geprueft) { weg("Bankdaten ungeprüft"); continue; }
     if (zahl(k.csv_exportiert) > 0) { weg("schon per Revolut-CSV exportiert"); continue; }
+    if (zahl(k.seit_freigabe_ueberwiesen) > 0) { weg("seit Freigabe schon überwiesen (" + zahl(k.seit_freigabe_ueberwiesen).toFixed(2) + " €)"); continue; }
     if (betrag > 20000) { weg("Betrag über 20.000 €"); continue; }
     if (gewaehlt && !gewaehlt.includes(k.notion_fahrer_id)) { weg("abgewählt"); continue; }
     posten.push({ ...k, betrag_eur: betrag, referenz: referenz(woche, k.notion_fahrer_id) });
@@ -123,3 +125,36 @@ export async function signaturGueltig(secret: string, kopfSig: string | null, ze
   return kopfSig.split(",").map((s) => s.trim()).some((s) => s.length === soll.length && gleich(s, soll));
 }
 function gleich(a: string, b: string) { let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0; }
+
+/* ---------- Ueberweisungshistorie ---------- */
+
+export type GegenInfo = { cp: string; name: string; iban: string | null };
+// GET /counterparties -> Konto-id der Gegenpartei -> Name/IBAN, und Gegenpartei-id -> Name
+export function gegenparteienKarte(liste: any[]) {
+  const konten = new Map<string, GegenInfo>(), namen = new Map<string, string>();
+  for (const c of liste || []) {
+    if (!c?.id) continue;
+    namen.set(c.id, c.name ?? "");
+    for (const a of c.accounts ?? []) {
+      if (a?.id) konten.set(a.id, { cp: c.id, name: c.name ?? a.name ?? "", iban: a.iban ? String(a.iban).toUpperCase().replace(/[^A-Z0-9]/g, "") : null });
+    }
+  }
+  return { konten, namen };
+}
+
+// Eine Revolut-Transaktion -> Zeile fuer revolut_buchungen; nur ausgehende Ueberweisungen, sonst null
+export function buchungAusTransaktion(tx: any, karte: ReturnType<typeof gegenparteienKarte>) {
+  if (!tx?.id || tx.type !== "transfer") return null;
+  const leg = (tx.legs ?? []).find((l: any) => Number(l.amount) < 0);
+  if (!leg) return null;
+  const cpId: string | null = leg.counterparty?.id ?? null, cpKonto: string | null = leg.counterparty?.account_id ?? null;
+  const info = cpKonto ? karte.konten.get(cpKonto) : undefined;
+  const name = info?.name || (cpId ? karte.namen.get(cpId) : "") || String(leg.description ?? "").replace(/^(To|An|Payment to)\s+/i, "").trim() || null;
+  return {
+    id: String(tx.id), typ: tx.type, state: tx.state ?? null, erstellt_am: tx.created_at,
+    abgeschlossen_am: tx.completed_at ?? null, konto_id: leg.account_id ?? null,
+    betrag: Math.round(Math.abs(Number(leg.amount)) * 100) / 100, waehrung: leg.currency ?? null,
+    referenz: tx.reference ?? null, beschreibung: leg.description ?? null,
+    gegen_counterparty_id: info?.cp ?? cpId, gegen_account_id: cpKonto, gegen_name: name, gegen_iban: info?.iban ?? null,
+  };
+}

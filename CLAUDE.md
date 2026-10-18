@@ -229,6 +229,14 @@ Spec `docs/superpowers/specs/2026-10-15-iban-fahrerapp-design.md`, Plan `docs/su
     Einrichten: `scripts/revolut-einrichten.mjs` (zertifikat → link <client-id> → token <code> → pruefen), Redirect
     `hydrafleet.pages.dev/revolut-ok`. Schlüssel in `~/revolut` (0700). Das Skript setzt die Secrets selbst über die Supabase-CLI
     (`~/.hydrafleet-supabase-cli`, einmal `supabase login`) und gibt Token/Secrets nie aus.
+  - **Überweisungshistorie** (`2026-10-18-revolut-buchungen.sql`): `revolut_buchungen` spiegelt alle ausgehenden Überweisungen
+    seit Kontoeröffnung (Aktion `buchungen_abrufen`, täglich 05:45 per `pg_cron` `revolut-buchungen-taeglich`, Knopf „Revolut abrufen“;
+    der erste Abruf holt die Historie über mehrere Läufe, Stand in `revolut_abruf`). Zuordnung `revolut_buchungen_zuordnen()`:
+    eigener Entwurf → Hand-Zuordnung der Gegenpartei (`revolut_gegenpartei_zuordnung`, null = kein Fahrer) → Referenz `FHR-<nr>` →
+    IBAN eines einzigen Fahrers (auch frühere aus dem Verlauf). Nicht zugeordnet: Karte „Revolut-Überweisungen ohne Fahrer“
+    im Fahrer-Reiter. Fahrer-Detail „Überweisungen (Revolut)“, Fahrerapp Bankdaten → `fahrer_app_ueberweisungen`.
+    Vor jedem Entwurf werden die letzten 14 Tage neu geholt; wer seit der Freigabe der Woche schon Geld bekam
+    (`revolut_kandidaten.seit_freigabe_ueberwiesen`, Referenz mit anderer KW zählt nicht), bleibt draußen.
   - `revolut-webhook` läuft als einzige Function mit `verify_jwt = false` (Revolut schickt kein Supabase-JWT); Schutz ist die
     HMAC-Signatur (`Revolut-Signature`, max. 5 Min alt). Ohne Secret wird alles mit 401 abgelehnt. Doppelte Events: `revolut_webhook_events`.
 

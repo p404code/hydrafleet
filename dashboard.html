@@ -951,6 +951,11 @@
         .fz-bank-form input { width: 100%; box-sizing: border-box; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 7px 12px; font-size: 13px; color: var(--text); font-family: inherit; }
         .fz-bank-fehler { color: var(--err); font-size: 11.5px; }
         .fz-bank-verlauf { font-size: 11.5px; color: var(--text-mut); display: grid; gap: 3px; margin-top: 6px; }
+        .fz-ueberw { display: grid; gap: 2px; font-size: 12px; margin-top: 4px; }
+        .fz-ueberw div { display: grid; grid-template-columns: 78px minmax(0, 1fr) auto; gap: 8px; }
+        .fz-ueberw span:nth-child(2) { color: var(--text-mut); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fz-ueberw .num { text-align: right; } .fz-ueberw .weg { color: var(--err); text-decoration: line-through; }
+        .rb-stand { font-size: 11.5px; color: var(--text-mut); margin-left: auto; margin-right: 8px; }
         .abr-zelle { display: inline-flex; align-items: center; max-width: 100%; min-width: 0; vertical-align: middle; }
         .abr-zelle .dot { flex: none; }
         .iban-punkt.exp { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--info); }
@@ -1351,6 +1356,10 @@
                 <section class="pk-karte" id="fbKarte" hidden>
                     <div class="pk-kopf"><h4>Bankdaten aus dem Formular, nicht zugeordnet</h4></div>
                     <div class="pk-liste" id="fbListe"></div>
+                </section>
+                <section class="pk-karte" id="rbKarte" hidden>
+                    <div class="pk-kopf"><h4>Revolut-Überweisungen ohne Fahrer</h4><span class="rb-stand" id="rbStand"></span><button class="btn-ghost" id="rbAbrufen" title="Überweisungen vom Serdo-Konto bei Revolut holen">Revolut abrufen</button></div>
+                    <div class="pk-liste" id="rbListe"></div>
                 </section>
             </div>
             <div class="side-panel" id="fzPanel"><div class="placeholder">Fahrer auswählen</div></div>
@@ -2870,6 +2879,7 @@
                 document.getElementById(id).addEventListener('click', fzAppKlick);
             });
             document.getElementById('pkListe').addEventListener('click', pkKlick);
+            document.getElementById('rbKarte').addEventListener('click', rbKlick);
             document.getElementById('fbListe').addEventListener('click', async function (e) {
                 const weg = e.target.closest('[data-fbweg]');
                 if (weg && !weg.disabled) {
@@ -2907,7 +2917,7 @@
         async function ladeFahrer() {
             const sb = getSupabase();
             const still = function (q) { return q.then(function (r) { return r; }, function (e) { return { error: e }; }); };
-            const [res, ohne, mit, miete, bilder, bank, fbOffen, notion] = await Promise.all([
+            const [res, ohne, mit, miete, bilder, bank, fbOffen, notion, rbOffen, rbStand] = await Promise.all([
                 sb.from('fahrer_uebersicht').select('*'),
                 sb.from('plattform_konten').select('*').is('fahrer_id', null),
                 sb.from('plattform_konten').select('*').not('fahrer_id', 'is', null),
@@ -2915,8 +2925,14 @@
                 still(sb.from('uber_fahrzeuge').select('kennzeichen_key,marke,modell,baujahr,farbe,bild')),
                 still(sb.from('bank_uebersicht').select('*')),
                 still(sb.from('formular_iban_offen').select('*').order('erstellt_am')),
-                still(sb.from('notion_fahrer').select('notion_fahrer_id,name,telefon').not('notion_fahrer_id', 'is', null))
-            ]).catch(function (e) { return [{ error: e }, { error: e }, { error: e }, { error: e }, { error: e }, { error: e }, { error: e }, { error: e }]; });
+                still(sb.from('notion_fahrer').select('notion_fahrer_id,name,telefon').not('notion_fahrer_id', 'is', null)),
+                still(sb.from('revolut_buchungen_offen').select('*').order('summe', { ascending: false })),
+                still(sb.from('revolut_abruf').select('*'))
+            ]).catch(function (e) { return Array(10).fill({ error: e }); });
+            RB_DA = !rbOffen.error;
+            RB_OFFEN = rbOffen.error ? [] : (rbOffen.data || []);
+            RB_STAND = rbStand.error ? null : ((rbStand.data || [])[0] || null);
+            fzUeberw = {};
             FZ_BANK = {};
             FZ_BANK_DA = !bank.error;
             if (!bank.error) (bank.data || []).forEach(function (b) { FZ_BANK[b.notion_fahrer_id] = b; });
@@ -2937,6 +2953,78 @@
             renderFahrer();
             renderPlattformKonten();
             renderFormularBank();
+            renderRevolutOffen();
+        }
+        /* Revolut-Ueberweisungen ohne Fahrer (revolut_buchungen_offen), je Gegenpartei. Zuordnen gilt fuer alle
+           Buchungen dieser Gegenpartei, auch kuenftige; "Kein Fahrer" fuer Lieferanten usw. */
+        let RB_DA = false, RB_OFFEN = [], RB_STAND = null, fzUeberw = {};
+        function renderRevolutOffen() {
+            const karte = document.getElementById('rbKarte');
+            karte.hidden = !RB_DA;
+            if (!RB_DA) return;
+            const st = RB_STAND;
+            document.getElementById('rbStand').textContent = !st || !st.letzter_lauf ? 'noch nie abgerufen'
+                : 'abgerufen ' + fzZeit(st.letzter_lauf) + (st.historie_fertig ? '' : ' · Historie wird noch geladen') + (st.letzter_fehler ? ' · Fehler: ' + st.letzter_fehler : '');
+            const nachName = function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'de'); };
+            const nrs = {}, wahl = [];
+            FZ.filter(function (f) { return f.notion_fahrer_id != null; }).concat(FB_NOTION).forEach(function (f) {
+                if (!nrs[f.notion_fahrer_id]) { nrs[f.notion_fahrer_id] = 1; wahl.push(f); } });
+            wahl.sort(nachName);
+            const opts = wahl.map(function (f) { return '<option value="' + f.notion_fahrer_id + '">' + esc(f.name) + ' · Nr. ' + f.notion_fahrer_id + '</option>'; }).join('');
+            document.getElementById('rbListe').innerHTML = RB_OFFEN.length ? RB_OFFEN.map(function (x, i) {
+                return '<div class="pk-card"><div class="pk-card-top"><b>' + esc(x.name || 'unbekannt') + '</b><span class="num">' + fmt(x.summe) + '</span></div>' +
+                    '<div class="pk-meta">' + esc([x.anzahl + (x.anzahl === 1 ? ' Überweisung' : ' Überweisungen'), x.iban ? BankLogik.kurz(x.iban) : null,
+                        'zuletzt ' + fzZeit(x.letzte).slice(0, 10), x.letzte_referenz].filter(Boolean).join(' · ')) + '</div>' +
+                    '<select data-rbsel="' + i + '"><option value="">Fahrer wählen …</option>' + opts + '</select>' +
+                    '<div class="detail-acts"><button class="btn-ghost" data-rbzu="' + i + '">Zuordnen</button>' +
+                    '<button class="btn-ghost" data-rbkein="' + i + '" title="z. B. Lieferant, Miete – verschwindet aus dieser Liste">Kein Fahrer</button></div></div>';
+            }).join('') : '<div class="pk-leer">Alle Überweisungen sind einem Fahrer zugeordnet.</div>';
+        }
+        async function rbKlick(e) {
+            const ab = e.target.closest('#rbAbrufen');
+            if (ab) {
+                ab.disabled = true; ab.textContent = 'Rufe ab …';
+                const { data, error } = await getSupabase().functions.invoke('revolut-auszahlung', { body: { aktion: 'buchungen_abrufen' } });
+                ab.disabled = false; ab.textContent = 'Revolut abrufen';
+                if (error) { let t = error.message; try { const j = await error.context.json(); t = j.fehler === 'revolut_nicht_eingerichtet' ? 'Revolut ist noch nicht eingerichtet (fehlt: ' + (j.fehlt || []).join(', ') + ')' : (j.fehler || t); } catch (x) {} alert('Abruf fehlgeschlagen: ' + t); await ladeFahrer(); return; }
+                showReToast(data.zeilen + ' Überweisungen abgerufen' + (data.historie_fertig ? '' : ' – ältere folgen beim nächsten Abruf') + ' · ' + data.offen + ' ohne Fahrer', 'success');
+                await ladeFahrer(); return;
+            }
+            const zu = e.target.closest('[data-rbzu],[data-rbkein]');
+            if (!zu || zu.disabled) return;
+            const kein = zu.hasAttribute('data-rbkein');
+            const x = RB_OFFEN[parseInt(kein ? zu.dataset.rbkein : zu.dataset.rbzu, 10)];
+            let nr = null;
+            if (!kein) {
+                const sel = document.querySelector('[data-rbsel="' + zu.dataset.rbzu + '"]');
+                nr = sel ? parseInt(sel.value, 10) : NaN;
+                if (!nr) { alert('Bitte einen Fahrer wählen.'); return; }
+            }
+            if (!confirm((kein ? 'Als „kein Fahrer“ markieren?' : 'Zuordnen?') + '\n\n' + (x.name || 'unbekannt') + ' · ' + x.anzahl + ' Überweisungen · ' + fmt(x.summe) +
+                '\n\nGilt auch für künftige Überweisungen an diese Gegenpartei.')) return;
+            zu.disabled = true;
+            const { error } = await getSupabase().rpc('revolut_gegenpartei_zuordnen', { p_schluessel: x.schluessel, p_nr: nr });
+            if (error) { alert('Zuordnen fehlgeschlagen: ' + fgFehler(error)); zu.disabled = false; return; }
+            showReToast(kein ? 'Als „kein Fahrer“ markiert' : 'Überweisungen zugeordnet', 'success');
+            await ladeFahrer();
+        }
+        // Fahrer-Detail: Ueberweisungen aus Revolut (auf Knopfdruck geladen)
+        function fzUeberwHtml(f) {
+            if (!RB_DA || f.notion_fahrer_id == null) return '';
+            const nr = f.notion_fahrer_id, v = fzUeberw[nr];
+            let html = '<div class="detail-sec">Überweisungen (Revolut)</div>';
+            if (!v) return html + '<div class="detail-acts"><button class="btn-ghost" data-fzueberw="' + nr + '">Überweisungen anzeigen</button></div>';
+            if (!v.length) return html + '<div class="fz-bank-verlauf">Keine Überweisungen gefunden' + (RB_STAND && RB_STAND.letzter_lauf ? '' : ' – Revolut noch nie abgerufen') + '.</div>';
+            const ok = v.filter(function (b) { return b.state === 'completed' || b.state === 'pending'; });
+            const jahr = String(new Date().getFullYear());
+            const summe = ok.filter(function (b) { return String(b.erstellt_am).slice(0, 4) === jahr; }).reduce(function (t, b) { return t + (parseFloat(b.betrag) || 0); }, 0);
+            return html + '<div class="fz-bank-verlauf">' + v.length + ' Überweisungen · ' + jahr + ': ' + fmt(summe) + '</div><div class="fz-ueberw">' +
+                v.map(function (b) {
+                    const weg = b.state !== 'completed' && b.state !== 'pending';
+                    return '<div title="' + esc((b.gegen_name || '') + (b.gegen_iban ? ' · ' + BankLogik.kurz(b.gegen_iban) : '') + ' · ' + (b.state || '') + ' · zugeordnet über ' + (b.zuordnung || '')) + '">' +
+                        '<span>' + esc(fzZeit(b.erstellt_am).slice(0, 10)) + '</span><span>' + esc(b.referenz || b.gegen_name || '') + (b.state === 'pending' ? ' · unterwegs' : '') + '</span>' +
+                        '<span class="num' + (weg ? ' weg' : '') + '">' + fmt(b.betrag) + '</span></div>';
+                }).join('') + '</div>';
         }
 
         function fzListe() {
@@ -3164,6 +3252,7 @@
                 fzLohnHtml(f) +
                 fzAppHtml(f) +
                 fzBankHtml(f) +
+                fzUeberwHtml(f) +
                 fzKontenHtml(f) +
             '</div>';
         }
@@ -3300,6 +3389,13 @@
             const bAuf = e.target.closest('[data-fzbankauf]');
             if (bAuf) { fzBankForm = parseInt(bAuf.dataset.fzbankauf, 10); renderFahrer(); return; }
             if (e.target.closest('[data-fzbankzu]')) { fzBankForm = null; renderFahrer(); return; }
+            const bUe = e.target.closest('[data-fzueberw]');
+            if (bUe) {
+                const nr = parseInt(bUe.dataset.fzueberw, 10);
+                const r = await getSupabase().from('revolut_buchungen').select('erstellt_am,betrag,referenz,state,gegen_name,gegen_iban,zuordnung')
+                    .eq('notion_fahrer_id', nr).order('erstellt_am', { ascending: false }).limit(500);
+                fzUeberw[nr] = r.error ? [] : (r.data || []); renderFahrer(); return;
+            }
             const bVer = e.target.closest('[data-fzbankverlauf]');
             if (bVer) {
                 const nr = parseInt(bVer.dataset.fzbankverlauf, 10);

@@ -4,8 +4,9 @@
 //   REVOLUT_PRIVATE_KEY, REVOLUT_CLIENT_ID, REVOLUT_REFRESH_TOKEN, REVOLUT_ACCOUNT_ID, REVOLUT_ENV (sandbox|production),
 //   optional REVOLUT_ISS (Domain der Redirect-URI, Standard hydrafleet.pages.dev).
 // Der Access-Token (40 Min) wird je Aufruf geholt und nie gespeichert. Nie Secrets oder Tokens loggen.
-// Aktionen: vorschau | anlegen {nrs} | status
-import { auswahl, clientAssertion, counterpartyBody, type Kandidat, statusAusTransaktion, wocheGueltig } from "../_shared/revolut-logik.ts";
+// Aktionen: vorschau | anlegen {nrs} | status (je mit woche) | buchungen_abrufen (Ueberweisungshistorie, auch Zeitplan)
+import { auswahl, buchungAusTransaktion, clientAssertion, counterpartyBody, gegenparteienKarte, type Kandidat, statusAusTransaktion,
+  wocheGueltig } from "../_shared/revolut-logik.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -29,12 +30,13 @@ async function db(pfad: string, init: RequestInit = {}) {
   return t ? JSON.parse(t) : null;
 }
 // Rolle aus dem Token; die Signatur prueft das Gateway (verify_jwt = true)
-function nutzer(req: Request): { name: string } | null {
+function nutzer(req: Request): { name: string; automatik: boolean } | null {
   const tok = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   try {
     const t = tok.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
     const p = JSON.parse(atob(t.padEnd(Math.ceil(t.length / 4) * 4, "=")));
-    return ["admin", "user"].includes(p.app_metadata?.app_role) ? { name: p.app_metadata?.app_name || "Büro" } : null;
+    if (p.role === "service_role") return { name: "Automatik", automatik: true };   // Zeitplan, nur buchungen_abrufen
+    return ["admin", "user"].includes(p.app_metadata?.app_role) ? { name: p.app_metadata?.app_name || "Büro", automatik: false } : null;
   } catch { return null; }
 }
 
@@ -82,6 +84,66 @@ async function gegenpartei(token: string, k: Kandidat) {
   return { id: cp.id as string, konto: (passend?.id ?? null) as string | null, art: versuch.art };
 }
 
+/* ---------- Ueberweisungshistorie (revolut_buchungen) ---------- */
+
+async function alleGegenparteien(token: string) {
+  const liste: any[] = [];
+  let vor: string | null = null;
+  for (let i = 0; i < 50; i++) {
+    let seite: any[];
+    try { seite = await rv(token, `/counterparties?limit=1000${vor ? "&created_before=" + encodeURIComponent(vor) : ""}`); }
+    catch (e) { if (i === 0 && e instanceof RevolutFehler && e.status === 400) return await rv(token, "/counterparties"); throw e; }
+    liste.push(...seite);
+    if (seite.length < 1000) break;
+    vor = seite[seite.length - 1].created_at;
+  }
+  return liste;
+}
+// Transaktionen von neu nach alt in [von, bis), seitenweise; liefert das aelteste erreichte Datum und ob fertig
+async function seitenHolen(token: string, von: string, bis: string, karte: ReturnType<typeof gegenparteienKarte>, frist: number) {
+  let zeilen = 0, aeltestes = bis;
+  for (let i = 0; i < 200; i++) {
+    if (Date.now() > frist) return { zeilen, aeltestes, fertig: false };
+    const seite: any[] = await rv(token, `/transactions?from=${encodeURIComponent(von)}&to=${encodeURIComponent(aeltestes)}&count=1000`);
+    const rows = seite.map((t) => buchungAusTransaktion(t, karte)).filter(Boolean)
+      .map((r) => ({ ...r, aktualisiert_am: new Date().toISOString() }));
+    for (let j = 0; j < rows.length; j += 500) {
+      await db("revolut_buchungen?on_conflict=id", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify(rows.slice(j, j + 500)) });
+    }
+    zeilen += rows.length;
+    if (seite.length < 1000) return { zeilen, aeltestes: von, fertig: true };
+    const min = seite.reduce((m, t) => (t.created_at < m ? t.created_at : m), seite[0].created_at);
+    if (min >= aeltestes) return { zeilen, aeltestes, fertig: false };   // kein Fortschritt (gleiche Zeitstempel) - naechster Lauf
+    aeltestes = min;
+  }
+  return { zeilen, aeltestes, fertig: false };
+}
+// nurNeu: nur die letzten 14 Tage (vor jedem Entwurf). Sonst zusaetzlich die Historie weiter nach hinten, bis sie vollstaendig ist.
+async function buchungenAbrufen(token: string, nurNeu: boolean) {
+  const frist = Date.now() + 100_000;   // Edge Function lebt hoechstens 150 s
+  const [stand] = await db("revolut_abruf?id=eq.1&select=*");
+  try {
+    const karte = gegenparteienKarte(await alleGegenparteien(token));
+    const jetzt = new Date().toISOString();
+    const neu = await seitenHolen(token, new Date(Date.now() - 14 * 864e5).toISOString(), jetzt, karte, frist);
+    let hist = { zeilen: 0, aeltestes: stand?.aeltestes ?? null, fertig: !!stand?.historie_fertig };
+    if (!nurNeu && !hist.fertig) {
+      const h = await seitenHolen(token, "2015-01-01T00:00:00Z", stand?.aeltestes ?? jetzt, karte, frist);
+      hist = { zeilen: h.zeilen, aeltestes: h.aeltestes, fertig: h.fertig };
+    }
+    const offen = await db("rpc/revolut_buchungen_zuordnen", { method: "POST", body: "{}" });
+    await db("revolut_abruf?id=eq.1", { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({
+      letzter_lauf: jetzt, letzter_fehler: null, historie_fertig: hist.fertig, aeltestes: hist.aeltestes,
+      anzahl: neu.zeilen + hist.zeilen }) });
+    return { zeilen: neu.zeilen + hist.zeilen, historie_fertig: hist.fertig, offen };
+  } catch (e) {
+    await db("revolut_abruf?id=eq.1", { method: "PATCH", headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ letzter_lauf: new Date().toISOString(), letzter_fehler: (e as Error).message.slice(0, 500) }) }).catch(() => null);
+    throw e;
+  }
+}
+
 async function zahlungen(woche: string) {
   return await db(`revolut_zahlungen?woche=eq.${encodeURIComponent(woche)}&select=notion_fahrer_id,name,betrag,iban_ende,empfaenger,referenz,status,fehler,revolut_draft_id,aktualisiert_am&order=name`);
 }
@@ -101,10 +163,13 @@ async function vorschau(woche: string) {
 }
 
 async function anlegen(woche: string, nrs: number[], von: string) {
+  const token = await accessToken();
+  // Erst die letzten Ueberweisungen holen: wer seit der Freigabe schon Geld bekam (auch direkt in der Revolut-App), bleibt draussen
+  try { await buchungenAbrufen(token, true); }
+  catch (e) { return antwort(502, { fehler: "Bisherige Überweisungen konnten nicht geprüft werden – kein Entwurf angelegt. " + (e as Error).message }); }
   const kand: Kandidat[] = await db("rpc/revolut_kandidaten", { method: "POST", body: JSON.stringify({ p_woche: woche }) });
   const a = auswahl(kand, woche, nrs);
   if (!a.posten.length) return antwort(400, { fehler: "keine_posten", uebersprungen: a.uebersprungen });
-  const token = await accessToken();
 
   const k = await konto(token);
   if (k.waehrung && k.waehrung !== "EUR") return antwort(409, { fehler: "konto_nicht_eur", konto: k });
@@ -216,6 +281,13 @@ Deno.serve(async (req) => {
   if (!u) return antwort(403, { fehler: "nicht_berechtigt" });
   try {
     const b = await req.json().catch(() => ({}));
+    if (b.aktion === "buchungen_abrufen") {
+      const fehltAbruf = Object.entries({ REVOLUT_PRIVATE_KEY: CFG.key, REVOLUT_CLIENT_ID: CFG.client, REVOLUT_REFRESH_TOKEN: CFG.refresh })
+        .filter(([, v]) => !v).map(([k]) => k);
+      if (fehltAbruf.length) return antwort(503, { fehler: "revolut_nicht_eingerichtet", fehlt: fehltAbruf, umgebung: ENV });
+      return antwort(200, { umgebung: ENV, ...(await buchungenAbrufen(await accessToken(), false)) });
+    }
+    if (u.automatik) return antwort(403, { fehler: "nur_buero" });
     if (!wocheGueltig(b.woche)) return antwort(400, { fehler: "woche_fehlt" });
     const [fr] = await db(`abrechnung_freigaben?woche=eq.${encodeURIComponent(b.woche)}&select=woche`);
     if (!fr) return antwort(400, { fehler: "woche_nicht_freigegeben" });

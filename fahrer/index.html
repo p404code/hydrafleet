@@ -288,7 +288,7 @@
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         /* Zustand. mode: 'fahrer' (eigene Sitzung) oder 'vorschau' (Büro-Sitzung, ?vorschau=<fahrer_id>). */
-        const S = { mode: null, vorschauId: null, profil: null, abr: [], offen: [], bank: null, bankFehler: false, loadedAt: 0, loading: false, lz: lzLeer(), st: stLeer() };
+        const S = { mode: null, vorschauId: null, profil: null, abr: [], offen: [], bank: null, bankFehler: false, ueberw: null, loadedAt: 0, loading: false, lz: lzLeer(), st: stLeer() };
         /* Lohnzettel + Dienstgeber: eigener Ladezustand, lazy beim ersten Öffnen (Start oder Lohnzettel), nach >5 Min neu */
         function lzLeer() { return { rows: [], dg: [], err: false, loadedAt: 0, loading: false }; }
         function stLeer() { return { rows: [], err: false, loadedAt: 0, loading: false }; }
@@ -475,6 +475,8 @@
                 .then(r => r, e => ({ error: e }));
             S.bankFehler = !!bank.error;
             S.bank = bank.error ? null : ((bank.data || [])[0] || null);
+            const ue = await call('fahrer_app_ueberweisungen').then(r => r, e => ({ error: e }));
+            S.ueberw = ue.error ? null : (ue.data || []);
             S.loadedAt = Date.now();
         }
 
@@ -869,8 +871,24 @@
                 + kv('Zuletzt geändert', b.geaendert_am ? datum(b.geaendert_am) : '–')
                 + kv('Status', bankStatus(b))
                 + '</div><div style="padding:12px"><a class="btn-ghost" href="#bank/aendern">Ändern</a></div>'
-                + '<div class="note">Nach jeder Änderung prüft das Büro deine Bankdaten, bevor wir überweisen.</div>';
+                + '<div class="note">Nach jeder Änderung prüft das Büro deine Bankdaten, bevor wir überweisen.</div>'
+                + ueberwHtml();
             return { back: '#mehr', title: 'Bankdaten', html: html };
+        }
+        // Ueberweisungen an den Fahrer (Revolut, fahrer_app_ueberweisungen); abgelehnte/fehlgeschlagene zaehlen nicht
+        function ueberwHtml() {
+            const v = S.ueberw;
+            if (!v) return '';
+            const STATUS = { pending: 'unterwegs', reverted: 'zurückgebucht', declined: 'abgelehnt', failed: 'fehlgeschlagen' };
+            const zeilen = v.map(function (u) {
+                const st = STATUS[u.status] || '';
+                const kwm = /KW ?0*(\d{1,2})/i.exec(u.referenz || '');
+                return '<div class="kv"><span>' + esc(datum(u.datum)) + (kwm ? ' · KW ' + kwm[1] : '') + (st ? ' · ' + esc(st) : '') + '</span>'
+                    + '<span class="num' + (u.status === 'completed' || u.status === 'pending' ? '' : ' zero') + '">' + fmt(num(u.betrag)) + '</span></div>';
+            }).join('');
+            return '<div class="section-t" style="padding:16px 12px 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-mut)">Überweisungen</div>'
+                + (zeilen ? '<div class="group" style="padding:0 12px">' + zeilen + '</div>'
+                          : '<div class="note">Noch keine Überweisungen gefunden.</div>');
         }
         function viewBankAendern() {
             const b = S.bank || {};

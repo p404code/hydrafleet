@@ -338,6 +338,44 @@ try {
   await nein('select * from public.revolut_webhook_events', [], /permission denied/);
   await raus();
 
+  // --- Ueberweisungshistorie (migrations/2026-10-18-revolut-buchungen.sql)
+  await db.exec(lies('../migrations/2026-10-18-revolut-buchungen.sql'));
+  await db.exec(`grant select, insert, update on public.revolut_buchungen, public.revolut_abruf to service_role;
+    update public.revolut_zahlungen set revolut_transaction_id = 'tx-ent', status = 'completed' where notion_fahrer_id = 101;
+    insert into public.revolut_buchungen (id, typ, state, erstellt_am, betrag, referenz, gegen_name, gegen_iban) values
+      ('tx-ent', 'transfer', 'completed', now(), 450, 'egal', 'Anna Fahr', null),                          -- eigener Entwurf
+      ('tx-ref', 'transfer', 'completed', now(), 300, 'Auszahlung KW41 FHR-103', 'Cem', null),            -- Referenz
+      ('tx-alt', 'transfer', 'completed', now(), 99, 'Auszahlung KW40 FHR-103', 'Cem', null),             -- andere KW
+      ('tx-ib1', 'transfer', 'completed', '2026-01-05', 120, null, 'C. Fahr', 'GB82WEST12345698765432'),  -- IBAN eindeutig (Cem)
+      ('tx-ib2', 'transfer', 'completed', '2026-01-06', 80, null, 'Unbe Kannt', 'AT611904300234573201'),  -- IBAN Anna (alt) UND Bert
+      ('tx-lief', 'transfer', 'completed', '2026-02-01', 1000, 'Rechnung 17', 'Reifen GmbH', null),
+      ('tx-lief2', 'transfer', 'completed', '2026-03-01', 500, 'Rechnung 18', 'Reifen GmbH', null)`);
+  await db.exec('set role service_role');
+  assert.equal((await q('select public.revolut_buchungen_zuordnen() n'))[0].n, 3);   // offen: ib2 + 2x Lieferant
+  await raus();
+  const zu = Object.fromEntries((await q(`select id, notion_fahrer_id nr, zuordnung from public.revolut_buchungen`)).map((r) => [r.id, [r.nr, r.zuordnung]]));
+  assert.deepEqual(zu, { 'tx-ent': [101, 'entwurf'], 'tx-ref': [103, 'referenz'], 'tx-alt': [103, 'referenz'],
+    'tx-ib1': [103, 'iban'], 'tx-ib2': [null, null], 'tx-lief': [null, null], 'tx-lief2': [null, null] });
+  await als(BUERO);
+  let off = await q(`select schluessel, anzahl, summe from public.revolut_buchungen_offen order by schluessel`);
+  assert.deepEqual(off.map((r) => [r.schluessel, r.anzahl, Number(r.summe)]),
+    [['iban:AT611904300234573201', 1, 80], ['name:reifen gmbh', 2, 1500]]);
+  assert.equal((await q(`select public.revolut_gegenpartei_zuordnen('name:reifen gmbh', null) n`))[0].n, 1);   // kein Fahrer
+  assert.equal((await q(`select public.revolut_gegenpartei_zuordnen('iban:AT611904300234573201', 102) n`))[0].n, 0);
+  assert.equal((await q(`select notion_fahrer_id nr from public.revolut_buchungen where id = 'tx-ib2'`))[0].nr, 102);
+  await nein(`select public.revolut_gegenpartei_zuordnen('name:x', 999)`, [], /Kein Fahrer/);
+  await raus();
+  await als(ANNA);
+  await nein(`select public.revolut_gegenpartei_zuordnen('name:x', 101)`, [], /Nicht autorisiert/);
+  assert.deepEqual((await q('select betrag from public.fahrer_app_ueberweisungen()')).map((r) => Number(r.betrag)), [450]);   // nur eigene
+  assert.equal((await q('select count(*)::int n from public.revolut_buchungen'))[0].n, 0);   // direkt: nichts
+  await raus();
+  // Sperre: Cem bekam seit der Freigabe von W41 schon 300 (KW41); die KW40-Zahlung zaehlt nicht mit
+  await db.exec('set role service_role');
+  rk = await q(`select notion_fahrer_id nr, seit_freigabe_ueberwiesen s from public.revolut_kandidaten('2026-W41') order by 1`);
+  assert.deepEqual(rk.map((r) => [r.nr, Number(r.s)]), [[101, 0], [102, 0], [103, 300]]);
+  await raus();
+
   console.log('OK');
 } catch (e) {
   console.error('FEHLER: ' + (e && e.message || e)); console.error(e && e.stack);

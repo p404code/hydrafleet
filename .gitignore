@@ -5,3 +5,4 @@ _dev-session.html
 
 # Browserprofil mit Uber-Anmeldung, gehoert nicht ins Repo
 .hydrafleet-uber-profile/
+supabase/.temp/

@@ -225,6 +225,8 @@
         .bank-form .feld-fehler { font-size: 11.5px; color: var(--err); min-height: 0; }
         .bank-form .opt { font-weight: 400; text-transform: none; letter-spacing: 0; }
         .bank-iban { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+        .az-zeile { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: 12.5px; color: var(--text-mut); margin: -2px 0 8px; }
+        .az-zeile svg { width: 16px; height: 16px; }
     </style>
 </head>
 <body>
@@ -288,7 +290,7 @@
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         /* Zustand. mode: 'fahrer' (eigene Sitzung) oder 'vorschau' (Büro-Sitzung, ?vorschau=<fahrer_id>). */
-        const S = { mode: null, vorschauId: null, profil: null, abr: [], offen: [], bank: null, bankFehler: false, ueberw: null, loadedAt: 0, loading: false, lz: lzLeer(), st: stLeer() };
+        const S = { mode: null, vorschauId: null, profil: null, abr: [], offen: [], bank: null, bankFehler: false, ueberw: null, auszahlung: null, loadedAt: 0, loading: false, lz: lzLeer(), st: stLeer() };
         /* Lohnzettel + Dienstgeber: eigener Ladezustand, lazy beim ersten Öffnen (Start oder Lohnzettel), nach >5 Min neu */
         function lzLeer() { return { rows: [], dg: [], err: false, loadedAt: 0, loading: false }; }
         function stLeer() { return { rows: [], err: false, loadedAt: 0, loading: false }; }
@@ -477,6 +479,8 @@
             S.bank = bank.error ? null : ((bank.data || [])[0] || null);
             const ue = await call('fahrer_app_ueberweisungen').then(r => r, e => ({ error: e }));
             S.ueberw = ue.error ? null : (ue.data || []);
+            const az = await call('fahrer_app_auszahlung').then(r => r, e => ({ error: e }));
+            S.auszahlung = az.error ? null : ((az.data || [])[0] || null);
             S.loadedAt = Date.now();
         }
 
@@ -619,6 +623,16 @@
             return b.geprueft ? '<span class="dot ok"></span>Bestätigt' : '<span class="dot part"></span>In Prüfung';
         }
 
+        /* Ueberweisungs-Stand der Woche (fahrer_app_auszahlung): nur Revolut, bar kommt in der App nicht vor */
+        function auszahlungZeile(woche) {
+            const z = S.auszahlung;
+            if (!z || z.woche !== woche) return '';
+            const konto = z.iban_ende ? ' auf ••••' + esc(z.iban_ende) : '';
+            const t = z.status === 'ueberwiesen' ? 'Überwiesen' + (z.datum ? ' am ' + esc(datum(z.datum)) : '') + konto
+                : (z.status === 'unterwegs' ? 'Überweisung ist unterwegs' + konto : 'Wird überwiesen' + konto);
+            return '<div class="az-zeile">' + (z.status === 'ueberwiesen' ? ICON_CHECK : '') + '<span>' + t + '</span></div>';
+        }
+
         /* Start */
         function viewStart() {
             const offen = offenSumme();
@@ -634,10 +648,11 @@
             const du = duBekommst(a);
             const range = weekRangeNumeric(a.woche);
             const sub = [range, a.freigegeben_am ? 'freigegeben ' + datum(a.freigegeben_am) : ''].filter(Boolean).join(' · ');
+            const ueberw = auszahlungZeile(a.woche);
             let html = bankKarte() + '<section class="hero"><div class="hero-row">'
                 + '<div class="hero-l"><div class="hero-t">' + esc(kw(a.woche)) + '</div><div class="hero-s">' + esc(sub) + '</div></div>'
                 + '<div class="hero-r"><div class="big num' + payCls(du) + '">' + fmt(du) + '</div><div class="big-l">Du bekommst</div></div>'
-                + '</div><div class="kpis">'
+                + '</div>' + ueberw + '<div class="kpis">'
                 + kpi('Umsatz brutto', fmt(a.bruttoumsatz_gesamt), zc(a.bruttoumsatz_gesamt))
                 + kpi('Pauschale + %', fmt(a.abzug_gesamt), zc(a.abzug_gesamt), fmt(a.miete) + ' · ' + fmt(a.prozent_abzug))
                 + kpi('Lohn überwiesen', fmt(lohnOf(a)), zc(lohnOf(a)))

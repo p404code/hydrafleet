@@ -242,6 +242,24 @@ Spec `docs/superpowers/specs/2026-10-15-iban-fahrerapp-design.md`, Plan `docs/su
   - `revolut-webhook` läuft als einzige Function mit `verify_jwt = false` (Revolut schickt kein Supabase-JWT); Schutz ist die
     HMAC-Signatur (`Revolut-Signature`, max. 5 Min alt). Ohne Secret wird alles mit 401 abgelehnt. Doppelte Events: `revolut_webhook_events`.
 
+## Auszahlung (seit 2026-10-19)
+
+Spec `docs/superpowers/specs/2026-10-18-auszahlung-uebersicht-design.md`, Plan `docs/superpowers/plans/2026-10-18-auszahlung-uebersicht.md`.
+Ziel des Betreibers: Großteil über Revolut, kleiner Rest bar. **Eine Stelle rechnet:** `auszahlung_status_basis(woche)`
+(nicht direkt aufrufbar) → `auszahlung_status` (Büro), `revolut_kandidaten` (Edge Function, nur *revolut_offen*),
+`fahrer_app_auszahlung` (Fahrerapp, **nur Überweisungen – bar kommt in der App nicht vor**).
+- Status je Fahrer/Woche: `revolut_offen`, `bar_offen`, `entwurf`, `unterwegs`, `ueberwiesen`, `bar_ok`, `bar_woche`,
+  `rest_offen`, `zu_viel`, `schulden`, `nichts`. Weg: `auszahlung_weg` (Hand, je Woche) > geprüfte Bankdaten = revolut > bar.
+- Bezahlt = Revolut-Entwurf/-Zahlung + zugeordnete `revolut_buchungen` (ohne Vorschuss; `buchung_fuer_woche`: KW aus der
+  Referenz via `referenz_kw`, sonst ab Freigabe) + CSV-Export (nur solange keine Buchung mit gleicher Referenz existiert) + `bar_auszahlungen`.
+- Woche gesamt ins Kassabuch übernommen (`quelle = 'abrechnung'`) = damals alles bar → unbezahlte Fahrer `bar_woche`, nie neu auszahlen.
+- Bar: `bar_auszahlen(woche, nr)` bucht `kassa_einfuegen(..., 'bar', ...)` (neuer `quelle`-Wert), `bar_rueckgaengig(id)` = Gegenbuchung.
+  Trigger `kassa_bar_sperre`: keine Wochenbuchung, sobald es Bar-Zeilen gibt; `kassa_abrechnung_stand` zeigt solche Wochen nicht.
+- Rest (`rest_offen`) wird immer bar beglichen – ein zweiter Revolut-Posten je Woche/Fahrer geht wegen `unique(woche, nr)` nicht.
+- Dashboard Abrechnung: Kacheln Revolut / Bar / Schulden (`azLeiste`), Filter Alle·Offen·Revolut·Bar·Schulden, Spalte „Bezahlt“
+  mit genau einer Aktion, Nebenfunktionen im ⋯-Menü (`azMenue`). Kontostand kommt aus `revolut-auszahlung` (Aktion vorschau).
+- Test: `PGLITE=<dir> node scripts/test-bankdaten.mjs` (Abschnitt Auszahlungs-Status).
+
 ## Key Supabase Tables
 
 **Bestehend (altes System, nicht anfassen):**

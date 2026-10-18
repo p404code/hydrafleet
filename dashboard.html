@@ -957,6 +957,47 @@
         .fz-ueberw button.an { color: var(--warn); border-color: var(--warn); }
         .fz-ueberw span:nth-child(2) { color: var(--text-mut); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .fz-ueberw .num { text-align: right; } .fz-ueberw .weg { color: var(--err); text-decoration: line-through; }
+        .az-leiste { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 10px 20px 0; }
+        .az-leiste:empty { display: none; }
+        .az-kachel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+        .az-kachel .btn, .az-kachel .btn-ghost { margin-top: 6px; align-self: flex-start; }
+        .az-k-t { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-mut); }
+        .az-k-b { font-size: 15px; font-weight: 700; }
+        .az-k-s { font-size: 12px; color: var(--text-mut); }
+        .az-kachel .neg { color: var(--err); }
+        .az-hinweis { grid-column: 1 / -1; font-size: 12px; color: var(--text-mut); }
+        .data-table td.az-zelle, .data-table th.az-th { text-align: left; font-family: var(--sans); padding-left: 16px; }
+        .data-table td.az-zelle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+        .az-st { display: inline-flex; align-items: center; font-size: 12px; max-width: 100%; vertical-align: middle; }
+        .az-st.aus { color: var(--text-dim); }
+        .az-t { overflow: hidden; text-overflow: ellipsis; }
+        .az-akt { display: inline-flex; gap: 4px; margin-left: 6px; vertical-align: middle; }
+        .az-k { font: inherit; font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; }
+        .az-k:hover { border-color: var(--accent); }
+        .az-k:disabled { opacity: .5; cursor: default; }
+        .dot.info { background: var(--info); } .dot.ok { background: var(--accent); }
+        .az-menue { position: relative; }
+        .az-menue summary { list-style: none; cursor: pointer; }
+        .az-menue summary::-webkit-details-marker { display: none; }
+        .az-menue-liste { position: absolute; right: 0; top: calc(100% + 4px); z-index: 60; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px; display: grid; gap: 6px; min-width: 220px; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+        .az-menue-liste .btn, .az-menue-liste .chip { justify-content: flex-start; width: 100%; }
+        .az-menue-liste hr { border: 0; border-top: 1px solid var(--border); margin: 2px 0; }
+        @media (max-width: 768px) {
+            .az-leiste { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding: 8px 12px 0; scrollbar-width: none; }
+            .az-leiste::-webkit-scrollbar { display: none; }
+            .az-kachel { flex: 0 0 78%; scroll-snap-align: start; padding: 8px 10px; }
+            .az-k-b { font-size: 14px; }
+            #abrTable th:nth-child(2), #abrTable td:nth-child(2), #abrTable th:nth-child(3), #abrTable td:nth-child(3),
+            #abrTable th:nth-child(4), #abrTable td:nth-child(4) { display: none; }
+            /* Spaltenbreiten stehen inline im colgroup (ohne !important wirkungslos). Ausgeblendete Zellen ruecken auf:
+               sichtbar sind Zelle 1, 5, 6 -> sie belegen Spalte 1, 2, 3. */
+            #abrTable col:nth-child(1) { width: 40% !important; } #abrTable col:nth-child(2) { width: 25% !important; }
+            #abrTable col:nth-child(3) { width: 35% !important; }
+            #abrTable col:nth-child(4), #abrTable col:nth-child(5), #abrTable col:nth-child(6) { width: 0 !important; }
+            .data-table td.az-zelle, .data-table th.az-th { padding-left: 6px; }
+            #abrTable tr:not(.detail-row) .az-akt { display: none; }
+            .az-menue-liste { position: fixed; left: 12px; right: 12px; top: 120px; }
+        }
         .rb-stand { font-size: 11.5px; color: var(--text-mut); margin-left: auto; margin-right: 8px; }
         .abr-zelle { display: inline-flex; align-items: center; max-width: 100%; min-width: 0; vertical-align: middle; }
         .abr-zelle .dot { flex: none; }
@@ -1066,20 +1107,28 @@
                     </div>
                 </div>
             </div>
+            <div class="az-leiste" id="azLeiste"></div>
             <div class="toolbar">
                 <input type="text" class="search" id="searchInput" placeholder="Fahrer suchen">
                 <button class="chip active" id="allFilter">Alle</button>
+                <button class="chip" id="azOffenFilter">Offen <span class="cnt" id="azOffenCnt"></span></button>
+                <button class="chip" id="azRevolutFilter">Revolut <span class="cnt" id="azRevolutCnt"></span></button>
+                <button class="chip" id="azBarFilter">Bar <span class="cnt" id="azBarCnt"></span></button>
                 <button class="chip" id="warningFilter">Schulden</button>
-                <button class="chip" id="warnOnlyFilter">Warnung</button>
-                <button class="chip lohn" id="lohnFilter">Lohn eingetragen <span class="cnt" id="lohnCount">0</span></button>
-                <button class="chip ueberw" id="ueberwiesenFilter" title="Blendet aus, wer in dieser Woche schon in einer Revolut-CSV war – übrig bleibt, wer noch fehlt">bereits überwiesen <span class="cnt" id="ueberwiesenCount">0</span></button>
-                <button class="chip excluded" id="excludedFilter">Ausgeschl. <span class="cnt" id="excludedCount">0</span></button>
                 <div class="sp"></div>
-                <button class="btn desktop-only" id="printAllBtn">Alle drucken</button>
-                <button class="btn desktop-only" id="exportBtn">Export</button>
-                <button class="btn" id="revolutBtn" title="Sammelüberweisung für Revolut Business vorbereiten">Revolut-CSV</button>
-                <button class="btn" id="revolutApiBtn" title="Auszahlung als Entwurf im Revolut-Konto (Serdo) anlegen – freigeben in der Revolut-App">Revolut-Entwurf</button>
-                <button class="btn" id="refreshBtn" title="Neu laden">↺</button>
+                <details class="az-menue" id="azMenue"><summary class="btn" title="Weitere Funktionen">⋯</summary>
+                    <div class="az-menue-liste">
+                        <button class="chip" id="warnOnlyFilter">Nur Warnung</button>
+                        <button class="chip lohn" id="lohnFilter">Nur mit Lohn <span class="cnt" id="lohnCount">0</span></button>
+                        <button class="chip excluded" id="excludedFilter">Ausgeschlossene <span class="cnt" id="excludedCount">0</span></button>
+                        <hr>
+                        <button class="btn" id="printAllBtn">Alle drucken</button>
+                        <button class="btn" id="exportBtn">Export</button>
+                        <button class="btn" id="refreshBtn">Neu laden</button>
+                        <button class="btn" id="azAbrufenBtn" title="Überweisungen vom Serdo-Konto bei Revolut holen">Revolut abrufen</button>
+                        <button class="btn" id="revolutBtn" title="Sammelüberweisung als Datei – nur falls die Revolut-API nicht geht">Revolut-CSV (Notfall)</button>
+                    </div>
+                </details>
             </div>
             <div class="hint hidden" id="lohnHint"></div>
             <dialog class="lo-wahl rv-dialog" id="rvDialog"></dialog>
@@ -1100,13 +1149,14 @@
             <div class="split">
                 <div class="split-main">
                     <table class="data-table" id="abrTable">
-                        <colgroup><col style="width:31%"><col style="width:12%"><col style="width:16%"><col style="width:13%"><col style="width:28%"></colgroup>
+                        <colgroup><col style="width:24%"><col style="width:10%"><col style="width:12%"><col style="width:10%"><col style="width:14%"><col style="width:30%"></colgroup>
                         <thead><tr>
                             <th data-sort="name" id="sortName">Fahrer</th>
                             <th data-sort="mypos" id="sortMypos">MyPOS</th>
                             <th data-sort="lohn" id="sortLohn">Lohn</th>
                             <th data-sort="miete" id="sortMiete">Pausch.</th>
                             <th data-sort="payout" id="sortPayout">Auszahlung</th>
+                            <th class="az-th">Bezahlt</th>
                         </tr></thead>
                         <tbody id="tableBody"><tr><td colspan="5" class="empty">Laden…</td></tr></tbody>
                     </table>
@@ -1778,7 +1828,7 @@
         let supabaseClient = null;
         let SETTLEMENTS = [];
         let WEEKS = [];
-        let week = '', search = '', warn = false, warnOnly = false, lohnOnly = false, ueberwiesenAus = false, showExcluded = false, sortBy = 'name_asc', selectedDriver = null;
+        let week = '', search = '', warn = false, warnOnly = false, lohnOnly = false, ausFilter = '', showExcluded = false, sortBy = 'name_asc', selectedDriver = null;
         function isMobile() { return window.matchMedia('(max-width: 768px)').matches; }
         function weekRange(woche) {
             const m = /^(\d{4})-W(\d{2})$/.exec(woche || ''); // Sonderlabels wie '2026-W37k' bekommen bewusst kein Datum
@@ -2027,7 +2077,7 @@
         function updateExcludedUI() { document.getElementById('excludedCount').textContent = excludedDrivers.length; const list = document.getElementById('excludedList'); if (excludedDrivers.length === 0) { list.innerHTML = '<span style="color: var(--text-muted)">Keine Fahrer ausgeschlossen</span>'; } else { list.innerHTML = excludedDrivers.map(name => `<span class="excluded-tag">${esc(name)} <button data-include="${esc(name)}">\u2715</button></span>`).join(''); } }
         document.getElementById('excludedList').addEventListener('click', function(e) { const btn = e.target.closest('[data-include]'); if (btn) includeDriver(btn.dataset.include); });
         async function fetchAllSettlements(client) { const pageSize = 1000; let from = 0; let all = []; while (true) { const { data, error } = await client.from('settlements').select('*').order('id', { ascending: true }).range(from, from + pageSize - 1); if (error) throw error; if (data && data.length) all = all.concat(data); if (!data || data.length < pageSize) break; from += pageSize; } return all; }
-        async function loadData() { try { const client = getSupabase(); const [settleData, aliasRes, fahrerRes, kassierRes, abgleichRes, freigabeRes, lohnLetzteRes, _posten, bankRes, exportRes] = await Promise.all([ fetchAllSettlements(client), client.from('name_aliases').select('csv_name,fahrer_name'), client.from('fahrer').select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon').eq('aktiv', true), client.from('kassier_zahlungen').select('*'), client.from('api_abrechnung').select('woche,fahrer_id,fahrer,alt_fahrer_name,befund,diff,du_bekommst,alt_du_bekommst,bolt_gesynct,uber_gesynct'), client.from('abrechnung_freigaben').select('*'), client.from('lohn_letzte').select('*').then(r => r, e => ({ error: e })), ladePosten(), client.from('bank_uebersicht').select('name,notion_fahrer_id,iban,geprueft').then(r => r, e => ({ error: e })), client.from('auszahlung_export').select('woche,notion_fahrer_id,betrag').then(r => r, e => ({ error: e })) ]); if (!settleData || settleData.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = settleData.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); NAME_ALIASES = {}; if (!aliasRes.error && aliasRes.data) { aliasRes.data.forEach(a => { NAME_ALIASES[a.csv_name.toLowerCase()] = a.fahrer_name; }); } FAHRER_LIST = (!fahrerRes.error && fahrerRes.data) ? fahrerRes.data : []; bankPunkteLaden(bankRes, exportRes); KASSIER = (!kassierRes.error && kassierRes.data) ? kassierRes.data : []; ABGLEICH = (abgleichRes && !abgleichRes.error && abgleichRes.data) ? abgleichRes.data : []; if (abgleichRes && abgleichRes.error) console.warn('abgleich load error:', abgleichRes.error); if (kassierRes.error) console.warn('kassier load error:', kassierRes.error); FREIGABEN_OK = !!(freigabeRes && !freigabeRes.error); FREIGABEN = (FREIGABEN_OK && freigabeRes.data) ? freigabeRes.data : []; if (freigabeRes && freigabeRes.error) console.warn('freigaben load error:', freigabeRes.error); LOHN_LETZTE = (lohnLetzteRes && !lohnLetzteRes.error && lohnLetzteRes.data) ? lohnLetzteRes.data : []; if (lohnLetzteRes && lohnLetzteRes.error) console.warn('lohn_letzte load error:', lohnLetzteRes.error); WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; fillWeekFilter(); render(); } catch (err) { console.error('Load error:', err); const offlineHint = !navigator.onLine ? ' (Offline — keine Internetverbindung)' : ''; document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Fehler beim Laden: ' + esc(err.message) + offlineHint + '<br><button class="btn" style="margin-top:12px" onclick="loadData()">Erneut versuchen</button></td></tr>'; } }
+        async function loadData() { try { const client = getSupabase(); const [settleData, aliasRes, fahrerRes, kassierRes, abgleichRes, freigabeRes, lohnLetzteRes, _posten, bankRes, exportRes] = await Promise.all([ fetchAllSettlements(client), client.from('name_aliases').select('csv_name,fahrer_name'), client.from('fahrer').select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon').eq('aktiv', true), client.from('kassier_zahlungen').select('*'), client.from('api_abrechnung').select('woche,fahrer_id,fahrer,alt_fahrer_name,befund,diff,du_bekommst,alt_du_bekommst,bolt_gesynct,uber_gesynct'), client.from('abrechnung_freigaben').select('*'), client.from('lohn_letzte').select('*').then(r => r, e => ({ error: e })), ladePosten(), client.from('bank_uebersicht').select('name,notion_fahrer_id,iban,geprueft').then(r => r, e => ({ error: e })), client.from('auszahlung_export').select('woche,notion_fahrer_id,betrag').then(r => r, e => ({ error: e })) ]); if (!settleData || settleData.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = settleData.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); NAME_ALIASES = {}; if (!aliasRes.error && aliasRes.data) { aliasRes.data.forEach(a => { NAME_ALIASES[a.csv_name.toLowerCase()] = a.fahrer_name; }); } FAHRER_LIST = (!fahrerRes.error && fahrerRes.data) ? fahrerRes.data : []; bankPunkteLaden(bankRes, exportRes); KASSIER = (!kassierRes.error && kassierRes.data) ? kassierRes.data : []; ABGLEICH = (abgleichRes && !abgleichRes.error && abgleichRes.data) ? abgleichRes.data : []; if (abgleichRes && abgleichRes.error) console.warn('abgleich load error:', abgleichRes.error); if (kassierRes.error) console.warn('kassier load error:', kassierRes.error); FREIGABEN_OK = !!(freigabeRes && !freigabeRes.error); FREIGABEN = (FREIGABEN_OK && freigabeRes.data) ? freigabeRes.data : []; if (freigabeRes && freigabeRes.error) console.warn('freigaben load error:', freigabeRes.error); LOHN_LETZTE = (lohnLetzteRes && !lohnLetzteRes.error && lohnLetzteRes.data) ? lohnLetzteRes.data : []; if (lohnLetzteRes && lohnLetzteRes.error) console.warn('lohn_letzte load error:', lohnLetzteRes.error); WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; fillWeekFilter(); render(); ladeAuszahlung(week); } catch (err) { console.error('Load error:', err); const offlineHint = !navigator.onLine ? ' (Offline — keine Internetverbindung)' : ''; document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Fehler beim Laden: ' + esc(err.message) + offlineHint + '<br><button class="btn" style="margin-top:12px" onclick="loadData()">Erneut versuchen</button></td></tr>'; } }
         function updateThemeUI(isDark) { const icon = document.getElementById('themeIcon'); const text = document.getElementById('themeText'); if (isDark) { icon.innerHTML = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>'; text.textContent = 'Light'; } else { icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'; text.textContent = 'Dark'; } }
         function toggleTheme() { const html = document.documentElement; if (html.getAttribute('data-theme') === 'dark') { html.removeAttribute('data-theme'); localStorage.setItem('theme', 'light'); updateThemeUI(false); } else { html.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); updateThemeUI(true); } }
         function toggleSort(col) {
@@ -2048,12 +2098,24 @@
         }
         function initTheme() { const saved = localStorage.getItem('theme'); const html = document.documentElement; if (saved === 'dark') { html.setAttribute('data-theme', 'dark'); updateThemeUI(true); } else { html.removeAttribute('data-theme'); updateThemeUI(false); } }
         document.addEventListener('DOMContentLoaded', function() { initTheme(); try { const sess = JSON.parse(localStorage.getItem('hydralink_session') || 'null'); if (sess && sess.name) document.getElementById('sessionName').textContent = sess.name; } catch (e) {} updateExcludedUI(); updateSortUI(); 
-            document.getElementById('themeToggle').addEventListener('click', toggleTheme); document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); }); var _searchTimer = null; document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); clearTimeout(_searchTimer); _searchTimer = setTimeout(render, 200); }); document.querySelectorAll('#abrTable th[data-sort]').forEach(function(th) { th.addEventListener('click', function() { toggleSort(th.dataset.sort); }); });
-            function syncAllChip() { document.getElementById('allFilter').classList.toggle('active', !warn && !warnOnly && !lohnOnly && !ueberwiesenAus); }
-            document.getElementById('allFilter').addEventListener('click', function() { warn = false; warnOnly = false; lohnOnly = false; ueberwiesenAus = false; ['warningFilter','warnOnlyFilter','lohnFilter','ueberwiesenFilter'].forEach(function(id) { document.getElementById(id).classList.remove('active'); }); syncAllChip(); render(); });
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme); document.getElementById('weekFilter').addEventListener('change', function(e) { week = e.target.value; render(); ladeAuszahlung(week); }); var _searchTimer = null; document.getElementById('searchInput').addEventListener('input', function(e) { search = e.target.value.toLowerCase(); clearTimeout(_searchTimer); _searchTimer = setTimeout(render, 200); }); document.querySelectorAll('#abrTable th[data-sort]').forEach(function(th) { th.addEventListener('click', function() { toggleSort(th.dataset.sort); }); });
+            function syncAllChip() { document.getElementById('allFilter').classList.toggle('active', !warn && !warnOnly && !lohnOnly && !ausFilter); }
+            document.getElementById('allFilter').addEventListener('click', function() { warn = false; warnOnly = false; lohnOnly = false; ausFilter = ''; ['warningFilter','warnOnlyFilter','lohnFilter','azOffenFilter','azRevolutFilter','azBarFilter'].forEach(function(id) { document.getElementById(id).classList.remove('active'); }); syncAllChip(); render(); });
             document.getElementById('warningFilter').addEventListener('click', function() { warn = !warn; this.classList.toggle('active', warn); syncAllChip(); render(); });
             document.getElementById('warnOnlyFilter').addEventListener('click', function() { warnOnly = !warnOnly; this.classList.toggle('active', warnOnly); syncAllChip(); render(); });
-            document.getElementById('ueberwiesenFilter').addEventListener('click', function() { ueberwiesenAus = !ueberwiesenAus; this.classList.toggle('active', ueberwiesenAus); syncAllChip(); render(); });
+            ['azOffenFilter', 'azRevolutFilter', 'azBarFilter'].forEach(function (id) {
+                document.getElementById(id).addEventListener('click', function () {
+                    const f = id === 'azOffenFilter' ? 'offen' : (id === 'azRevolutFilter' ? 'revolut' : 'bar');
+                    ausFilter = ausFilter === f ? '' : f;
+                    ['azOffenFilter', 'azRevolutFilter', 'azBarFilter'].forEach(function (x) { document.getElementById(x).classList.toggle('active', x === id && ausFilter === f); });
+                    syncAllChip(); render();
+                });
+            });
+            document.getElementById('azAbrufenBtn').addEventListener('click', azAbrufen);
+            document.getElementById('azLeiste').addEventListener('click', azLeisteKlick);
+            // Menue schliesst nach einem Klick darin und beim Klick daneben
+            document.getElementById('azMenue').addEventListener('click', function (e) { if (e.target.closest('button')) { const m = this; setTimeout(function () { m.open = false; }, 0); } });
+            document.addEventListener('click', function (e) { const m = document.getElementById('azMenue'); if (m.open && !m.contains(e.target)) m.open = false; });
             document.getElementById('lohnFilter').addEventListener('click', function() { lohnOnly = !lohnOnly; this.classList.toggle('active', lohnOnly); if (lohnOnly) { sortBy = 'lohn_desc'; updateSortUI(); } syncAllChip(); render(); });
             document.getElementById('excludedFilter').addEventListener('click', function() { showExcluded = !showExcluded; this.classList.toggle('active', showExcluded); document.getElementById('excludedPanel').classList.toggle('show', showExcluded); });
             window.matchMedia('(max-width: 768px)').addEventListener('change', function() {
@@ -2062,7 +2124,7 @@
                 if (fpLoaded) renderFuhrpark();
                 if (apLoaded) renderApi();
                 menueZu();
-            }); document.getElementById('printAllBtn').addEventListener('click', printAllDrivers); document.getElementById('exportBtn').addEventListener('click', exportCSV); document.getElementById('revolutBtn').addEventListener('click', revolutDialog); document.getElementById('revolutApiBtn').addEventListener('click', rdDialog); document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); }); document.getElementById('logoutBtn').addEventListener('click', async function() { try { await getSupabase().auth.signOut(); } catch (e) {} localStorage.removeItem('hydralink_session'); window.location.href = 'index.html'; });
+            }); document.getElementById('printAllBtn').addEventListener('click', printAllDrivers); document.getElementById('exportBtn').addEventListener('click', exportCSV); document.getElementById('revolutBtn').addEventListener('click', revolutDialog); document.getElementById('refreshBtn').addEventListener('click', function() { loadData(); }); document.getElementById('logoutBtn').addEventListener('click', async function() { try { await getSupabase().auth.signOut(); } catch (e) {} localStorage.removeItem('hydralink_session'); window.location.href = 'index.html'; });
             /* Signierte PDF-URL (privater Bucket) */
         document.addEventListener('click', async function(e) {
             const a = e.target.closest('a[data-pdf-path]');
@@ -2085,12 +2147,13 @@
                 return false;
             }
             document.getElementById('tableBody').addEventListener('click', function(e) {
+                if (azKlick(e)) return;
                 if (detailActions(e)) return;
                 if (e.target.closest('.detail-row')) return;
                 const row = e.target.closest('tr[data-row]');
                 if (row) selectDriver(row.dataset.row);
             });
-            document.getElementById('detailPanel').addEventListener('click', detailActions);
+            document.getElementById('detailPanel').addEventListener('click', function (e) { if (!azKlick(e)) detailActions(e); });
             ['tableBody', 'detailPanel'].forEach(function(id) {
                 const el = document.getElementById(id);
                 el.addEventListener('change', function(e) { const t = e.target; if (t && t.classList && t.classList.contains('lohn-input')) { saveLohn(parseInt(t.getAttribute('data-lohn-id'), 10), t.value); } });
@@ -2204,6 +2267,7 @@
                 + (editLohn ? lohnHinweisHtml(s) + '<input type="number" step="0.01" class="lohn-input" data-lohn-id="' + s.id + '" value="' + (lohnOf(s) || '') + '" placeholder="0">' : '<b class="num">' + (lohnOf(s) ? fmt(lohnOf(s)) : '–') + '</b>')
                 + '</div>'
                 + kv('Auszahlung vor Lohn', fmt(s.auszahlung)) + kv('Netto nach Lohn', fmt(net), 'strong')
+                + azDetailHtml(s)
                 + '<div class="detail-acts"><button class="btn-primary" data-print="' + esc(s.fahrer_name) + '">Drucken / WhatsApp</button><button class="btn-ghost danger" data-exclude="' + esc(s.fahrer_name) + '">Ausschließen</button></div>'
                 + '</div>';
         }
@@ -2217,7 +2281,7 @@
                     && (!warn || s.auszahlung < 0)
                     && (!warnOnly || isWarnStatus)
                     && (!lohnOnly || lohnOf(s) > 0)
-                    && (!ueberwiesenAus || !(exportBetrag(s) > 0))
+                    && azFilterOk(s)
                     && !isExcluded;
             });
             const num = f => (a, b) => (f(b) || 0) - (f(a) || 0);
@@ -2520,7 +2584,7 @@
             if (!week) { alert('Keine Woche gewählt.'); return; }
             if (!freigabeVon(week)) { alert('Revolut-Entwurf nur für freigegebene Wochen. ' + week + ' ist noch nicht freigegeben.'); return; }
             const d = document.getElementById('rdDialog');
-            if (!d.dataset.bereit) { d.dataset.bereit = '1'; d.addEventListener('click', rdKlick); d.addEventListener('change', rdSumme); }
+            if (!d.dataset.bereit) { d.dataset.bereit = '1'; d.addEventListener('click', rdKlick); d.addEventListener('change', rdSumme); d.addEventListener('close', function () { ladeAuszahlung(week); }); }
             d.innerHTML = '<h3>Revolut-Entwurf · ' + esc(week) + '</h3><p class="rv-hinweis">Lade Kontostand und Fahrer …</p>';
             if (!d.open) d.showModal();
             try { RD = await rdFn({ aktion: 'vorschau', woche: week }); }
@@ -2602,6 +2666,170 @@
             } catch (err) { alert(rdFehlerText(err)); }
             finally { b.disabled = false; }
         }
+        /* === Auszahlung je Fahrer und Woche (auszahlung_status; Spec 2026-10-18-auszahlung-uebersicht) ===
+           Eine Stelle rechnet (Datenbank). Hier nur Anzeige + Knoepfe; Betraege kommen nie aus dem Browser. */
+        let AZ = { woche: null, rows: [], byRow: {}, fehler: null }, AZ_KONTO = { zeit: 0, woche: null, wert: null, fehler: null };
+        const AZ_TEXT = { revolut_offen: 'Revolut offen', bar_offen: 'bar offen', entwurf: 'Entwurf – in Revolut freigeben', unterwegs: 'unterwegs',
+            ueberwiesen: 'überwiesen', bar_ok: 'bar ausgezahlt', bar_woche: 'bar (Woche im Kassabuch)', rest_offen: 'Rest offen', zu_viel: 'zu viel bezahlt',
+            schulden: 'Schulden', nichts: '–' };
+        const AZ_PUNKT = { revolut_offen: 'info', bar_offen: 'warn', entwurf: 'info', unterwegs: 'info', ueberwiesen: 'ok', bar_ok: 'ok',
+            bar_woche: 'aus', rest_offen: 'warn', zu_viel: 'neg', schulden: 'neg', nichts: 'aus' };
+        async function ladeAuszahlung(w) {
+            if (!w) return;
+            const res = await getSupabase().rpc('auszahlung_status', { p_woche: w }).then(function (r) { return r; }, function (e) { return { error: e }; });
+            if (w !== week) return;
+            AZ = { woche: w, rows: res.error ? [] : (res.data || []), byRow: {}, fehler: res.error ? fgFehler(res.error) : null };
+            AZ.rows.forEach(function (r) { (r.zeilen || []).forEach(function (id) { AZ.byRow[id] = r; }); });
+            render();
+            if (freigabeVon(w) && AZ.rows.some(function (r) { return r.status === 'revolut_offen'; })) azKontoLaden();
+        }
+        function azVon(s) { return AZ.woche === s.woche ? (AZ.byRow[s.id] || null) : null; }
+        // Kachel/Filter: wohin gehoert der Fahrer diese Woche (tatsaechliche Zahlung vor eingestelltem Weg)
+        function azGruppe(r) {
+            if (!r || r.status === 'nichts') return '';
+            if (r.status === 'schulden') return 'schulden';
+            if (r.status === 'bar_ok' || r.status === 'bar_woche' || r.status === 'rest_offen') return 'bar';
+            if (r.status === 'ueberwiesen' || r.status === 'entwurf' || r.status === 'unterwegs') return 'revolut';
+            return r.weg === 'bar' ? 'bar' : 'revolut';
+        }
+        function azOffen(r) { return !!r && ['revolut_offen', 'bar_offen', 'entwurf', 'unterwegs'].indexOf(r.status) >= 0 || (!!r && r.status === 'rest_offen' && !r.kassa_woche); }
+        function azFilterOk(s) {
+            if (!ausFilter) return true;
+            const r = azVon(s);
+            return ausFilter === 'offen' ? azOffen(r) : azGruppe(r) === ausFilter;
+        }
+        function azDatum(t) { return t ? new Date(t).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit' }) : ''; }
+        function azTitel(r) {
+            return ['fällig ' + fmt(r.betrag), 'bezahlt ' + fmt(r.bezahlt) + (parseFloat(r.bezahlt_bar) > 0 ? ' (davon bar ' + fmt(r.bezahlt_bar) + ')' : ''),
+                'Weg: ' + (r.weg === 'bar' ? 'bar' : 'Revolut') + (r.weg_hand ? ' (für diese Woche umgestellt)' : ''),
+                r.iban_ende ? 'IBAN …' + r.iban_ende + (r.geprueft ? '' : ' (ungeprüft)') : 'keine Bankdaten',
+                r.revolut_status ? 'Revolut: ' + r.revolut_status + (r.revolut_fehler ? ' – ' + r.revolut_fehler : '') : ''].filter(Boolean).join('\n');
+        }
+        function azKnopf(a, nr, t, title) { return '<button class="az-k" data-az="' + a + '" data-aznr="' + nr + '" title="' + esc(title) + '">' + esc(t) + '</button>'; }
+        function azZelle(s) {
+            const r = azVon(s);
+            if (!r) return '<span class="az-st aus">' + (AZ.woche === s.woche ? '–' : '…') + '</span>';
+            let t = AZ_TEXT[r.status] || r.status;
+            if (r.status === 'ueberwiesen' || r.status === 'bar_ok') t = '✓ ' + t + (r.zuletzt ? ' ' + azDatum(r.zuletzt) : '');
+            if (r.status === 'rest_offen') t += ' ' + fmt(r.offen) + (r.kassa_woche ? ' (Woche im Kassabuch)' : '');
+            if (r.status === 'zu_viel') t = '! ' + t + ' +' + fmt((parseFloat(r.bezahlt) || 0) - (parseFloat(r.betrag) || 0));
+            const nr = r.notion_fahrer_id, fr = !!freigabeVon(s.woche);
+            let akt = '';
+            if (fr && r.status === 'revolut_offen') akt = azKnopf('bar', nr, '⇄ bar', 'Diese Woche bar statt über Revolut');
+            if (fr && r.status === 'bar_offen') akt = azKnopf('bar-aus', nr, 'bar ausgezahlt', 'Bucht ' + fmt(r.offen) + ' als Ausgabe ins Kassabuch')
+                + (r.geprueft ? azKnopf('revolut', nr, '⇄ Revolut', 'Diese Woche über Revolut') : '');
+            if (fr && r.status === 'rest_offen' && !r.kassa_woche) akt = azKnopf('bar-aus', nr, 'Rest bar', 'Bucht ' + fmt(r.offen) + ' als Ausgabe ins Kassabuch');
+            if (r.status === 'bar_ok' && parseFloat(r.bezahlt_bar) > 0) akt = azKnopf('zurueck', nr, 'rückgängig', 'Bar-Auszahlung zurücknehmen (Gegenbuchung im Kassabuch)');
+            return '<span class="az-st"><span class="dot ' + (AZ_PUNKT[r.status] || '') + '"></span><span class="az-t" title="' + esc(azTitel(r)) + '">' + esc(t) + '</span></span>'
+                + (akt ? '<span class="az-akt">' + akt + '</span>' : '');
+        }
+        function azDetailHtml(s) {
+            const r = azVon(s);
+            if (!r) return '';
+            return '<div class="detail-sec">Bezahlt</div><div class="detail-kv"><span>' + azZelle(s) + '</span></div>'
+                + '<div class="fz-bank-verlauf">' + esc(azTitel(r)).replace(/\n/g, '<br>') + '</div>';
+        }
+        function azKlick(e) {
+            const b = e.target.closest('[data-az]');
+            if (!b) return false;
+            e.stopPropagation();
+            azAktion(b);
+            return true;
+        }
+        async function azAktion(b) {
+            if (b.disabled) return;
+            const nr = parseInt(b.dataset.aznr, 10), a = b.dataset.az, w = AZ.woche;
+            const r = AZ.rows.filter(function (x) { return x.notion_fahrer_id === nr; })[0];
+            if (!r) return;
+            let res = null;
+            if (a === 'bar-aus') {
+                if (!confirm(r.name + ': ' + fmt(r.offen) + ' bar ausgezahlt?\n\nWird als Ausgabe ins Kassabuch gebucht.')) return;
+                b.disabled = true;
+                res = await getSupabase().rpc('bar_auszahlen', { p_woche: w, p_nr: nr });
+            } else if (a === 'bar' || a === 'revolut') {
+                b.disabled = true;
+                res = await getSupabase().rpc('auszahlung_weg_setzen', { p_woche: w, p_nr: nr, p_weg: a });
+            } else if (a === 'zurueck') {
+                const q = await getSupabase().from('bar_auszahlungen').select('id,betrag').eq('woche', w).eq('notion_fahrer_id', nr)
+                    .is('storno_kassabuch_id', null).order('id', { ascending: false }).limit(1);
+                const z = (q.data || [])[0];
+                if (!z) { alert('Keine Bar-Auszahlung gefunden.'); return; }
+                if (!confirm(r.name + ': Bar-Auszahlung ' + fmt(z.betrag) + ' zurücknehmen?\n\nIm Kassabuch entsteht eine Gegenbuchung.')) return;
+                b.disabled = true;
+                res = await getSupabase().rpc('bar_rueckgaengig', { p_id: z.id });
+            }
+            if (!res) return;
+            if (res.error) { alert(fgFehler(res.error)); b.disabled = false; }
+            else showReToast(a === 'bar-aus' ? r.name + ': bar ausgezahlt, im Kassabuch gebucht' : (a === 'zurueck' ? 'Bar-Auszahlung zurückgenommen' : r.name + ': diese Woche ' + (a === 'bar' ? 'bar' : 'über Revolut')), 'success');
+            await ladeAuszahlung(w);
+        }
+        async function azKontoLaden() {
+            if (AZ_KONTO.woche === week && Date.now() - AZ_KONTO.zeit < 120000) return;
+            AZ_KONTO = { zeit: Date.now(), woche: week, wert: null, fehler: null };
+            try { const d = await rdFn({ aktion: 'vorschau', woche: week }); AZ_KONTO.wert = d.konto; AZ_KONTO.fehler = d.konto_fehler; }
+            catch (e) { AZ_KONTO.fehler = rdFehlerText(e); }
+            render();
+        }
+        function renderAzLeiste() {
+            const el = document.getElementById('azLeiste');
+            const rows = AZ.woche === week ? AZ.rows : [];
+            const sum = function (l, f) { return l.reduce(function (t, r) { return t + (parseFloat(f(r)) || 0); }, 0); };
+            const gr = function (g) { return rows.filter(function (r) { return azGruppe(r) === g; }); };
+            const nach = function (st) { return rows.filter(function (r) { return st.indexOf(r.status) >= 0; }); };
+            const rev = gr('revolut'), bar = gr('bar'), sch = gr('schulden');
+            const revOffen = nach(['revolut_offen']), revLauf = nach(['entwurf', 'unterwegs']), revOk = nach(['ueberwiesen']);
+            const barOffen = rows.filter(function (r) { return r.status === 'bar_offen' || (r.status === 'rest_offen' && !r.kassa_woche); });
+            const barOk = nach(['bar_ok', 'bar_woche']), zuViel = nach(['zu_viel']);
+            document.getElementById('azOffenCnt').textContent = rows.length ? rows.filter(azOffen).length : '';
+            document.getElementById('azRevolutCnt').textContent = rows.length ? rev.length : '';
+            document.getElementById('azBarCnt').textContent = rows.length ? bar.length : '';
+            if (!rows.length) { el.innerHTML = AZ.fehler && AZ.woche === week ? '<div class="az-hinweis">Auszahlung nicht verfügbar: ' + esc(AZ.fehler) + '</div>' : ''; return; }
+            const fr = !!freigabeVon(week), k = AZ_KONTO.woche === week ? AZ_KONTO.wert : null, revSumme = sum(revOffen, function (r) { return r.offen; });
+            const konto = k ? 'Konto ' + esc(k.name || 'Main') + ': ' + fmt(k.kontostand) + (k.kontostand < revSumme ? ' · <b class="neg">reicht nicht</b>' : '')
+                : (AZ_KONTO.fehler && AZ_KONTO.woche === week ? '<span class="neg">Kontostand: ' + esc(AZ_KONTO.fehler) + '</span>' : (revOffen.length && fr ? 'Kontostand wird geladen …' : ''));
+            el.innerHTML = '<div class="az-kachel"><div class="az-k-t">Revolut</div><div class="az-k-b">' + rev.length + ' Fahrer · ' + fmt(sum(rev, function (r) { return r.betrag; })) + '</div>'
+                + '<div class="az-k-s">' + revOffen.length + ' offen · ' + (revLauf.length ? revLauf.length + ' im Entwurf · ' : '') + revOk.length + ' überwiesen</div>'
+                + (konto ? '<div class="az-k-s">' + konto + '</div>' : '')
+                + (fr ? (revOffen.length ? '<button class="btn btn-primary" data-azl="entwurf">Entwurf anlegen · ' + revOffen.length + ' · ' + fmt(revSumme) + '</button>' : '')
+                      : '<div class="az-k-s">Erst die Woche freigeben, dann auszahlen.</div>') + '</div>'
+                + '<div class="az-kachel"><div class="az-k-t">Bar</div><div class="az-k-b">' + bar.length + ' Fahrer · ' + fmt(sum(bar, function (r) { return r.betrag; })) + '</div>'
+                + '<div class="az-k-s">' + barOffen.length + ' offen' + (barOffen.length ? ' (' + fmt(sum(barOffen, function (r) { return r.offen; })) + ')' : '') + ' · ' + barOk.length + ' ✓</div>'
+                + (barOffen.length && fr ? '<button class="btn" data-azl="barliste">Bar-Liste drucken</button>' : '') + '</div>'
+                + '<div class="az-kachel"><div class="az-k-t">Schulden</div><div class="az-k-b">' + sch.length + ' Fahrer · ' + fmt(sum(sch, function (r) { return r.betrag; })) + '</div>'
+                + (zuViel.length ? '<div class="az-k-s"><b class="neg">! ' + zuViel.length + ' zu viel bezahlt (' + fmt(sum(zuViel, function (r) { return (parseFloat(r.bezahlt) || 0) - (parseFloat(r.betrag) || 0); })) + ')</b></div>' : '')
+                + '<button class="btn-ghost" data-azl="kassieren">Zu „Müssen zahlen“ →</button></div>';
+        }
+        function azLeisteKlick(e) {
+            const b = e.target.closest('[data-azl]');
+            if (!b) return;
+            if (b.dataset.azl === 'entwurf') rdDialog();
+            else if (b.dataset.azl === 'barliste') azBarListe();
+            else if (b.dataset.azl === 'kassieren') switchTab('muessenzahlen');
+        }
+        function azBarListe() {
+            const l = AZ.rows.filter(function (r) { return r.status === 'bar_offen' || (r.status === 'rest_offen' && !r.kassa_woche); })
+                .sort(function (a, b) { return String(a.name).localeCompare(String(b.name), 'de'); });
+            const w = window.open('', '_blank');
+            if (!w) { alert('Bitte Pop-ups für diese Seite erlauben.'); return; }
+            const kw = String(AZ.woche || '').replace(/^\d{4}-W0?/, 'KW ');
+            w.document.write('<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Bar-Liste ' + esc(kw) + '</title><style>'
+                + 'body{font:13px system-ui,sans-serif;margin:24px;color:#111}table{border-collapse:collapse;width:100%}'
+                + 'th,td{border-bottom:1px solid #bbb;padding:10px 6px;text-align:left}td.b,th.b{text-align:right;white-space:nowrap}td.u{width:40%}'
+                + '</style></head><body><h2>Bar-Auszahlung ' + esc(kw) + '</h2><table><tr><th>Fahrer</th><th class="b">Betrag</th><th>Unterschrift</th></tr>'
+                + l.map(function (r) { return '<tr><td>' + esc(r.name) + '</td><td class="b">' + fmt(r.offen) + '</td><td class="u"></td></tr>'; }).join('')
+                + '<tr><th>Summe (' + l.length + ')</th><th class="b">' + fmt(l.reduce(function (t, r) { return t + (parseFloat(r.offen) || 0); }, 0)) + '</th><th></th></tr></table></body></html>');
+            w.document.close(); w.focus(); w.print();
+        }
+        async function azAbrufen() {
+            const b = document.getElementById('azAbrufenBtn');
+            b.disabled = true; b.textContent = 'Rufe ab …';
+            const { data, error } = await getSupabase().functions.invoke('revolut-auszahlung', { body: { aktion: 'buchungen_abrufen' } });
+            b.disabled = false; b.textContent = 'Revolut abrufen';
+            document.getElementById('azMenue').open = false;
+            if (error) { let t = error.message; try { const j = await error.context.json(); t = j.fehler || t; } catch (x) {} alert('Abruf fehlgeschlagen: ' + t); return; }
+            showReToast(data.zeilen + ' Überweisungen abgerufen · ' + data.offen + ' ohne Fahrer', 'success');
+            await ladeAuszahlung(week);
+        }
         function render() {
             renderPostenBanner();
             const data = getData();
@@ -2632,10 +2860,9 @@
             document.getElementById('tableCount').textContent = ' (' + data.length + ')';
             const lohnRows = all.filter(function(s) { return lohnOf(s) > 0; });
             document.getElementById('lohnCount').textContent = lohnRows.length;
-            const ueberwRows = all.filter(function(s) { return exportBetrag(s) > 0; });
-            document.getElementById('ueberwiesenCount').textContent = ueberwRows.length;
+            renderAzLeiste();
             const hint = document.getElementById('lohnHint');
-            if (lohnOnly) { hint.innerHTML = 'Zeigt <b>' + data.length + ' Fahrer</b> mit eingetragenem Lohn, Summe Lohn <b class="num">' + fmt(data.reduce(function(a,s){ return a + lohnOf(s); }, 0)) + '</b>.'; hint.classList.remove('hidden'); } else if (ueberwiesenAus) { hint.innerHTML = '<b>' + ueberwRows.length + '</b> bereits überwiesen (Revolut-CSV) ausgeblendet · noch offen: <b>' + data.length + ' Fahrer</b>, zusammen <b class="num">' + fmt(data.reduce(function(a,s){ return a + Math.max(0, (parseFloat(s.auszahlung) || 0) - lohnOf(s)); }, 0)) + '</b>.'; hint.classList.remove('hidden'); } else { hint.classList.add('hidden'); }
+            if (lohnOnly) { hint.innerHTML = 'Zeigt <b>' + data.length + ' Fahrer</b> mit eingetragenem Lohn, Summe Lohn <b class="num">' + fmt(data.reduce(function(a,s){ return a + lohnOf(s); }, 0)) + '</b>.'; hint.classList.remove('hidden'); } else { hint.classList.add('hidden'); }
             const noMatchCount = all.filter(function(s) { return s.status && s.status.indexOf('WARNUNG_KEIN_FAHRER') >= 0; }).length;
             const aliasBannerEl = document.getElementById('aliasBanner');
             aliasBannerEl.style.display = noMatchCount > 0 ? 'flex' : 'none';
@@ -2644,7 +2871,7 @@
             renderFreigabe(week);
             const tbody = document.getElementById('tableBody');
             const panel = document.getElementById('detailPanel');
-            if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Keine Einträge</td></tr>'; panel.innerHTML = '<div class="placeholder">Keine Einträge</div>'; return; }
+            if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Keine Einträge</td></tr>'; panel.innerHTML = '<div class="placeholder">Keine Einträge</div>'; return; }
             const editLohn = canEditLohn();
             const mobile = isMobile();
             if (selectedDriver && !data.some(function(s) { return s.fahrer_name === selectedDriver; })) selectedDriver = null;
@@ -2656,11 +2883,12 @@
                 const sel = selectedDriver === s.fahrer_name;
                 const cell = function(v) { const n = parseFloat(v) || 0; return '<td class="' + (n === 0 ? 'zero' : '') + '">' + fmtInt(n) + '</td>'; };
                 return '<tr class="' + (isWarn ? 'warning' : '') + (sel ? ' selected' : '') + '" data-row="' + esc(s.fahrer_name) + '">'
-                    + '<td title="' + esc(s.fahrer_name) + '"><span class="abr-zelle"><span class="dot ' + dot + '"></span><span class="abr-name">' + esc(s.fahrer_name) + '</span>' + ibanPunkt(s) + '</span>' + abwBadge(s.fahrer_name, ABW) + (korr !== 0 ? '<span class="fahrer-korr ' + (korr > 0 ? 'pos' : 'neg') + '" title="' + esc(s.korrektur_note || '') + '">Korr ' + (korr > 0 ? '+' : '') + fmt(korr) + '</span>' : '') + '</td>'
+                    + '<td title="' + esc(s.fahrer_name) + '"><span class="abr-zelle"><span class="dot ' + dot + '"></span><span class="abr-name">' + esc(s.fahrer_name) + '</span></span>' + abwBadge(s.fahrer_name, ABW) + (korr !== 0 ? '<span class="fahrer-korr ' + (korr > 0 ? 'pos' : 'neg') + '" title="' + esc(s.korrektur_note || '') + '">Korr ' + (korr > 0 ? '+' : '') + fmt(korr) + '</span>' : '') + '</td>'
                     + cell(s.mypos_summe) + cell(lohnOf(s)) + cell(s.miete)
                     + '<td class="pay' + (net < 0 ? ' neg' : '') + '">' + fmt(net) + '</td>'
+                    + '<td class="az-zelle">' + azZelle(s) + '</td>'
                     + '</tr>'
-                    + (sel && mobile ? '<tr class="detail-row"><td colspan="5">' + detailHtml(s, editLohn) + '</td></tr>' : '');
+                    + (sel && mobile ? '<tr class="detail-row"><td colspan="6">' + detailHtml(s, editLohn) + '</td></tr>' : '');
             }).join('');
             if (!mobile) {
                 const s = selectedDriver ? data.find(function(x) { return x.fahrer_name === selectedDriver; }) : null;

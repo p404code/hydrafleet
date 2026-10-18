@@ -256,8 +256,12 @@ Ziel des Betreibers: Großteil über Revolut, kleiner Rest bar. **Eine Stelle re
 - Bar: `bar_auszahlen(woche, nr)` bucht `kassa_einfuegen(..., 'bar', ...)` (neuer `quelle`-Wert), `bar_rueckgaengig(id)` = Gegenbuchung.
   Trigger `kassa_bar_sperre`: keine Wochenbuchung, sobald es Bar-Zeilen gibt; `kassa_abrechnung_stand` zeigt solche Wochen nicht.
 - Rest (`rest_offen`) wird immer bar beglichen – ein zweiter Revolut-Posten je Woche/Fahrer geht wegen `unique(woche, nr)` nicht.
-- Dashboard Abrechnung: Kacheln Revolut / Bar / Schulden (`azLeiste`), Filter Alle·Offen·Revolut·Bar·Schulden, Spalte „Bezahlt“
-  mit genau einer Aktion, Nebenfunktionen im ⋯-Menü (`azMenue`). Kontostand kommt aus `revolut-auszahlung` (Aktion vorschau).
+- Dashboard Abrechnung (Redesign 19.10., Plan von Fable): **Auswahl per Häkchen in der Tabelle** (nur Status *revolut_offen*,
+  Woche freigegeben, nicht von der Vorschau gesperrt; keine Vorauswahl), Kopf-Häkchen `uwAlle` = alle überweisbaren der gefilterten
+  Liste, Leiste `uwLeiste` (Auswahl, Summe, Kontostand) mit Knopf **„Überweisen“** `uwGo` → Dialog `uwDialog` (Vorschau, „Entwurf
+  anlegen“, Ergebnis). Status-Badges (`uwZelle`, `UW_BADGE`), Filter Alle·Offen·Überwiesen, Rest im ⋯-Menü (`azMenue`, u. a.
+  „Revolut-Stand prüfen“ = Aktion status). **Bar/Kassabuch (`bar_auszahlen`, `auszahlung_weg_setzen`, `bar_rueckgaengig`) bleiben
+  in der DB, sind aber vorerst ohne UI** (Entscheidung Betreiber 19.10.).
 - Test: `PGLITE=<dir> node scripts/test-bankdaten.mjs` (Abschnitt Auszahlungs-Status).
 
 ## Key Supabase Tables

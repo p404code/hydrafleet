@@ -1313,6 +1313,7 @@
             <button class="chip" data-fz="mitapp">mit App <span class="cnt" id="fzCntMitApp"></span></button>
             <button class="chip" data-fz="ohneapp">ohne App <span class="cnt" id="fzCntOhneApp"></span></button>
             <button class="chip" data-fz="ohnebank">Bankdaten fehlen <span class="cnt" id="fzCntOhneBank"></span></button>
+            <button class="chip" data-fz="bankoffen">Bank ungeprüft <span class="cnt" id="fzCntBankOffen"></span></button>
             <button class="chip" data-fz="archiv">Archiviert <span class="cnt" id="fzCntArchiv"></span></button>
             <div class="sp"></div>
             <button class="chip chip-link" onclick="switchTab('lohn')">Löhne →</button>
@@ -2008,7 +2009,7 @@
         function updateExcludedUI() { document.getElementById('excludedCount').textContent = excludedDrivers.length; const list = document.getElementById('excludedList'); if (excludedDrivers.length === 0) { list.innerHTML = '<span style="color: var(--text-muted)">Keine Fahrer ausgeschlossen</span>'; } else { list.innerHTML = excludedDrivers.map(name => `<span class="excluded-tag">${esc(name)} <button data-include="${esc(name)}">\u2715</button></span>`).join(''); } }
         document.getElementById('excludedList').addEventListener('click', function(e) { const btn = e.target.closest('[data-include]'); if (btn) includeDriver(btn.dataset.include); });
         async function fetchAllSettlements(client) { const pageSize = 1000; let from = 0; let all = []; while (true) { const { data, error } = await client.from('settlements').select('*').order('id', { ascending: true }).range(from, from + pageSize - 1); if (error) throw error; if (data && data.length) all = all.concat(data); if (!data || data.length < pageSize) break; from += pageSize; } return all; }
-        async function loadData() { try { const client = getSupabase(); const [settleData, aliasRes, fahrerRes, kassierRes, abgleichRes, freigabeRes, lohnLetzteRes, _posten, bankRes, exportRes] = await Promise.all([ fetchAllSettlements(client), client.from('name_aliases').select('csv_name,fahrer_name'), client.from('fahrer').select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon').eq('aktiv', true), client.from('kassier_zahlungen').select('*'), client.from('api_abrechnung').select('woche,fahrer_id,fahrer,alt_fahrer_name,befund,diff,du_bekommst,alt_du_bekommst,bolt_gesynct,uber_gesynct'), client.from('abrechnung_freigaben').select('*'), client.from('lohn_letzte').select('*').then(r => r, e => ({ error: e })), ladePosten(), client.from('bank_uebersicht').select('name,notion_fahrer_id,iban,woche,bestaetigt_iban').then(r => r, e => ({ error: e })), client.from('auszahlung_export').select('woche,notion_fahrer_id,betrag').then(r => r, e => ({ error: e })) ]); if (!settleData || settleData.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = settleData.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); NAME_ALIASES = {}; if (!aliasRes.error && aliasRes.data) { aliasRes.data.forEach(a => { NAME_ALIASES[a.csv_name.toLowerCase()] = a.fahrer_name; }); } FAHRER_LIST = (!fahrerRes.error && fahrerRes.data) ? fahrerRes.data : []; bankPunkteLaden(bankRes, exportRes); KASSIER = (!kassierRes.error && kassierRes.data) ? kassierRes.data : []; ABGLEICH = (abgleichRes && !abgleichRes.error && abgleichRes.data) ? abgleichRes.data : []; if (abgleichRes && abgleichRes.error) console.warn('abgleich load error:', abgleichRes.error); if (kassierRes.error) console.warn('kassier load error:', kassierRes.error); FREIGABEN_OK = !!(freigabeRes && !freigabeRes.error); FREIGABEN = (FREIGABEN_OK && freigabeRes.data) ? freigabeRes.data : []; if (freigabeRes && freigabeRes.error) console.warn('freigaben load error:', freigabeRes.error); LOHN_LETZTE = (lohnLetzteRes && !lohnLetzteRes.error && lohnLetzteRes.data) ? lohnLetzteRes.data : []; if (lohnLetzteRes && lohnLetzteRes.error) console.warn('lohn_letzte load error:', lohnLetzteRes.error); WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; fillWeekFilter(); render(); } catch (err) { console.error('Load error:', err); const offlineHint = !navigator.onLine ? ' (Offline — keine Internetverbindung)' : ''; document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Fehler beim Laden: ' + esc(err.message) + offlineHint + '<br><button class="btn" style="margin-top:12px" onclick="loadData()">Erneut versuchen</button></td></tr>'; } }
+        async function loadData() { try { const client = getSupabase(); const [settleData, aliasRes, fahrerRes, kassierRes, abgleichRes, freigabeRes, lohnLetzteRes, _posten, bankRes, exportRes] = await Promise.all([ fetchAllSettlements(client), client.from('name_aliases').select('csv_name,fahrer_name'), client.from('fahrer').select('name,mietmodell,basis_miete,prozent_satz,prozent_schwelle,telefon').eq('aktiv', true), client.from('kassier_zahlungen').select('*'), client.from('api_abrechnung').select('woche,fahrer_id,fahrer,alt_fahrer_name,befund,diff,du_bekommst,alt_du_bekommst,bolt_gesynct,uber_gesynct'), client.from('abrechnung_freigaben').select('*'), client.from('lohn_letzte').select('*').then(r => r, e => ({ error: e })), ladePosten(), client.from('bank_uebersicht').select('name,notion_fahrer_id,iban,geprueft').then(r => r, e => ({ error: e })), client.from('auszahlung_export').select('woche,notion_fahrer_id,betrag').then(r => r, e => ({ error: e })) ]); if (!settleData || settleData.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Keine Daten in der Tabelle gefunden.</td></tr>'; return; } SETTLEMENTS = settleData.map(s => { const clean = {}; for (const [key, val] of Object.entries(s)) { if (typeof val === 'string') { clean[key] = val.replace(/[\r\n\t]/g, ' ').trim(); } else { clean[key] = val; } } return clean; }); NAME_ALIASES = {}; if (!aliasRes.error && aliasRes.data) { aliasRes.data.forEach(a => { NAME_ALIASES[a.csv_name.toLowerCase()] = a.fahrer_name; }); } FAHRER_LIST = (!fahrerRes.error && fahrerRes.data) ? fahrerRes.data : []; bankPunkteLaden(bankRes, exportRes); KASSIER = (!kassierRes.error && kassierRes.data) ? kassierRes.data : []; ABGLEICH = (abgleichRes && !abgleichRes.error && abgleichRes.data) ? abgleichRes.data : []; if (abgleichRes && abgleichRes.error) console.warn('abgleich load error:', abgleichRes.error); if (kassierRes.error) console.warn('kassier load error:', kassierRes.error); FREIGABEN_OK = !!(freigabeRes && !freigabeRes.error); FREIGABEN = (FREIGABEN_OK && freigabeRes.data) ? freigabeRes.data : []; if (freigabeRes && freigabeRes.error) console.warn('freigaben load error:', freigabeRes.error); LOHN_LETZTE = (lohnLetzteRes && !lohnLetzteRes.error && lohnLetzteRes.data) ? lohnLetzteRes.data : []; if (lohnLetzteRes && lohnLetzteRes.error) console.warn('lohn_letzte load error:', lohnLetzteRes.error); WEEKS = [...new Set(SETTLEMENTS.map(s => s.woche).filter(w => w))].sort().reverse(); week = WEEKS[0] || ''; fillWeekFilter(); render(); } catch (err) { console.error('Load error:', err); const offlineHint = !navigator.onLine ? ' (Offline — keine Internetverbindung)' : ''; document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" class="empty">Fehler beim Laden: ' + esc(err.message) + offlineHint + '<br><button class="btn" style="margin-top:12px" onclick="loadData()">Erneut versuchen</button></td></tr>'; } }
         function updateThemeUI(isDark) { const icon = document.getElementById('themeIcon'); const text = document.getElementById('themeText'); if (isDark) { icon.innerHTML = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>'; text.textContent = 'Light'; } else { icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'; text.textContent = 'Dark'; } }
         function toggleTheme() { const html = document.documentElement; if (html.getAttribute('data-theme') === 'dark') { html.removeAttribute('data-theme'); localStorage.setItem('theme', 'light'); updateThemeUI(false); } else { html.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); updateThemeUI(true); } }
         function toggleSort(col) {
@@ -2398,17 +2399,16 @@
         function ibanPunkt(s) {
             const b = bankEintrag(s);
             if (!b) return '';
-            const best = b.bestaetigt_iban && b.bestaetigt_iban === b.iban;
             const kurz = typeof BankLogik !== 'undefined' ? BankLogik.kurz(b.iban) : '';
             const exp = BANK_EXPORT[s.woche + '|' + b.notion_fahrer_id];
             return '<span class="iban-punkt' + (exp ? ' exp' : '') + '" title="' + esc('IBAN hinterlegt' + (kurz ? ': ' + kurz : '') +
-                (best ? ' · ' + String(b.woche || '').replace(/^\d{4}-W/, 'KW ') + ' bestätigt' : '') +
+                (b.geprueft ? ' · geprüft' : ' · ungeprüft') +
                 (exp ? ' · Revolut-CSV ' + fmt(exp) : '')) + '"></span>';
         }
         /* === Revolut-Sammelueberweisung (CSV wie Revolut-BulkTransfer-EUR-to-AT.csv) ===
-           Liste: auszahlung_liste(woche). Waehlbar nur bestaetigt + positiv; schon exportierte sind nicht
-           vorausgewaehlt. Die CSV entsteht aus der Antwort von auszahlung_export_speichern (IBAN/Inhaber aus der
-           Bestaetigung), damit Datei und gespeicherter Export immer gleich sind. */
+           Liste: auszahlung_liste(woche). Waehlbar mit IBAN + positiv, ungepruefte markiert; schon exportierte sind nicht
+           vorausgewaehlt. Die CSV entsteht aus der Antwort von auszahlung_export_speichern (IBAN/Inhaber aus
+           fahrer_bank), damit Datei und gespeicherter Export immer gleich sind. */
         let RV = [];
         async function revolutDialog() {
             if (!week) { alert('Keine Woche gewählt.'); return; }
@@ -2422,13 +2422,13 @@
                 const betrag = parseFloat(r.du_bekommst) || 0, exp = parseFloat(r.exportiert) || 0;
                 const ok = !!r.iban && betrag > 0;
                 const grund = !r.iban ? 'keine IBAN hinterlegt' : (betrag <= 0 ? 'kein Betrag (' + fmt(betrag) + ')' : '');
-                const sub = ok ? esc(BankLogik.kurz(r.iban) + ' · ' + r.kontoinhaber) + (r.bestaetigt ? '' : ' · <span class="rv-offen">nicht bestätigt</span>') : esc(grund);
+                const sub = ok ? esc(BankLogik.kurz(r.iban) + ' · ' + r.kontoinhaber) + (r.bestaetigt ? '' : ' · <span class="rv-offen">ungeprüft</span>') : esc(grund);
                 return '<label class="rv-zeile' + (ok ? '' : ' aus') + '"><input type="checkbox" data-rvi="' + i + '"' + (ok ? (exp ? '' : ' checked') : ' disabled') + '>' +
                     '<span><b>' + esc(r.name) + '</b><small>' + sub + '</small>' + (exp ? '<small class="exp">schon exportiert: ' + fmt(exp) + '</small>' : '') + '</span>' +
                     (ok ? '<input type="number" min="0.01" step="0.01" data-rvb="' + i + '" value="' + betrag.toFixed(2) + '" aria-label="Betrag">' : '<span></span>') + '</label>';
             }).join('');
             d.innerHTML = '<h3>Revolut-Sammelüberweisung · ' + esc(week) + '</h3>' +
-                '<p class="rv-hinweis">Fahrer mit hinterlegter IBAN; „nicht bestätigt“ = der Fahrer hat die IBAN für diese Woche noch nicht in der App bestätigt. Die Datei in Revolut Business beim Konto hochladen, auf dem genug liegt (Serdo oder E&amp;E).</p>' +
+                '<p class="rv-hinweis">Fahrer mit hinterlegter IBAN; „ungeprüft“ = das Büro hat die Bankdaten noch nicht bestätigt (Fahrer → App → Bankdaten bestätigen). Die Datei in Revolut Business beim Konto hochladen, auf dem genug liegt (Serdo oder E&amp;E).</p>' +
                 '<div class="wliste">' + (zeilen || '<div class="pk-leer" style="padding:10px 2px">Keine Fahrer in dieser Woche.</div>') + '</div>' +
                 '<div class="wfuss"><span class="rv-summe" id="rvSumme"></span><button class="btn" data-rv="zu">Abbrechen</button><button class="btn btn-primary" data-rv="los">CSV erzeugen</button></div>';
             rvSumme();
@@ -2446,7 +2446,7 @@
             const w = rvAuswahl();
             const sum = w.reduce(function (t, x) { return t + x.betrag; }, 0);
             const offen = w.filter(function (x) { return !x.r.bestaetigt; }).length;
-            document.getElementById('rvSumme').textContent = w.length + ' Fahrer · ' + fmt(sum) + (offen ? ' · davon ' + offen + ' nicht bestätigt' : '');
+            document.getElementById('rvSumme').textContent = w.length + ' Fahrer · ' + fmt(sum) + (offen ? ' · davon ' + offen + ' ungeprüft' : '');
         }
         async function rvKlick(e) {
             const b = e.target.closest('[data-rv]');
@@ -2837,6 +2837,7 @@
             else if (fzFilter === 'mitapp') { rows = rows.filter(function (f) { return f.aktiv && f.app_bereit; }); }
             else if (fzFilter === 'ohneapp') { rows = rows.filter(function (f) { return f.aktiv && !f.app_bereit; }); }
             else if (fzFilter === 'ohnebank') { rows = rows.filter(function (f) { return f.aktiv && !fzBank(f); }); }
+            else if (fzFilter === 'bankoffen') { rows = rows.filter(function (f) { const b = fzBank(f); return f.aktiv && b && !b.geprueft; }); }
             else if (fzFilter === 'archiv') { rows = rows.filter(function (f) { return !f.aktiv; }); }
             else { rows = rows.filter(function (f) { return f.aktiv; }); }
             if (fzSearch) {
@@ -2877,6 +2878,7 @@
             document.getElementById('fzCntOhneApp').textContent = appDa ? aktiv.length - bereit : '';
             document.getElementById('fzCntMitApp').textContent = appDa ? bereit : '';
             document.getElementById('fzCntOhneBank').textContent = FZ_BANK_DA ? aktiv.filter(function (f) { return !fzBank(f); }).length : '';
+            document.getElementById('fzCntBankOffen').textContent = FZ_BANK_DA ? aktiv.filter(function (f) { const b = fzBank(f); return b && !b.geprueft; }).length : '';
 
             const rows = fzListe();
             document.getElementById('fzCountBig').textContent = rows.length;
@@ -2945,9 +2947,12 @@
             if (!FZ_BANK_DA) return '–';
             const b = fzBank(f);
             if (!b) return '<span class="dot aus"></span>fehlt';
-            const best = b.bestaetigt_am && b.bestaetigt_iban === b.iban;
-            return '<span class="dot' + (best ? '' : ' warn') + '"></span>' + (best ? esc(String(b.woche || '').replace(/^\d{4}-/, '')) + ' bestätigt' : 'hinterlegt');
+            const neu = fzIbanNeu(b);
+            return '<span class="dot' + (b.geprueft ? '' : ' warn') + '"></span>' + (b.geprueft ? 'geprüft' : 'ungeprüft') +
+                (neu ? ' <span style="color:var(--warn)" title="IBAN geändert am ' + esc(fzZeit(b.iban_geaendert_am)) + '">· IBAN neu</span>' : '');
         }
+        // Echter IBAN-Wechsel (nicht die Ersteintragung) in den letzten 14 Tagen - Schutz gegen fremde IBAN
+        function fzIbanNeu(b) { return !!(b && b.iban_geaendert_am && Date.now() - new Date(b.iban_geaendert_am).getTime() < 14 * 864e5); }
         function fzBankHtml(f) {
             if (!FZ_BANK_DA || f.notion_fahrer_id == null) return '';
             const b = fzBank(f);
@@ -2969,12 +2974,15 @@
             if (!b) {
                 html += kv('IBAN', '<span style="color:var(--text-mut)">fehlt</span>');
             } else {
-                const best = b.bestaetigt_am && b.bestaetigt_iban === b.iban;
                 html += kv('Kontoinhaber', esc(b.kontoinhaber)) +
                     kv('IBAN', '<span class="num">' + esc(BankLogik.gruppiert(b.iban)) + '</span>') +
                     kv('BIC / Revtag', esc((b.bic || '–') + ' · ' + (b.revtag || '–'))) +
                     kv('Geändert', esc(fzZeit(b.geaendert_am)) + ' · ' + esc(b.geaendert_von || '')) +
-                    kv(esc(b.woche || 'Woche'), best ? 'bestätigt ' + esc(fzZeit(b.bestaetigt_am)) : '<span style="color:var(--warn)">nicht bestätigt</span>');
+                    kv('Prüfung', b.geprueft ? 'geprüft ' + esc(fzZeit(b.geprueft_am)) + ' · ' + esc(b.geprueft_von || '')
+                        : '<span style="color:var(--warn)">ungeprüft</span>');
+                if (fzIbanNeu(b)) html += '<div class="fz-bank-fehler" style="color:var(--warn)">IBAN am ' + esc(fzZeit(b.iban_geaendert_am)) +
+                    ' geändert – vor dem Bestätigen beim Fahrer nachfragen.</div>';
+                if (!b.geprueft) html += '<div class="detail-acts"><button class="btn-primary ok" data-fzbankpruefen="' + nr + '" data-iban="' + esc(b.iban) + '">Bankdaten bestätigen</button></div>';
                 if (b.aenderungen > 1) {
                     const v = fzBankVerlauf[nr];
                     html += v ? '<div class="fz-bank-verlauf">' + v.map(function (x) {
@@ -3189,6 +3197,14 @@
                 const nr = parseInt(bVer.dataset.fzbankverlauf, 10);
                 const r = await getSupabase().from('fahrer_bank_verlauf').select('zeit,von,alt_iban,neu_iban').eq('notion_fahrer_id', nr).order('zeit', { ascending: false });
                 fzBankVerlauf[nr] = r.error ? [] : (r.data || []); renderFahrer(); return;
+            }
+            const bPr = e.target.closest('[data-fzbankpruefen]');
+            if (bPr) {
+                bPr.disabled = true;
+                const { error } = await getSupabase().rpc('bank_pruefen', { p_notion_fahrer_id: parseInt(bPr.dataset.fzbankpruefen, 10), p_iban: bPr.dataset.iban });
+                if (error) { alert(fgFehler(error)); bPr.disabled = false; await ladeFahrer(); return; }
+                showReToast('Bankdaten bestätigt', 'success');
+                await ladeFahrer(); return;
             }
             const bSave = e.target.closest('[data-fzbanksave]');
             if (bSave) {

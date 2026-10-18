@@ -215,9 +215,7 @@
         }
         .bank-karte { margin: 12px 12px 0; padding: 12px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; }
         .bank-karte.offen { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-faint); }
-        .bank-karte.ok { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-mut); border-color: var(--border); }
         .bank-karte .t { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-mut); }
-        .bank-karte .b { font-size: 20px; font-weight: 700; margin: 4px 0 2px; }
         .bank-karte .i { font-size: 13px; overflow-wrap: anywhere; }
         .bank-karte .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
         .bank-karte .acts .btn-primary, .bank-karte .acts .btn-ghost { height: 42px; }
@@ -604,28 +602,19 @@
         }
         function wocheHref(woche) { return '#abrechnung/' + encodeURIComponent(woche); }
 
-        /* Bankdaten-Karte ganz oben auf Start (Spec 2026-10-15, Abschnitt 3) */
+        /* Bankdaten-Karte ganz oben auf Start: nur solange Bankdaten fehlen. Die Wochen-Bestaetigung
+           ist seit 18.10.2026 abgeschaltet (das Buero prueft die Bankdaten, fahrer_bank.geprueft). */
         function bankKarte() {
             if (S.bankFehler) return '';
             const b = S.bank;
-            const vorschau = S.mode === 'vorschau';
-            const dis = vorschau ? ' disabled title="In der Vorschau nicht möglich"' : '';
-            if (!b || !b.iban) {
-                return '<section class="bank-karte offen"><div class="t">Bankdaten</div>'
-                    + '<div class="i" style="margin-top:4px">Bankdaten fehlen – damit wir dir überweisen können.</div>'
-                    + '<div class="acts" style="grid-template-columns:1fr"><a class="btn-primary" href="#bank/aendern">Eintragen</a></div></section>';
-            }
-            const betrag = num(b.betrag);
-            if (!b.woche || b.betrag == null || betrag <= 0) return '';
-            const iban = '<span class="bank-iban">' + esc(BankLogik.kurz(b.iban)) + '</span>';
-            if (b.bestaetigt_am && b.bestaetigt_iban === b.iban) {
-                return '<section class="bank-karte ok">' + ICON_CHECK + '<span>' + esc(kw(b.woche)) + ' bestätigt · ' + iban + '</span></section>';
-            }
-            return '<section class="bank-karte offen"><div class="t">Auszahlung ' + esc(kw(b.woche)) + '</div>'
-                + '<div class="b num">' + fmt(betrag) + '</div>'
-                + '<div class="i">an ' + iban + ' · ' + esc(b.kontoinhaber) + '</div>'
-                + '<div class="acts"><button type="button" class="btn-primary" data-act="bank-ok" data-woche="' + esc(b.woche) + '" data-iban="' + esc(b.iban) + '"' + dis + '>Stimmt</button>'
-                + '<a class="btn-ghost" href="#bank/aendern">IBAN ändern</a></div></section>';
+            if (b && b.iban) return '';
+            return '<section class="bank-karte offen"><div class="t">Bankdaten</div>'
+                + '<div class="i" style="margin-top:4px">Bankdaten fehlen – damit wir dir überweisen können.</div>'
+                + '<div class="acts" style="grid-template-columns:1fr"><a class="btn-primary" href="#bank/aendern">Eintragen</a></div></section>';
+        }
+        // Status der Bueropruefung; die IBAN kommt von fahrer_app_bank() schon maskiert
+        function bankStatus(b) {
+            return b.geprueft ? '<span class="dot ok"></span>Bestätigt' : '<span class="dot part"></span>In Prüfung';
         }
 
         /* Start */
@@ -874,12 +863,13 @@
             if (!b || !b.iban) return { back: '#mehr', title: 'Bankdaten', html: '<div class="empty"><b>Noch keine Bankdaten.</b><span>Trag deine IBAN ein, damit wir dir überweisen können.</span><a class="btn-primary" href="#bank/aendern" style="margin-top:8px">Eintragen</a></div>' };
             const html = '<div class="group" style="padding:0 12px">'
                 + kv('Kontoinhaber', esc(b.kontoinhaber))
-                + kv('IBAN', '<span class="bank-iban">' + esc(BankLogik.gruppiert(b.iban)) + '</span>')
+                + kv('IBAN', '<span class="bank-iban">' + esc(b.iban) + '</span>')
                 + kv('BIC', esc(b.bic || '–'))
                 + kv('Revtag', esc(b.revtag || '–'))
                 + kv('Zuletzt geändert', b.geaendert_am ? datum(b.geaendert_am) : '–')
+                + kv('Status', bankStatus(b))
                 + '</div><div style="padding:12px"><a class="btn-ghost" href="#bank/aendern">Ändern</a></div>'
-                + '<div class="note">Eine neue IBAN gilt sofort für deine nächste Auszahlung.</div>';
+                + '<div class="note">Nach jeder Änderung prüft das Büro deine Bankdaten, bevor wir überweisen.</div>';
             return { back: '#mehr', title: 'Bankdaten', html: html };
         }
         function viewBankAendern() {
@@ -889,7 +879,7 @@
             const vorschau = S.mode === 'vorschau';
             const html = '<form class="bank-form" id="bankForm" novalidate>'
                 + f('bkInhaber', 'Kontoinhaber', b.kontoinhaber || (S.profil && S.profil.name), 'autocomplete="name" maxlength="140"')
-                + f('bkIban', 'IBAN', b.iban ? BankLogik.gruppiert(b.iban) : '', 'autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" maxlength="42" placeholder="LT12 1000 0111 0100 1000"')
+                + f('bkIban', 'IBAN', '', 'autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" maxlength="42" placeholder="LT12 1000 0111 0100 1000"')
                 + f('bkBic', 'BIC', b.bic, 'autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="11"', true)
                 + f('bkRevtag', 'Revtag', b.revtag, 'autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="41" placeholder="@deinname"', true)
                 + '<span class="feld-fehler" id="bkForm-f"></span>'
@@ -906,7 +896,7 @@
             if (p.kennzeichen) sub.push(esc(p.kennzeichen));
             let html = '<section class="profile"><b>' + esc(p.name) + '</b><span>' + sub.join(' · ') + '</span></section>'
                 + '<div class="group">'
-                + '<a class="item" href="#bank">' + ICON_CASH + '<span class="grow">Bankdaten</span><span style="font-size:12px;color:var(--text-mut)">' + (S.bank && S.bank.iban ? esc(BankLogik.kurz(S.bank.iban)) : 'fehlt') + '</span>' + ICON_CHEV + '</a>'
+                + '<a class="item" href="#bank">' + ICON_CASH + '<span class="grow">Bankdaten</span><span style="font-size:12px;color:var(--text-mut)">' + (S.bank && S.bank.iban ? esc('•••• ' + S.bank.iban.slice(-4)) : 'fehlt') + '</span>' + ICON_CHEV + '</a>'
                 + '<a class="item" href="#lohnzettel">' + ICON_DOC + '<span class="grow">Lohnzettel</span>' + ICON_CHEV + '</a>'
                 + '<a class="item" href="#strafen">' + ICON_DOC + '<span class="grow">Strafen</span>' + ICON_CHEV + '</a>'
                 + '<a class="item" href="#offen">' + ICON_CASH + '<span class="grow">Offene Beträge</span><span class="num' + (offen > 0.005 ? ' neg' : ' zero') + '" style="font-size:13px;font-weight:700">' + fmt(offen) + '</span>' + ICON_CHEV + '</a>'
@@ -929,7 +919,6 @@
             else if (act === 'theme') { e.preventDefault(); toggleTheme(); }
             else if (act === 'retry') { e.preventDefault(); startApp(); }
             else if (act === 'pdf') { e.preventDefault(); pdfOeffnen(t); }
-            else if (act === 'bank-ok') { e.preventDefault(); bankBestaetigen(t); }
         });
         async function bankNeuLaden() {
             const r = await sb.rpc('fahrer_app_bank').then(x => x, err => ({ error: err }));
@@ -939,14 +928,16 @@
             const m = (err && err.message) || '';
             return /IBAN|BIC|Revtag|Kontoinhaber|Bankdaten|Woche|Auszahlung|Fahrerapp/.test(m) ? m : 'Speichern fehlgeschlagen. Bitte erneut versuchen.';
         }
-        async function bankBestaetigen(btn) {
-            if (btn.disabled || S.mode === 'vorschau') return;
-            btn.disabled = true; btn.textContent = 'Speichere …';
-            const { error } = await sb.rpc('bank_bestaetigen', { p_woche: btn.getAttribute('data-woche'), p_iban: btn.getAttribute('data-iban') }).then(x => x, err => ({ error: err }));
-            if (error) { alert(bankMeldung(error)); }
-            await bankNeuLaden();
-            render();
-        }
+        // IBAN beim Tippen in 4er-Bloecke; Pruefziffer erst melden, wenn sie vollstaendig sein kann
+        document.addEventListener('input', function(e) {
+            const el = e.target;
+            if (!el || el.id !== 'bkIban') return;
+            if (el.selectionStart === el.value.length) el.value = BankLogik.gruppiert(el.value);
+            const n = BankLogik.norm(el.value);
+            const f = document.getElementById('bkIban-f');
+            f.textContent = n.length >= 15 ? BankLogik.ibanFehler(n) : '';
+            el.style.borderColor = n.length >= 15 && !f.textContent ? 'var(--accent)' : '';
+        });
         document.addEventListener('submit', async function(e) {
             if (!e.target || e.target.id !== 'bankForm') return;
             e.preventDefault();

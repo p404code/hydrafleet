@@ -252,6 +252,51 @@ try {
   assert.equal((await q('select count(*)::int n from public.auszahlung_export'))[0].n, 0);   // Fahrer sehen keine Exporte
   await raus();
 
+  // --- Buero-Pruefung statt Wochen-Bestaetigung (migrations/2026-10-18-fahrer-bankdaten.sql)
+  await db.exec(lies('../migrations/2026-10-18-fahrer-bankdaten.sql'));
+  // Uebernahme: Anna hat ihre aktuelle IBAN bestaetigt -> geprueft; Cem nie bestaetigt -> offen
+  let gp = await q(`select notion_fahrer_id nr, geprueft, geprueft_von from public.fahrer_bank where notion_fahrer_id in (101, 103) order by 1`);
+  assert.deepEqual(gp.map((r) => [r.nr, r.geprueft]), [[101, true], [103, false]]);
+  assert.match(gp[0].geprueft_von, /Übernahme/);
+  assert.equal(String((await q(`select public.iban_maskiert('LT12 1000 0111 0100 9859') m`))[0].m), 'LT•• •••• •••• •••• 9859');
+  await als(ANNA);
+  [a] = await q('select * from public.fahrer_app_bank()');
+  assert.deepEqual([a.iban, a.geprueft, a.kontoinhaber], ['AT•• •••• •••• •••• 3201', true, 'Anna Fahr']);   // nur maskiert
+  await nein(`select public.bank_bestaetigen('2026-W41', 'AT611904300234573201')`, [], /permission denied/);   // abgeschaltet
+  await nein(`select public.bank_pruefen(101, 'AT611904300234573201')`, [], /Nicht autorisiert/);
+  await raus();
+  await db.exec(`update public.fahrer_bank set revolut_counterparty_id = 'cp-alt' where notion_fahrer_id = 101`);
+  await als(ANNA);
+  await q(`select public.fahrer_bank_setzen('Anna Fahr', 'DE89 3704 0044 0532 0130 00')`);   // neue IBAN gilt, aber ungeprueft
+  [a] = await q('select * from public.fahrer_app_bank()');
+  assert.deepEqual([a.iban, a.geprueft], ['DE•• •••• •••• •••• ••30 00', false]);
+  await raus();
+  assert.deepEqual(Object.values((await q(`select geprueft, geprueft_am, revolut_counterparty_id from public.fahrer_bank where notion_fahrer_id = 101`))[0]),
+    [false, null, null]);
+  await als(BUERO);
+  let [ub] = await q(`select geprueft, iban_geaendert_am from public.bank_uebersicht where notion_fahrer_id = 101`);
+  assert.equal(ub.geprueft, false); assert.ok(ub.iban_geaendert_am);   // echter IBAN-Wechsel -> 14-Tage-Hinweis
+  [ub] = await q(`select iban_geaendert_am from public.bank_uebersicht where notion_fahrer_id = 103`);
+  assert.equal(ub.iban_geaendert_am, null);                            // nur Ersteintragung: kein Hinweis
+  await nein(`select public.bank_pruefen(101, 'AT611904300234573201')`, [], /inzwischen geändert/);   // alte IBAN gesehen
+  await nein(`select public.bank_pruefen(108, 'AT611904300234573201')`, [], /Keine Bankdaten/);
+  await q(`select public.bank_pruefen(101, 'DE89370400440532013000')`);
+  gp = await q(`select geprueft, geprueft_von from public.bank_uebersicht where notion_fahrer_id = 101`);
+  assert.deepEqual([gp[0].geprueft, gp[0].geprueft_von], [true, 'Stefan']);
+  li = await q(`select name, iban, bestaetigt from public.auszahlung_liste('2026-W41') where notion_fahrer_id in (101, 103) order by name`);
+  assert.deepEqual(li.map((r) => [r.name, r.iban, r.bestaetigt]),
+    [['Anna Fahr', 'DE89370400440532013000', true], ['Cem Fahr', 'GB82WEST12345698765432', false]]);
+  ex = await q(`select * from public.auszahlung_export_speichern('2026-W41', '[{"nr":103,"betrag":5}]'::jsonb, true)`);
+  assert.deepEqual(ex.map((r) => [r.iban, r.bestaetigt]), [['GB82WEST12345698765432', false]]);
+  // Buero aendert -> ebenfalls wieder ungeprueft
+  await q(`select public.buero_bank_setzen(101, 'Anna Fahr', 'DE89370400440532013000', 'COBADEFF')`);
+  assert.equal((await q(`select geprueft from public.bank_uebersicht where notion_fahrer_id = 101`))[0].geprueft, false);
+  await raus();
+  await db.exec('set role anon');
+  await nein('select * from public.fahrer_app_bank()', [], /permission denied/);
+  await nein(`select public.bank_pruefen(101, 'x')`, [], /permission denied/);
+  await raus();
+
   console.log('OK');
 } catch (e) {
   console.error('FEHLER: ' + (e && e.message || e));

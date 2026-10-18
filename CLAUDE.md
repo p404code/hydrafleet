@@ -188,10 +188,15 @@ Spec `docs/superpowers/specs/2026-10-15-iban-fahrerapp-design.md`, Plan `docs/su
   `bank_bestaetigung` (je Woche). Lesen nur Büro; schreiben nur über `fahrer_bank_setzen` / `bank_bestaetigen` (Fahrer)
   und `buero_bank_setzen` / `formular_iban_zuordnen` (Büro), alle über `bank_schreiben()` (nicht aufrufbar).
   `bank_betrag()` ist ebenfalls nicht aufrufbar – sonst könnte ein Fahrer fremde Auszahlungen abfragen.
-- Neue IBAN gilt sofort (Entscheidung Betreiber); IBAN-/Inhaberwechsel löscht die Bestätigung der offenen Woche.
-- Fahrerapp: Karte ganz oben auf Start (Eintragen / „Auszahlung KWxx … Stimmt / IBAN ändern“ / bestätigt),
-  Mehr → Bankdaten. Dashboard: Fahrer/App → Detail „Bankdaten“, Filter „Bankdaten fehlen“, Spalte „Bank“,
-  Karte „Bankdaten aus dem Formular, nicht zugeordnet“.
+- **Seit 18.10.2026 Büro-Prüfung statt Wochen-Bestätigung** (`migrations/2026-10-18-fahrer-bankdaten.sql`):
+  `fahrer_bank.geprueft/_am/_von` + `revolut_counterparty_id`; jede Änderung (Fahrer oder Büro) setzt beides zurück.
+  Büro bestätigt per `bank_pruefen(nr, gesehene_iban)`. `bank_bestaetigen` ist abgeschaltet (kein execute),
+  `bank_bestaetigung` nur noch Verlauf. Übernahme: wer aktuelle IBAN+Inhaber schon bestätigt hatte → geprüft (16/27).
+  `fahrer_app_bank()` liefert die IBAN nur maskiert (`iban_maskiert`), das App-Formular startet mit leerer IBAN.
+  `bank_uebersicht.iban_geaendert_am` = letzter echter IBAN-Wechsel → Hinweis „IBAN neu“ (14 Tage).
+- Fahrerapp: Karte auf Start nur, solange Bankdaten fehlen; Mehr → Bankdaten (maskiert, Status In Prüfung/Bestätigt).
+  Dashboard: Fahrer/App → Detail „Bankdaten“ (Knopf „Bankdaten bestätigen“), Filter „Bankdaten fehlen“ / „Bank ungeprüft“,
+  Spalte „Bank“ (fehlt/ungeprüft/geprüft), Karte „Bankdaten aus dem Formular, nicht zugeordnet“.
 - IBAN-Prüfung doppelt mit gleichen Regeln: `bank-logik.js` (Browser, `node --test scripts/test-bank-logik.mjs`) und
   `iban_gueltig()` (SQL; ersetzt seit 15.10. die ältere Funktion gleichen Namens, die der Check von `fahrer_iban` nutzt).
   DB-Test: `PGLITE=<dir> node scripts/test-bankdaten.mjs`.
@@ -201,11 +206,11 @@ Spec `docs/superpowers/specs/2026-10-15-iban-fahrerapp-design.md`, Plan `docs/su
   (anon-Insert-Policy entfernen, Seite durch Hinweis ersetzen).
 - **Revolut-CSV** (seit 2026-10-15): Abrechnung → „Revolut-CSV“ erzeugt eine Sammelüberweisung im Format der
   Revolut-Vorlage (`Name,Recipient type,IBAN,Recipient bank country,Currency,Amount,Payment reference`, CRLF, Punkt).
-  Fahrer mit hinterlegter IBAN; bestätigt → IBAN/Inhaber aus `bank_bestaetigung`, sonst aus `fahrer_bank` und als
-  „nicht bestätigt“ markiert (Korrektur Betreiber 15.10., `auszahlung_export.bestaetigt`). Betrag änderbar. Jeder Export in
+  Fahrer mit hinterlegter IBAN, IBAN/Inhaber aus `fahrer_bank`; ungeprüfte markiert (`auszahlung_export.bestaetigt` = geprüft,
+  seit 18.10.). Betrag änderbar. Jeder Export in
   `auszahlung_export` (`auszahlung_liste`, `auszahlung_export_speichern`); zweimal je Fahrer/Woche nur ausdrücklich.
   Blauer Punkt in der Übersicht mit Ring = schon exportiert. Welches Konto (Serdo/E&E) zahlt, entscheidet das Büro beim Hochladen.
-- **Teil B (Revolut-API, automatisch überweisen) ist nur entworfen — nicht bauen ohne Auftrag.**
+- **Teil B (Revolut-API, Payment-Drafts) beauftragt am 18.10.2026** — Sandbox zuerst, Produktion erst nach OK des Betreibers.
 
 ## Key Supabase Tables
 

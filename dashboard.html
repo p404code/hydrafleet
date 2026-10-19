@@ -6095,7 +6095,7 @@
 
         /* Reiter-Gruppen: oben die Gruppe, daneben ihre Unterreiter */
         const GRUPPEN = {
-            abrechnung: [['abrechnungen', 'Übersicht'], ['abrbot', 'Upload'], ['muessenzahlen', 'Kassieren'], ['kassabuch', 'Kassabuch'], ['lohn', 'Löhne']],
+            abrechnung: [['abrechnungen', 'Übersicht'], ['abrbot', 'Upload'], ['muessenzahlen', 'Kassieren'], ['lohn', 'Löhne']],   // Kassabuch vorerst ausgeblendet (Betreiber 19.10., wird neu gebaut) – Daten bleiben
             fahrer: [['fahrer', 'App'], ['post', 'Post']],
             rechnungen: [['rechnungen']],
             experimentell: [['api', 'API-Abrechnung'], ['fuhrpark', 'Fuhrpark'], ['verbindungen', 'Verbindungen']],
@@ -6564,7 +6564,7 @@
         /* Restore last tab (MUST be after all let/const declarations above) */
         const savedTab = localStorage.getItem('hydralink_tab');
         if (istAdmin()) document.querySelectorAll('[data-nur-admin]').forEach(function (e) { e.hidden = false; });
-        switchTab(savedTab || 'abrechnungen');
+        switchTab(savedTab && savedTab !== 'kassabuch' ? savedTab : 'abrechnungen');
 
         function switchReSubTab(sub) {
             document.querySelectorAll('.re-sub-tab').forEach(b => b.classList.remove('active'));

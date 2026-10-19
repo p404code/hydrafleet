@@ -57,7 +57,7 @@ bezahlt +70“), Eingabe im Seitenpanel der Abrechnung. Geschrieben wird nur üb
 Rechnet der AbrechnungsBot die Woche neu, fällt sie heraus: `abrechnung_posten_offen` zeigt das, das
 Dashboard bietet „Wieder einrechnen“ (`posten_neu_anwenden`). `korrektur` nie von Hand setzen.
 
-**Kassabuch (seit 2026-10-03):** Reiter Abrechnung → Kassabuch (`contentKassabuch`, Hülle `Kassa`, Präfix `kb`).
+**Kassabuch (seit 2026-10-03; Reiter seit 19.10. ausgeblendet – Betreiber baut es neu, Daten/Funktionen bleiben unverändert):** Reiter Abrechnung → Kassabuch (`contentKassabuch`, Hülle `Kassa`, Präfix `kb`).
 Eine Bargeldkassa in `kassabuch`, geführt **je Kalenderwoche** wie die Abrechnung (ISO-Woche `JJJJ-Wnn`):
 `anfang` (genau einmal), `ein`, `aus`. Hängt bewusst nicht an Kassieren. Absicherung – nicht aufweichen:
 - **Wer** (`name`) ist immer der angemeldete Benutzer (`app_metadata.app_name`), nie ein Eingabefeld.

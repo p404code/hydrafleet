@@ -69,6 +69,13 @@ Eine Bargeldkassa in `kassabuch`, geführt **je Kalenderwoche** wie die Abrechnu
   gezählten Betrag samt Differenz fest. Erst ab Sonntag der Woche, Wochen der Reihe nach. Danach nimmt die Woche
   keine Buchung mehr an; der Endbestand ist der Übertrag in die nächste KW.
 
+- **Oberfläche seit 19.10.** (Betreiber: „ultra scheiße“, unübersichtlich, Buchen umständlich): oben „soll jetzt in der Kassa sein“ +
+  eine Summenzeile der Woche (Übertrag · ein · aus · bis jetzt), zwei große Knöpfe. Liste nach Tagen mit Tagessumme; Automatik-Zeilen
+  (`quelle` abrechnung/posten) je Tag + Abrechnungswoche als aufklappbare Sammelzeile (`KB_OFFEN`); Gegenbuchung eines Stornos derselben
+  Woche wird ausgeblendet, das Original steht durchgestrichen mit „storniert“ (bei Suche alle Zeilen einzeln). Buchen-Blatt (am Handy von
+  unten): großer Betrag, Kategorie-Chips (`KB_KAT`), Fahrer/Auto (optional, Liste `FAHRER_LIST`), Notiz, Datum eingeklappt. Text wird
+  `Kategorie · Fahrer · Notiz` (max. 120) – `kassa_buchen` und die ganze Absicherung unverändert, keine DB-Änderung.
+  „Fahrer zahlt bar“ bucht nur die Kassa; Schulden weiter über Kassieren (Hinweis im Blatt).
 - **Anfangsbestand korrigieren** (`kassa_anfang_korrigieren`): eigene Zeile `quelle = 'anfang'` am Tag des
   Anfangsbestands, zählt zum Anfangsbestand statt zu Ein/Aus. Nur solange noch keine Woche abgeschlossen ist.
 - **Abrechnung → Kassabuch:** „Unterm Strich“ (Σ `auszahlung − lohn` der `berechnet`-Zeilen, ohne `__…` und ohne

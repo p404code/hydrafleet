@@ -292,6 +292,11 @@ Migration `2026-10-18-abrechnung-api-automatisch.sql`.
 - **Automatische Freigabe** (seit 19.10., `2026-10-19-abrechnung-api-status.sql`): `montag_frueh()` ruft nach dem Schreiben
   `abrechnung_auto_freigeben(w)` – gibt die Woche als „Automatik“ frei (Fahrer sehen sie in der App, sie ist überweisbar).
   Schon freigegebene Wochen bleiben unberührt.
+- **myPOS ohne Fahrer** (seit 19.10., `2026-10-19-mypos-offene-zeilen.sql`): `montag_frueh()` legt nach dem Schreiben über
+  `mypos_offene_zeilen(w)` je Terminal ohne Fahrer eine `__MYPOS:<Terminal>__`-Zeile (`MYPOS_UNASSIGNED`) an → Karte „myPOS ohne Fahrer“.
+- **Erster Lauf 19.10. (KW42) scheiterte an der abgelaufenen E&E-Uber-Sitzung** (`org_access_denied: session_org_missing`, abends davor
+  noch gültig). Nachgeholt um 10:07: Sitzung aus `~/.hydrafleet-uber-profile-ee` neu gespeichert, `uber-sync-aufrufen.js 2026-W42`
+  (erst `rate-limited`, nach 3 Min ok), dann `abrechnung_api_schreiben` + `abrechnung_auto_freigeben` von Hand. Ablauf im Notfall genauso.
 - **Statuszeile** `azStatus` oben in der Abrechnung (`abrechnung_api_status()`, letzte abgeschlossene Woche in Wien): Bolt, Uber,
   myPOS (Auszug/CSV), Abrechnung, Freigabe – je ✓ mit Uhrzeit, „geplant“ vor dem Lauf, rot ab ca. 3 h nach 05:00.
 - **myPOS aus dem Kontoauszug** (seit 18.10., `2026-10-18-mypos-umsaetze.sql`): `mypos_umsaetze` (Woche, Terminal, Summe, Notion-Fahrertext,

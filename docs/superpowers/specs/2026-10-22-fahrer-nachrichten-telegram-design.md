@@ -1,46 +1,58 @@
 # Fahrer-Nachrichten über Telegram – Design
 
-Stand 22.10.2026, freigegeben im Gespräch mit dem Betreiber (Grundlage: seine Notiz
-„Telegram ↔ HYDRAlink – Fahrer-Nachrichten“).
+Stand 24.10.2026, freigegeben im Gespräch mit dem Betreiber (Grundlage: seine Notiz
+„Telegram ↔ HYDRAlink – Fahrer-Nachrichten“ vom 22.10., danach umgestellt auf **ein Thema je Fahrer**,
+weil mit mehreren Fahrern gleichzeitig hin und her geschrieben wird).
 
 ## Ziel
 
-Der Fahrer schreibt in der Fahrerapp unter **Nachrichten**. Die Nachricht erscheint in der
-**Telegram-Team-Gruppe** mit Kopf (Name, Fahrer-Nr., Kennzeichen, Modell). Das Team bespricht
-sich dort ganz normal. Über den Knopf **↩️ Antworten** geht eine Antwort gezielt an genau diesen
-Fahrer – in die Fahrerapp, mit Push.
+Ein **Chat zwischen Fahrer und Büro**. Der Fahrer schreibt in der Fahrerapp unter **Nachrichten**.
+Im Büro läuft das Gespräch in der **Telegram-Team-Gruppe**, dort hat **jeder Fahrer sein eigenes Thema**
+(Telegram „Topics“). Alles, was das Team in diesem Thema schreibt, geht an den Fahrer – in die App, mit Push.
 
+```
+Team-Gruppe
+├─ # Allgemein                              ← interne Absprache, geht an niemanden
+├─ 🚕 Max Mustermann · #123 · W-1234TX
+├─ 🚕 Ali Yilmaz · #87 · W-5521TX
+└─ …
+
+Im Thema „Max Mustermann“:
+  Bot:    Max: Ich hab Problem mit den Reifen
+  Boyko:  Welcher Reifen?                    → an Max
+  Bot:    Max: vorne links
+  Stefan: Fahr zur Werkstatt Müller          → an Max
+```
+
+Festgelegt vom Betreiber:
 - Fahrer haben mit Telegram nichts zu tun.
 - In der Gruppe sind 3–4 Büroleute; **jeder in der Gruppe darf antworten** (keine Freigabeliste).
-- **Alle in der Gruppe sehen alles**: Fahrer-Nachricht, Aufforderung, Antwort. Es wird nichts gelöscht.
-- Der Bot ist **kein Admin** der Gruppe → Privacy Mode wirkt, der Bot bekommt nur Antworten auf
-  seine eigenen Nachrichten und Knopf-Klicks, nicht die Diskussion.
+- Alle in der Gruppe sehen alles. Es wird nichts gelöscht.
+- **Regel fürs Team: Im Fahrer-Thema schreiben = an den Fahrer schreiben.** Interne Absprache in „Allgemein“.
 
-Nicht in diesem Schritt: Fotos, Antworten aus dem Dashboard, Dashboard-Ansicht, App-Store-Version.
-Die Tabelle ist so gebaut, dass Dashboard-Antworten später ohne Umbau dazukommen.
+Nicht in diesem Schritt: Fotos (in beide Richtungen), Antworten aus dem Dashboard, Dashboard-Ansicht,
+„gelesen“-Anzeige in Telegram, App-Store-Version. Die Tabelle ist so gebaut, dass Dashboard-Antworten später
+ohne Umbau dazukommen.
 
 ## Ablauf
 
 ```
 Fahrer tippt Text in der App
-  → fahrer_app_nachricht_senden()  → nachrichten (richtung 'fahrer', kopf-Snapshot)
-  → Trigger (pg_net)               → Edge Function telegram-senden
-  → Bot postet in die Gruppe mit [↩️ Antworten], tg_message_id zurück in die Zeile
+  → fahrer_app_nachricht_senden()   → nachrichten (richtung 'fahrer', kopf-Snapshot)
+  → Trigger (pg_net)                → Edge Function telegram-senden
+  → Thema des Fahrers holen (gibt es keins: anlegen + Kopf-Post)
+  → Bot postet „Max: <Text>“ ins Thema, tg_message_id zurück in die Zeile
 
-Team diskutiert in der Gruppe      → Bot sieht es nicht (Privacy Mode)
-
-Jemand tippt ↩️ Antworten          → Telegram → Edge Function telegram-webhook
-  → Bot schreibt in die Gruppe: „↩️ Antwort an Max (#123) – @Boyko, schreib deine Antwort:“
-    (force_reply + selective, Erwähnung als tg://user?id=…), Zeile in tg_antwort_prompts
-Boyko antwortet auf genau diese Bot-Nachricht
-  → telegram-webhook: nachrichten (richtung 'team', antwort_auf, team_name)
-  → Original-Post wird per editMessageText um „✅ Boyko: fahr zur Werkstatt“ ergänzt, Knopf bleibt
-  → Trigger (pg_net) → Edge Function push-senden → Web-Push an alle Abos des Fahrers
+Teammitglied schreibt im Thema       → Telegram → Edge Function telegram-webhook
+  → Thema → Fahrer, nachrichten (richtung 'team', team_name), Reaktion 👍 auf die Telegram-Nachricht
+  → Trigger (pg_net)                → Edge Function push-senden → Web-Push an alle Abos des Fahrers
 Fahrer tippt auf den Push → App öffnet Nachrichten, lädt neu, Antwort ist da
+
+Nachricht in „Allgemein“ oder außerhalb der Gruppe → verworfen, nie gespeichert
 ```
 
-Begriff **Aufforderung** (im Code `prompt`): die Bot-Nachricht nach dem Klick auf ↩️. Nur was als
-Antwort auf diese Aufforderung geschrieben wird, geht an den Fahrer.
+Das 👍 zeigt dem Team: die Nachricht ist beim Fahrer angekommen (in der Datenbank, Push ausgelöst).
+Fehlt es, ist sie nicht angekommen.
 
 ## 1. Datenbank
 
@@ -53,36 +65,42 @@ Migration `migrations/2026-10-22-fahrer-nachrichten.sql`. Wird dem Betreiber vor
 | Spalte | Typ | |
 |---|---|---|
 | `id` | bigint identity PK | |
-| `fahrer_id` | int not null → `fahrer(id)` `on delete set null`* | |
+| `fahrer_id` | int → `fahrer(id)` `on delete set null`* | |
 | `richtung` | text check in (`fahrer`, `team`) | |
 | `text` | text not null, Länge 1–2000 (nach `btrim`) | |
-| `kopf` | jsonb | Snapshot `{name, fahrer_nr, kennzeichen, modell}` beim Senden – die Fahrzeugzuordnung ändert sich |
-| `antwort_auf` | bigint null → `nachrichten(id)` | bei Team-Antworten: die Fahrer-Nachricht, deren Knopf geklickt wurde |
-| `team_name` | text null | Telegram-Vorname des Antwortenden |
-| `tg_message_id` | bigint null | Gruppen-Post des Bots zu einer Fahrer-Nachricht |
-| `tg_versuche` | int not null default 0 | Sendeversuche nach Telegram |
+| `kopf` | jsonb null | bei Fahrer-Nachrichten: Snapshot `{name, fahrer_nr, kennzeichen, modell}` – die Fahrzeugzuordnung ändert sich |
+| `team_name` | text null | Telegram-Vorname des Teammitglieds |
+| `tg_message_id` | bigint null | Fahrer: Post des Bots; Team: Telegram-Nachricht des Teammitglieds |
+| `tg_versuche` | int not null default 0 | Sendeversuche nach Telegram (nur Fahrer-Nachrichten) |
 | `tg_fehler` | text null | letzter Fehler beim Senden |
-| `gelesen_am` | timestamptz null | Fahrer hat die Team-Antwort gesehen |
+| `gelesen_am` | timestamptz null | Fahrer hat die Team-Nachricht gesehen |
 | `erstellt_am` | timestamptz default now() | |
 
 \* CLAUDE.md: FKs auf `fahrer(id)` brauchen `ON DELETE SET NULL`, sonst scheitert der n8n-Sync beim
-Löschen eines Fahrers. Deshalb ist `fahrer_id` **nullable** mit `on delete set null` (statt not null);
-die RPCs schreiben immer einen Wert.
+Löschen eines Fahrers. Deshalb ist `fahrer_id` nullable; die RPCs und Functions schreiben immer einen Wert.
 
-Index auf `(fahrer_id, erstellt_am desc)`.
+Indizes: `(fahrer_id, erstellt_am desc)`; **unique `(tg_message_id)` where `richtung = 'team'`** – Telegram
+wiederholt einen Webhook, wenn er nicht rechtzeitig 200 bekommt; dieselbe Team-Nachricht darf nur einmal
+beim Fahrer landen.
 
-**`tg_antwort_prompts`**: `prompt_message_id bigint PK`, `nachricht_id → nachrichten(id) on delete cascade`,
-`tg_user_id bigint not null`, `erstellt_am timestamptz default now()`.
-Aufforderungen älter als 7 Tage räumt der Nachhol-Lauf weg.
+**`tg_themen`** – ein Telegram-Thema je Fahrer
+
+| Spalte | Typ | |
+|---|---|---|
+| `fahrer_id` | int PK → `fahrer(id)` `on delete cascade` | |
+| `thread_id` | bigint unique null | `message_thread_id` des Themas; null = wird gerade angelegt |
+| `name` | text | aktueller Themen-Name |
+| `kennzeichen` | text | Kennzeichen im Namen (zum Erkennen eines Autowechsels) |
+| `erstellt_am` | timestamptz default now() | |
 
 **`push_abos`**: `id bigint identity PK`, `fahrer_id → fahrer(id) on delete cascade`, `endpoint text unique not null`,
 `p256dh text not null`, `auth text not null`, `erstellt_am timestamptz default now()`.
 
-Lesen: `nachrichten` für `is_app_user()` (Dashboard später). `tg_antwort_prompts` und `push_abos`: kein Lesen
-außer `service_role`. Fahrer lesen nur über RPCs.
+Lesen: `nachrichten` für `is_app_user()` (Dashboard später). `tg_themen` und `push_abos`: nur `service_role`.
+Fahrer lesen nur über RPCs.
 
 **Protokoll:** kein Trigger. Die Regel „neue Tabelle mit Büro-Schreibzugriff → Trigger“ greift nicht – das Büro
-schreibt hier nicht (nur Fahrer-RPCs und `service_role`).
+schreibt hier nicht über HYDRAlink (nur Fahrer-RPCs und `service_role`). Kommen Dashboard-Antworten, wird er nötig.
 
 ### RPCs (Muster `fahrer_app_*`, `security definer`, `search_path = public`)
 
@@ -93,12 +111,16 @@ schreibt hier nicht (nur Fahrer-RPCs und `service_role`).
   Nur der Fahrer selbst (`mein_fahrer_id()` nicht null **und** nicht `is_app_user()`) – aus der Vorschau
   wird abgelehnt. Text getrimmt, 1–2000 Zeichen. **Spam-Limit: höchstens 10 Nachrichten in 10 Minuten.**
   `kopf` aus `fahrer_app_profil(null)` (nicht neu joinen – `kennzeichen_key()` steckt dort schon drin).
-- **`fahrer_app_nachrichten_gelesen()`** → setzt `gelesen_am = now()` auf alle ungelesenen Team-Antworten
+- **`fahrer_app_nachrichten_gelesen()`** → setzt `gelesen_am = now()` auf alle ungelesenen Team-Nachrichten
   des Fahrers. Nur Fahrer selbst.
 - **`fahrer_app_push_abo(p_endpoint, p_p256dh, p_auth)`** → Upsert auf `endpoint` (ein Gerät, das den
   Fahrer wechselt, hängt danach am neuen). Nur Fahrer selbst. Endpoint muss mit `https://` beginnen.
+- **`tg_thema_reservieren(p_fahrer_id)`** (nur `service_role`) → liefert das bestehende Thema oder legt atomar
+  eine Reservierung an (`thread_id null`, `insert … on conflict do nothing`). Nur wer reserviert hat, legt das
+  Thema in Telegram an – zwei schnelle Nachrichten eines neuen Fahrers erzeugen nicht zwei Themen.
+  Hängt eine Reservierung länger als 2 Minuten, darf sie neu übernommen werden.
 
-Ungelesene Antworten für den Badge kommen aus `fahrer_app_nachrichten` (Team-Zeilen mit `gelesen_am is null`).
+Ungelesene Team-Nachrichten für den Badge kommen aus `fahrer_app_nachrichten` (`gelesen_am is null`).
 
 ### Trigger und Zeitplan (pg_net, Key aus Vault `service_role_key` wie die Syncs)
 
@@ -107,64 +129,67 @@ Ungelesene Antworten für den Badge kommen aus `fahrer_app_nachrichten` (Team-Ze
 - Der Trigger darf das Speichern nie blockieren: Fehler werden geschluckt (`raise warning`), die Nachricht
   steht in jedem Fall in der Datenbank.
 - **Nachhol-Lauf** `pg_cron` `nachrichten-nachholen` alle 5 Minuten: Fahrer-Nachrichten ohne `tg_message_id`,
-  älter als 2 Minuten, `tg_versuche < 5` → erneut an `telegram-senden`. Räumt außerdem alte Aufforderungen weg.
+  älter als 2 Minuten, `tg_versuche < 5` → erneut an `telegram-senden`, **der Reihe nach** (älteste zuerst),
+  damit die Reihenfolge im Thema stimmt.
 
 ## 2. Edge Functions
 
 Reine Logik in `supabase/functions/_shared/telegram-logik.ts`, Tests `node --test scripts/test-telegram-logik.mjs`
-(Muster wie `post-logik.ts`):
-HTML-Escape, Kopf-Format, Text der Aufforderung, Ergänzung „✅ Name: Text“ mit 4096-Grenze, `antw:<id>` lesen,
-Update einordnen (Klick / Antwort auf Aufforderung / ignorieren).
+(Muster wie `post-logik.ts`): HTML-Escape, Themen-Name (max. 128 Zeichen), Kopf-Post, Fahrer-Zeile,
+Update einordnen (Team-Nachricht in Fahrer-Thema / ignorieren, mit Grund).
 
 ### `telegram-senden` (verify_jwt an, nur `service_role`, sonst 403)
 
 1. Zeile laden; `richtung = 'fahrer'` und `tg_message_id is null`, sonst nichts tun (doppelter Aufruf ist harmlos).
-2. `tg_versuche + 1`.
-3. `sendMessage` an `TELEGRAM_GRUPPE_ID`, `parse_mode: HTML`, alles escaped:
+   `tg_versuche + 1`.
+2. **Thema holen** über `tg_thema_reservieren`. Kein Thema → `createForumTopic` in `TELEGRAM_GRUPPE_ID`:
+   Name `🚕 Max Mustermann · #123 · W-1234TX` (ohne Auto: ohne Kennzeichen), danach ein **Kopf-Post** im Thema:
    ```
    🚕 <b>Max Mustermann</b> · #123
    W-1234TX · Toyota Corolla
-
-   Ich hab Problem mit den Reifen
+   Alles, was ihr in diesem Thema schreibt, geht an Max in die App.
    ```
-   Inline-Knopf `↩️ Antworten`, `callback_data: antw:<id>`.
-   Fehlt das Auto im Kopf, entfällt die zweite Zeile.
-4. Hat derselbe Fahrer in den letzten 24 h schon einen Post in der Gruppe: `reply_parameters` auf dessen letzten
-   Post (`allow_sending_without_reply: true`), damit der Verlauf sichtbar ist.
+   `thread_id` speichern.
+3. **Auto gewechselt** (Kennzeichen im Snapshot ≠ `tg_themen.kennzeichen`): Thema umbenennen
+   (`editForumTopic`) und eine Zeile `🚗 Fahrzeug jetzt W-5521TX · Škoda Octavia` ins Thema.
+4. Nachricht ins Thema (`message_thread_id`), `parse_mode: HTML`, alles escaped: `<b>Max:</b> Ich hab Problem mit den Reifen`.
 5. `tg_message_id` speichern; bei Fehler `tg_fehler` setzen (Nachhol-Lauf versucht es erneut).
+   Meldet Telegram, dass das Thema nicht mehr existiert (gelöscht), wird `tg_themen` für den Fahrer
+   geleert und beim nächsten Versuch ein neues Thema angelegt. Ein **geschlossenes** Thema wird mit
+   `reopenForumTopic` wieder geöffnet.
 
 ### `telegram-webhook` (verify_jwt **aus**, wie `revolut-webhook`)
 
 Schutz: Header `X-Telegram-Bot-Api-Secret-Token` = `TELEGRAM_WEBHOOK_SECRET`, sonst 401.
-Nur Updates aus `TELEGRAM_GRUPPE_ID`; alles andere → 200 und verwerfen (Telegram soll nicht wiederholen).
-Gespeichert wird nur, was eine Antwort an einen Fahrer ist – die Diskussion nie.
+Telegram bekommt immer 200, auch für Verworfenes (sonst wiederholt es).
 
-**a) Klick `antw:<id>`** (`callback_query`)
-- `answerCallbackQuery`.
-- Nachricht laden (muss `richtung = 'fahrer'` sein), sonst Hinweis „Nachricht nicht gefunden“.
-- `sendMessage` in die Gruppe, als Antwort auf den Original-Post:
-  `↩️ Antwort an {Name} (#{nr}) – <a href="tg://user?id={from.id}">{Vorname}</a>, schreib deine Antwort:`
-  mit `reply_markup: {force_reply: true, selective: true}` (selective wirkt nur mit Erwähnung).
-- Zeile in `tg_antwort_prompts` (`prompt_message_id`, `nachricht_id`, `tg_user_id = from.id`).
+Da der Bot Admin ist, bekommt er **alle** Gruppennachrichten. Gespeichert wird nur, was in ein Fahrer-Thema
+geschrieben wurde; alles andere wird verworfen, ohne den Text zu speichern oder zu loggen.
 
-**b) Antwort auf eine Aufforderung** (`message` mit `reply_to_message.message_id` in `tg_antwort_prompts`)
-- Nur wenn `from.id = tg_user_id` der Aufforderung. Antwortet jemand anderes darauf, wird es ignoriert
-  (in der Gruppe bleibt es als normale Nachricht stehen).
-- Nur Text; ohne Text (Foto, Sticker) → kurzer Hinweis „Bitte als Text antworten“.
-- Insert in `nachrichten`: `richtung 'team'`, `fahrer_id` der Original-Nachricht, `text` (gekürzt auf 2000),
-  `antwort_auf`, `team_name = from.first_name`.
-- Original-Post per `editMessageText` um `✅ {team_name}: {text}` ergänzen, **`reply_markup` wieder mitgeben**
-  (sonst verschwindet der Knopf – er bleibt für weitere Antworten). Würde der Post 4096 Zeichen überschreiten,
-  wird die Ergänzung gekürzt („…“); die vollständige Antwort steht ohnehin in der Gruppe und in der App.
-- Aufforderungs-Zeile löschen (eine Aufforderung = eine Antwort). **In Telegram wird nichts gelöscht.**
+Eine Nachricht ist eine **Team-Nachricht an den Fahrer**, wenn alles zutrifft:
+- `chat.id = TELEGRAM_GRUPPE_ID`
+- `is_topic_message = true` und `message_thread_id` steht in `tg_themen` (nicht „Allgemein“)
+- nicht vom Bot (`from.is_bot = false`), keine Service-Nachricht (Thema angelegt/umbenannt usw.)
+- hat `text`
 
-**c) Alles andere** → ignorieren. Auch normale Antworten auf den Fahrer-Post selbst (das ist Diskussion).
+Dann:
+- Insert in `nachrichten`: `richtung 'team'`, `fahrer_id` aus `tg_themen`, `text` (gekürzt auf 2000),
+  `team_name = from.first_name`, `tg_message_id = message_id`. Doppelt (gleiche `tg_message_id`) → nichts tun.
+- `setMessageReaction` 👍 auf die Nachricht.
+
+Sonderfälle in einem Fahrer-Thema:
+- **Ohne Text** (Foto, Sprachnachricht, Sticker) → Bot antwortet im Thema „Fotos und Sprachnachrichten kommen
+  noch nicht beim Fahrer an – bitte als Text schreiben.“ (höchstens einmal je 10 Minuten und Thema).
+- **Bearbeitete Nachrichten** (`edited_message`) werden nicht abonniert – die Änderung kommt nicht beim Fahrer an.
+  Gehört in die Team-Regel: lieber neu schreiben.
+
+`allowed_updates: ["message"]`.
 
 ### `push-senden` (verify_jwt an, nur `service_role`)
 
-- Team-Antwort laden → alle `push_abos` des Fahrers → Web-Push (VAPID, aes128gcm).
-- Inhalt: Titel `HYDRAlink`, Text = „{team_name}: “ + Anfang der Antwort (max. 120 Zeichen),
-  URL `/fahrer/#nachrichten`.
+- Team-Nachricht laden → alle `push_abos` des Fahrers → Web-Push (VAPID, aes128gcm).
+- Inhalt: Titel `HYDRAlink`, Text = „{team_name}: “ + Anfang der Nachricht (max. 120 Zeichen),
+  URL `/fahrer/#nachrichten`. Mehrere Nachrichten kurz hintereinander ersetzen sich (`tag: 'nachrichten'`).
 - Abo antwortet 404/410 → Abo löschen. Andere Fehler nur loggen.
 - Bibliothek für Web-Push wählt der Plan (muss unter Deno/Supabase laufen).
 
@@ -175,31 +200,37 @@ Edge-Function-Secrets (nie im Frontend, nie im Repo, nie im Klartext in Tabellen
 `VAPID_SUBJECT` (`mailto:` des Betriebs). Der öffentliche VAPID-Key steht zusätzlich im Frontend (ist öffentlich).
 
 **Betreiber (Boyko):**
-1. @BotFather → `/newbot` → Token. Privacy Mode an lassen (Standard).
-2. Bot in die Team-Gruppe holen – **nicht** zum Admin machen.
-3. Einmal etwas in der Gruppe an den Bot schreiben (z. B. `/start@<botname>`), damit die Gruppen-ID ermittelt werden kann.
+1. @BotFather → `/newbot` → Token.
+2. In der Team-Gruppe **Themen einschalten** (Gruppeninfo → Bearbeiten → Themen). Telegram macht daraus dabei
+   eine Supergruppe; die Gruppen-ID beginnt danach mit −100.
+3. Bot in die Gruppe holen und **zum Admin machen**, Rechte: **Themen verwalten** (sonst nichts nötig).
+4. Einmal etwas in „Allgemein“ schreiben, damit die Gruppen-ID ermittelt werden kann.
+5. Dem Team die Regel sagen: im Fahrer-Thema = an den Fahrer; Absprache in „Allgemein“; nichts nachträglich bearbeiten.
 
 **Skript `scripts/telegram-einrichten.mjs`** (Muster `revolut-einrichten.mjs`, Supabase-CLI `~/.hydrafleet-supabase-cli`,
 gibt Token/Secrets nie aus):
-- `gruppe` – Token von stdin, `getUpdates` → Gruppen-ID (−100…) anzeigen.
+- `gruppe` – Token von stdin, `getUpdates` → Gruppen-ID anzeigen, prüfen: Supergruppe mit Themen, Bot ist Admin mit
+  „Themen verwalten“.
 - `secrets` – Token, Gruppen-ID, zufälliges Webhook-Secret, VAPID-Schlüsselpaar erzeugen und als Secrets setzen;
   gibt nur den öffentlichen VAPID-Key aus.
-- `webhook` – `setWebhook` auf `…/functions/v1/telegram-webhook` mit `secret_token`,
-  `allowed_updates: ["message", "callback_query"]`.
-- `pruefen` – `getWebhookInfo` + `getMe` (Privacy Mode aktiv?), Ergebnis ohne Geheimnisse.
+- `webhook` – `setWebhook` auf `…/functions/v1/telegram-webhook` mit `secret_token`, `allowed_updates: ["message"]`.
+- `pruefen` – `getWebhookInfo` + `getChatMember` (Rechte), Ergebnis ohne Geheimnisse.
 
 Das Token des USP-Bots (anderer Bot) ist davon unberührt.
 
 ## 4. Fahrerapp (`fahrer/index.html`, `sw.js`)
 
 - Reiter **Nachrichten** freischalten (`#nachrichten`), „bald“ entfernen.
-- Chat-Ansicht: eigene Nachrichten rechts, Team links mit Namen darüber, Datum/Uhrzeit klein.
-  Eingabefeld unten + Senden (`fahrer_app_nachricht_senden`). Fehlermeldungen in Klartext
-  („Zu viele Nachrichten – bitte kurz warten“).
-- **Badge** am Reiter mit Zahl der ungelesenen Team-Antworten; beim Öffnen des Reiters
-  `fahrer_app_nachrichten_gelesen()`.
-- Neu laden bei App-Fokus (`visibilitychange`) und nach Klick auf den Push. Kein Realtime.
-- Knopf **„Benachrichtigungen aktivieren“** im Reiter, solange kein Abo besteht: Erlaubnis erst nach dem Tippen,
+- **Chat-Ansicht**: eigene Nachrichten rechts, Team links mit Vornamen darüber, Uhrzeit klein, Tagestrenner
+  („Heute“, „Gestern“, Datum). Eingabefeld unten (mehrzeilig, wächst mit) + Senden. Nach dem Senden erscheint
+  die Nachricht sofort; scheitert der Aufruf, bleibt der Text im Feld mit Hinweis
+  („Zu viele Nachrichten – bitte kurz warten“, „Keine Verbindung“). Beim Öffnen ans Ende scrollen.
+- **Neu laden**: alle 15 Sekunden, solange der Reiter offen und die App sichtbar ist; außerdem bei App-Fokus
+  (`visibilitychange`) und nach Klick auf den Push. Kein Realtime.
+- **Badge** am Reiter mit Zahl der ungelesenen Team-Nachrichten (beim Start und bei App-Fokus geladen);
+  beim Öffnen des Reiters `fahrer_app_nachrichten_gelesen()`.
+- Leer-Zustand: „Schreib uns – das Büro antwortet hier.“
+- Knopf **„Benachrichtigungen aktivieren“** über dem Chat, solange kein Abo besteht: Erlaubnis erst nach dem Tippen,
   dann `pushManager.subscribe` (VAPID-Public-Key) → `fahrer_app_push_abo`.
   iPhone ohne Home-Bildschirm-Installation (kein `standalone`): stattdessen Hinweis
   „Teilen → Zum Home-Bildschirm, dann hier aktivieren“. Abgelehnt: kurzer Hinweis, wo man es in den Einstellungen ändert.
@@ -213,45 +244,50 @@ Das Token des USP-Bots (anderer Bot) ist davon unberührt.
 - Kein Bot-Token, kein Service-Key, kein privater VAPID-Key im Frontend.
 - DB → Functions nur mit `service_role` (Gateway prüft die Signatur, Function prüft die Rolle).
 - Telegram → Function nur mit `secret_token`, nur die eine Gruppen-ID.
+- Der Bot sieht als Admin alle Gruppennachrichten: verarbeitet und gespeichert werden nur Nachrichten in
+  Fahrer-Themen; „Allgemein“ wird weder gespeichert noch geloggt.
 - Alles, was nach Telegram geht, wird HTML-escaped (Name, Kennzeichen, Modell, Text).
 - Fahrer liest und schreibt nur eigene Nachrichten, auch mit fremder `p_fahrer_id`.
-- Antwort an einen Fahrer nur von der Person, die die Aufforderung ausgelöst hat; `fahrer_id` kommt immer
-  aus der Original-Nachricht in der DB, nie aus Telegram-Text.
+- Welcher Fahrer eine Team-Nachricht bekommt, entscheidet allein `tg_themen` (Thema → Fahrer), nie Telegram-Text.
 
 ## 6. Tests
 
 **Automatisch**
 - DB (PGlite, berührt die Live-DB nicht, Muster `scripts/test-bankdaten.mjs`): Fahrer B sieht A nicht (auch mit
   fremder `p_fahrer_id`), Vorschau kann nicht senden, Textlänge, Spam-Limit, `gelesen` nur eigene, Push-Abo-Upsert,
+  `tg_thema_reservieren` zweimal → eine Reservierung, doppelte Team-`tg_message_id` → eine Zeile,
   keine direkten Tabellenrechte für `authenticated`.
-- `node --test scripts/test-telegram-logik.mjs`: Escape (`<`, `&`, `>` in Name und Text), Kopf mit/ohne Auto,
-  `antw:<id>` (gültig, Unsinn), Update-Einordnung (fremde Gruppe, Klick, Antwort des Klickers, Antwort eines anderen,
-  Antwort auf den Fahrer-Post, Diskussion), 4096-Grenze.
+- `node --test scripts/test-telegram-logik.mjs`: Escape (`<`, `&`, `>` in Name und Text), Themen-Name mit/ohne Auto
+  und Kürzung auf 128, Update-Einordnung (fremde Gruppe, „Allgemein“, unbekanntes Thema, Bot selbst,
+  Service-Nachricht, Foto ohne Text, gültige Team-Nachricht).
 
 **Von Hand (nach jedem Schritt)**
-1. Fahrer schreibt → Post in der Gruppe mit richtigem Kopf und Knopf.
-2. Diskussion in der Gruppe → nichts passiert, nichts gespeichert.
-3. ↩️ → Aufforderung mit Erwähnung des Klickers → Antwort → Fahrer bekommt Push und sieht den Text, Post zeigt ✅,
-   Knopf ist noch da.
-4. Jemand anderes antwortet auf die Aufforderung → geht nicht an den Fahrer.
-5. Zwei Fahrer gleichzeitig, zwei Leute antworten → keine Antwort beim falschen Fahrer.
+1. Neuer Fahrer schreibt → Thema mit richtigem Namen und Kopf-Post, Nachricht darin.
+2. Derselbe Fahrer schreibt nochmal → gleiches Thema.
+3. Teammitglied schreibt im Thema → 👍, Fahrer bekommt Push und sieht den Text mit Vornamen.
+4. Nachricht in „Allgemein“ → nichts passiert, nichts gespeichert.
+5. 3 Fahrer, je 3× hin und her, zwei Leute antworten → jede Antwort beim richtigen Fahrer, Reihenfolge stimmt.
 6. Fahrer B kann Nachrichten von A nicht lesen.
-7. Push auf iPhone (Home-Bildschirm) und Android; App vom Push aus öffnen.
-8. Abgelaufenes Push-Abo wird gelöscht.
-9. `telegram-senden` absichtlich scheitern lassen → Nachhol-Lauf schickt nach ≤ 7 Minuten nach.
+7. App offen lassen → Antwort erscheint binnen 15 Sekunden ohne Push-Klick.
+8. Push auf iPhone (Home-Bildschirm) und Android; App vom Push aus öffnen.
+9. Abgelaufenes Push-Abo wird gelöscht.
+10. Thema in Telegram schließen → nächste Fahrer-Nachricht öffnet es wieder.
+11. `telegram-senden` absichtlich scheitern lassen → Nachhol-Lauf schickt nach ≤ 7 Minuten nach.
 
 ## Reihenfolge
 
 1. Migration (zeigen, einspielen) + DB-Test
-2. Betreiber legt Bot an, holt ihn in die Gruppe → Skript `gruppe` / `secrets` / `webhook`
-3. `telegram-senden` + Trigger + Nachhol-Lauf → Test 1, 9
-4. `telegram-webhook` → Test 2–5
-5. `push-senden` + `sw.js` → Test 7, 8
-6. Fahrerapp-Reiter → Test 6 und alles einmal durch
+2. Betreiber legt Bot an, schaltet Themen ein, macht den Bot zum Admin → Skript `gruppe` / `secrets` / `webhook`
+3. `telegram-senden` + Trigger + Nachhol-Lauf → Test 1, 2, 10, 11
+4. `telegram-webhook` → Test 3–5
+5. `push-senden` + `sw.js` → Test 8, 9
+6. Fahrerapp-Reiter → Test 6, 7 und alles einmal durch
 7. CLAUDE.md um einen Abschnitt „Nachrichten“ ergänzen
 
 ## Später
 
-- Fotos (z. B. Schaden)
-- Antworten direkt aus dem Dashboard (schreibt `richtung 'team'` mit Büro-Namen; dann Protokoll-Trigger nötig)
+- Fotos und Sprachnachrichten (beide Richtungen, z. B. Schaden)
+- „Gelesen“ in Telegram anzeigen (z. B. 👀, wenn der Fahrer die Nachricht geöffnet hat)
+- Antworten und Themen direkt aus dem Dashboard (schreibt `richtung 'team'` mit Büro-Namen; dann Protokoll-Trigger nötig)
+- Büro schreibt einem Fahrer zuerst, der noch kein Thema hat (Thema aus dem Dashboard anlegen)
 - App-Store-Version: nur den Push-Kanal auf nativ umstellen

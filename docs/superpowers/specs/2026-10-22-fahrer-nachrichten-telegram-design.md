@@ -65,7 +65,7 @@ Migration `migrations/2026-10-22-fahrer-nachrichten.sql`. Wird dem Betreiber vor
 | Spalte | Typ | |
 |---|---|---|
 | `id` | bigint identity PK | |
-| `fahrer_id` | int → `fahrer(id)` `on delete set null`* | |
+| `fahrer_nr` | int not null | Notion-Fahrer-Nr. (`fahrer.notion_fahrer_id`)* |
 | `richtung` | text check in (`fahrer`, `team`) | |
 | `text` | text not null, Länge 1–2000 (nach `btrim`) | |
 | `kopf` | jsonb null | bei Fahrer-Nachrichten: Snapshot `{name, fahrer_nr, kennzeichen, modell}` – die Fahrzeugzuordnung ändert sich |
@@ -76,10 +76,13 @@ Migration `migrations/2026-10-22-fahrer-nachrichten.sql`. Wird dem Betreiber vor
 | `gelesen_am` | timestamptz null | Fahrer hat die Team-Nachricht gesehen |
 | `erstellt_am` | timestamptz default now() | |
 
-\* CLAUDE.md: FKs auf `fahrer(id)` brauchen `ON DELETE SET NULL`, sonst scheitert der n8n-Sync beim
-Löschen eines Fahrers. Deshalb ist `fahrer_id` nullable; die RPCs und Functions schreiben immer einen Wert.
+\* **Schlüssel ist die Notion-Fahrer-Nr., nicht `fahrer.id`** – wie `fahrer_bank` und `fahrer_app_zugang`.
+`fahrer.id` ist nicht stabil (69 Fahrer, ids 626–3127: der n8n-Sync legt Zeilen neu an); an `fahrer.id` gehängt
+wären Verlauf und Thema nach einem Full-Sync weg. Kein FK auf `fahrer` (Nr. ist dort nicht eindeutig erzwungen).
+Die RPCs rechnen `fahrer_app_ziel()` → `fahrer.notion_fahrer_id` um; ohne Nr. kein Chat (Fahrer ohne Nr.
+können sich ohnehin nicht anmelden).
 
-Indizes: `(fahrer_id, erstellt_am desc)`; **unique `(tg_message_id)` where `richtung = 'team'`** – Telegram
+Indizes: `(fahrer_nr, erstellt_am desc)`; **unique `(tg_message_id)` where `richtung = 'team'`** – Telegram
 wiederholt einen Webhook, wenn er nicht rechtzeitig 200 bekommt; dieselbe Team-Nachricht darf nur einmal
 beim Fahrer landen.
 
@@ -87,13 +90,13 @@ beim Fahrer landen.
 
 | Spalte | Typ | |
 |---|---|---|
-| `fahrer_id` | int PK → `fahrer(id)` `on delete cascade` | |
+| `fahrer_nr` | int PK | Notion-Fahrer-Nr. |
 | `thread_id` | bigint unique null | `message_thread_id` des Themas; null = wird gerade angelegt |
 | `name` | text | aktueller Themen-Name |
 | `kennzeichen` | text | Kennzeichen im Namen (zum Erkennen eines Autowechsels) |
 | `erstellt_am` | timestamptz default now() | |
 
-**`push_abos`**: `id bigint identity PK`, `fahrer_id → fahrer(id) on delete cascade`, `endpoint text unique not null`,
+**`push_abos`**: `id bigint identity PK`, `fahrer_nr int not null`, `endpoint text unique not null`,
 `p256dh text not null`, `auth text not null`, `erstellt_am timestamptz default now()`.
 
 Lesen: `nachrichten` für `is_app_user()` (Dashboard später). `tg_themen` und `push_abos`: nur `service_role`.
@@ -115,7 +118,7 @@ schreibt hier nicht über HYDRAlink (nur Fahrer-RPCs und `service_role`). Kommen
   des Fahrers. Nur Fahrer selbst.
 - **`fahrer_app_push_abo(p_endpoint, p_p256dh, p_auth)`** → Upsert auf `endpoint` (ein Gerät, das den
   Fahrer wechselt, hängt danach am neuen). Nur Fahrer selbst. Endpoint muss mit `https://` beginnen.
-- **`tg_thema_reservieren(p_fahrer_id)`** (nur `service_role`) → liefert das bestehende Thema oder legt atomar
+- **`tg_thema_reservieren(p_fahrer_nr)`** (nur `service_role`) → liefert das bestehende Thema oder legt atomar
   eine Reservierung an (`thread_id null`, `insert … on conflict do nothing`). Nur wer reserviert hat, legt das
   Thema in Telegram an – zwei schnelle Nachrichten eines neuen Fahrers erzeugen nicht zwei Themen.
   Hängt eine Reservierung länger als 2 Minuten, darf sie neu übernommen werden.
@@ -173,7 +176,7 @@ Eine Nachricht ist eine **Team-Nachricht an den Fahrer**, wenn alles zutrifft:
 - hat `text`
 
 Dann:
-- Insert in `nachrichten`: `richtung 'team'`, `fahrer_id` aus `tg_themen`, `text` (gekürzt auf 2000),
+- Insert in `nachrichten`: `richtung 'team'`, `fahrer_nr` aus `tg_themen`, `text` (gekürzt auf 2000),
   `team_name = from.first_name`, `tg_message_id = message_id`. Doppelt (gleiche `tg_message_id`) → nichts tun.
 - `setMessageReaction` 👍 auf die Nachricht.
 

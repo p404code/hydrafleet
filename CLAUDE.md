@@ -123,6 +123,8 @@ Geld entscheidet weiterhin das alte System.
 | `telegram-senden` | Fahrer-Nachricht (Trigger/Nachhol-Lauf, nur service_role) | Telegram-Thema des Fahrers, `tg_themen`, `nachrichten.tg_*` |
 | `telegram-webhook` | Telegram-Webhook (Secret-Header, `verify_jwt = false`) | `nachrichten` (`richtung 'team'`) |
 | `push-senden` | Team-Nachricht (Trigger, nur service_role) | Web-Push an `push_abos`, tote Abos löschen |
+| `anhang-senden` | Fahrerapp (Fahrer-JWT, multipart) | Foto/Sprache ins Telegram-Thema, Zeile in `nachrichten` |
+| `anhang` | Fahrerapp (Fahrer-/Büro-JWT, GET) | reicht Foto/Sprache aus Telegram durch (Datei nie in Supabase) |
 
 Jeder Lauf schreibt eine Zeile nach `sync_runs`.
 
@@ -335,10 +337,26 @@ ein Thema je Fahrer**. Alles, was im Fahrer-Thema geschrieben wird, geht an den 
   `--neue-vapid` macht alle Push-Abos ungültig. Der öffentliche VAPID-Key steht als `VAPID_PUBLIC` in `fahrer/index.html`.
   Nicht derselbe Bot wie der USP-Bot.
 - Gruppe „HydraLink_Fahrer Kommunikation“ (`-1004453022013`), Bot `@hydralink_Fahrer_bot` (Admin, nur „Themen verwalten“).
-- Team-Regeln: im Fahrer-Thema = an den Fahrer; Absprache in „Allgemein“; Bearbeiten kommt nicht an; Fotos/Sprachnachrichten noch nicht.
-- Tests: `PGLITE=/tmp/pglite node scripts/test-nachrichten.mjs`, `node --test scripts/test-telegram-logik.mjs scripts/test-webpush.mjs scripts/test-telegram-senden.mjs`,
-  `bash scripts/test-fahrer-nachrichten.sh` (Fahrerapp im headless Chromium, Attrappen statt Supabase).
-  Testzeilen mit `fahrer_nr = 999999` stammen vom Live-Test am Einrichtungstag.
+- **Teil 2 (26.10.): Menü** in „Allgemein“ (angeheftet, `telegram-einrichten.mjs menue`): 📢 Nachricht an alle (Aufforderung →
+  Vorschau → ✅/✖, nur der Klicker, 24 h, `tg_an_alle` legt je Fahrer eine Zeile an, Doppelklick harmlos), 🔎 Fahrer finden
+  (`tg_fahrer_suchen`; mit Thema = Link, ohne = „💬 Chat starten“ → `telegram-senden {thema}` legt es erst dann an), ℹ️ Info.
+  Offene Schritte in `tg_menue`. **Themen für alle wurde am 26.10. wieder abgeschaltet** (Betreiber: zu viele offene Themen;
+  `2026-10-26-themen-lauf-aus.sql`) – der Code (`telegram-senden {themen}`) bleibt, der Cron-Job nicht.
+  Gelesen: Trigger auf `gelesen_am` → `telegram-senden {gelesen}` ersetzt 👍 durch 👀 (nicht bei „an alle“). App: „✓“ /
+  „wird zugestellt“, „Büro · an alle“.
+- **Fahrer sehen nie, wer geantwortet hat** (Betreiber 26.10.): `fahrer_app_nachrichten` liefert als `team_name` immer „Büro“,
+  Push „Büro: …“. Intern bleibt `team_name` gespeichert.
+- **Teil 3 (26.10.): Fotos und Sprachnachrichten**, beide Richtungen, **Dateien nur in Telegram** (in `nachrichten` nur
+  `anhang`, `tg_file_id`, `dauer`). App: 📷 (verkleinert auf 1600 px JPEG) und 🎤 (antippen, Leiste mit ✖/Senden, max. 3 Min)
+  → `anhang-senden` (prüft Typ/Größe/Spam vor Telegram, `sendPhoto`/`sendVoice`, Fallback `sendAudio`). Anzeige über `anhang`
+  (Recht über `fahrer_app_anhang` mit dem JWT des Aufrufers; Token bleibt in der Function). OGG/Opus, das das Gerät nicht
+  abspielt, dekodiert die App mit `ogg-opus-decoder` (jsDelivr). Team-Fotos/-Sprache im Thema speichert `telegram-webhook`.
+- Team-Regeln: im Fahrer-Thema = an den Fahrer; Absprache in „Allgemein“; Bearbeiten kommt nicht an; Videos/Dateien/Sticker nicht.
+- Tests: `PGLITE=/tmp/pglite node scripts/test-nachrichten.mjs`, `node --test scripts/test-telegram-logik.mjs scripts/test-webpush.mjs scripts/test-telegram-senden.mjs scripts/test-telegram-webhook.mjs scripts/test-anhang-senden.mjs scripts/test-anhang.mjs`,
+  `bash scripts/test-fahrer-nachrichten.sh` (Fahrerapp im headless Chromium, Attrappen statt Supabase; beide Testdateien).
+- **Achtung:** `npx playwright install` räumt `~/Library/Caches/ms-playwright` auf; `chromium-1234` und `chromium_headless_shell-1234`
+  sind seit 26.10. Symlinks auf 1248 (für `shot.js`, `uber-capture.js`, `uber-fahrzeugbilder.js`).
+  Testzeilen mit `fahrer_nr = 999999` vom Einrichtungstag wurden am 26.10. gelöscht.
 
 ## Key Supabase Tables
 

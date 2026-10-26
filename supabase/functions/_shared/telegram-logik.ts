@@ -3,12 +3,13 @@
 
 export type Kopf = { name?: string | null; fahrer_nr?: number | null; kennzeichen?: string | null; modell?: string | null };
 export type Einordnung =
-  | { art: "team"; thread_id: number; message_id: number; text: string; team_name: string }
+  | { art: "team"; thread_id: number; message_id: number; text: string; team_name: string; anhang?: Anhang; file_id?: string; dauer?: number }
   | { art: "ohne_text"; thread_id: number }
   | { art: "knopf"; id: string; daten: string; von: Person; message_id: number | null }
   | { art: "allgemein_antwort"; antwort_auf: number; text: string; von: Person; message_id: number }
   | { art: "ignorieren"; grund: string };
 export type Person = { id: number; name: string };
+export type Anhang = "foto" | "sprache";
 export type Treffer = { fahrer_nr: number; name: string; kennzeichen: string | null; thread_id: number | null };
 
 // parse_mode HTML: nur diese drei Zeichen muessen escaped werden
@@ -62,8 +63,41 @@ export function fahrerZeile(k: Kopf, text: string): string {
 }
 
 // Push-Text: "Büro: Fahr zur Werkstatt" bzw. "Büro (an alle): …" – nie der Name des Teammitglieds (Betreiber 26.10.)
-export function pushText(text: unknown, anAlle = false): string {
-  return kuerzen(`Büro${anAlle ? " (an alle)" : ""}: ${sauber(text)}`, 120);
+export function pushText(text: unknown, anAlle = false, anhang?: Anhang | null, dauer?: number | null): string {
+  const art = anhang === "foto" ? "📷 Foto" : anhang === "sprache" ? `🎤 Sprachnachricht${dauer != null ? ` (${dauerText(dauer)})` : ""}` : "";
+  const inhalt = [art, sauber(text)].filter(Boolean).join(" – ");
+  return kuerzen(`Büro${anAlle ? " (an alle)" : ""}: ${inhalt}`, 120);
+}
+
+export function dauerText(s: unknown): string {
+  if (s == null || s === "" || !Number.isFinite(Number(s))) return "";
+  const n = Math.max(0, Math.round(Number(s)));
+  return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
+}
+
+// Bildunterschrift eines Fahrer-Anhangs in Telegram: "<b>Max:</b> 📷 Text" (Telegram erlaubt 1024 Zeichen)
+export function anhangZeile(k: Kopf, art: Anhang, text: string): string {
+  const vor = `<b>${esc(vorname(k.name))}:</b> ${art === "foto" ? "📷" : "🎤"}`;
+  let roh = sauber(text);
+  let s = roh ? `${vor} ${esc(roh)}` : vor;
+  while (s.length > 1024) { roh = kuerzen(roh, Math.floor(roh.length * 0.9)); s = `${vor} ${esc(roh)}`; }
+  return s;
+}
+
+const FOTO_TYPEN = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+const SPRACH_TYPEN = ["audio/mp4", "audio/x-m4a", "audio/m4a", "audio/aac", "audio/ogg", "audio/webm", "audio/mpeg"];
+export const MAX_BYTES = 5 * 1024 * 1024;
+export const MAX_SEKUNDEN = 180;
+// Upload aus der App pruefen, bevor irgendetwas an Telegram geht
+export function anhangPruefen(art: unknown, mime: unknown, groesse: number, dauer?: number | null): { code: number; fehler: string } | null {
+  const typ = String(mime ?? "").split(";")[0].trim().toLowerCase();
+  if (art !== "foto" && art !== "sprache") return { code: 415, fehler: "Unbekannte Art" };
+  if (!(groesse > 0)) return { code: 415, fehler: "Leere Datei" };
+  if (art === "foto" && !FOTO_TYPEN.includes(typ)) return { code: 415, fehler: "Nur Fotos (JPEG, PNG, HEIC)" };
+  if (art === "sprache" && !SPRACH_TYPEN.includes(typ)) return { code: 415, fehler: "Nur Sprachaufnahmen" };
+  if (groesse > MAX_BYTES) return { code: 413, fehler: "Datei zu groß (höchstens 5 MB)" };
+  if (art === "sprache" && Number(dauer) > MAX_SEKUNDEN) return { code: 413, fehler: "Sprachnachricht zu lang (höchstens 3 Minuten)" };
+  return null;
 }
 
 // Vergleich in konstanter Zeit (Webhook-Secret)
@@ -103,6 +137,17 @@ export function einordnen(update: any, gruppeId: string | number, botId?: string
   const anonym = m.sender_chat && String(m.sender_chat.id) === String(gruppeId);
   if (!anonym && (!m.from || m.from.is_bot)) return { art: "ignorieren", grund: "bot" };
   const text = typeof m.text === "string" ? m.text.trim() : "";
+  const team = { art: "team" as const, thread_id: m.message_thread_id, message_id: m.message_id };
+  const nameT = () => anonym ? sauber(m.author_signature) || "Büro" : sauber(m.from.first_name) || "Büro";
+  // Teil 3: Foto (groesste Aufloesung) und Sprache kommen beim Fahrer an, Bildunterschrift als Text
+  const caption = typeof m.caption === "string" ? kuerzen(m.caption.trim(), 2000) : "";
+  const fotos = Array.isArray(m.photo) ? m.photo.filter((f: any) => f?.file_id) : [];
+  if (fotos.length) {
+    const gross = fotos.reduce((a: any, b: any) => ((b.width ?? 0) * (b.height ?? 1) >= (a.width ?? 0) * (a.height ?? 1) ? b : a));
+    return { ...team, text: caption, team_name: nameT(), anhang: "foto", file_id: String(gross.file_id) };
+  }
+  const ton = m.voice ?? m.audio;
+  if (ton?.file_id) return { ...team, text: caption, team_name: nameT(), anhang: "sprache", file_id: String(ton.file_id), dauer: Number(ton.duration ?? 0) };
   if (!text) return { art: "ohne_text", thread_id: m.message_thread_id };
   const name = anonym ? sauber(m.author_signature) || "Büro" : sauber(m.from.first_name) || "Büro";
   return { art: "team", thread_id: m.message_thread_id, message_id: m.message_id, text: kuerzen(text, 2000), team_name: name };

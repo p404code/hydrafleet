@@ -2,7 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { esc, kuerzen, vorname, themenName, kopfPost, autoZeile, fahrerZeile, pushText, gleich, einordnen,
-  menueText, menueKnoepfe, infoText, aufforderung, vorschau, vorschauKnoepfe, gesendetText, themaLink, trefferKnoepfe, knopfLesen }
+  menueText, menueKnoepfe, infoText, aufforderung, vorschau, vorschauKnoepfe, gesendetText, themaLink, trefferKnoepfe, knopfLesen,
+  dauerText, anhangZeile, anhangPruefen }
   from '../supabase/functions/_shared/telegram-logik.ts';
 
 const MAX = { name: 'Max Mustermann', fahrer_nr: 123, kennzeichen: 'W-1234TX', modell: 'Toyota Corolla' };
@@ -143,4 +144,46 @@ test('Themen-Link und Treffer-Knoepfe', () => {
 test('pushText an alle', () => {
   assert.equal(pushText('Kontrolle', true), 'Büro (an alle): Kontrolle');
   assert.equal(pushText('Kontrolle', false), 'Büro: Kontrolle');
+});
+
+// ---------------- Teil 3: Fotos und Sprachnachrichten ----------------
+test('einordnen: Foto (groesste Aufloesung) und Sprache im Fahrer-Thema', () => {
+  const foto = nachricht({ text: undefined, caption: ' Schaden hinten ', photo: [{ file_id: 'klein', width: 90 }, { file_id: 'gross', width: 1280 }] });
+  assert.deepEqual(einordnen(foto, G), { art: 'team', thread_id: 7, message_id: 50, text: 'Schaden hinten', team_name: 'Boyko', anhang: 'foto', file_id: 'gross' });
+  const ohneCaption = nachricht({ text: undefined, photo: [{ file_id: 'p', width: 800 }] });
+  assert.equal(einordnen(ohneCaption, G).text, '');
+  assert.deepEqual(einordnen(nachricht({ text: undefined, voice: { file_id: 'v', duration: 7 } }), G),
+    { art: 'team', thread_id: 7, message_id: 50, text: '', team_name: 'Boyko', anhang: 'sprache', file_id: 'v', dauer: 7 });
+  assert.equal(einordnen(nachricht({ text: undefined, audio: { file_id: 'a', duration: 30 } }), G).anhang, 'sprache');
+  for (const x of [{ video: {} }, { document: {} }, { sticker: {} }, { video_note: {} }, { animation: {} }])
+    assert.deepEqual(einordnen(nachricht({ text: undefined, ...x }), G), { art: 'ohne_text', thread_id: 7 });
+  assert.ok(!('anhang' in einordnen(nachricht({}), G)), 'Text-Nachricht unveraendert');
+});
+
+test('dauerText und Push-Text fuer Anhaenge', () => {
+  assert.equal(dauerText(7), '0:07'); assert.equal(dauerText(75), '1:15'); assert.equal(dauerText(null), '');
+  assert.equal(pushText('', false, 'foto'), 'Büro: 📷 Foto');
+  assert.equal(pushText('schau mal', false, 'foto'), 'Büro: 📷 Foto – schau mal');
+  assert.equal(pushText('', false, 'sprache', 12), 'Büro: 🎤 Sprachnachricht (0:12)');
+  assert.equal(pushText('', true, 'foto'), 'Büro (an alle): 📷 Foto');
+});
+
+test('anhangZeile: Bildunterschrift fuer Telegram, escaped, max 1024', () => {
+  assert.equal(anhangZeile(MAX, 'foto', ''), '<b>Max:</b> 📷');
+  assert.equal(anhangZeile(MAX, 'sprache', 'a<b'), '<b>Max:</b> 🎤 a&lt;b');
+  assert.ok(anhangZeile(MAX, 'foto', '&'.repeat(2000)).length <= 1024);
+});
+
+test('anhangPruefen: Art, Typ, Groesse, Dauer', () => {
+  assert.equal(anhangPruefen('foto', 'image/jpeg', 300000), null);
+  assert.equal(anhangPruefen('foto', 'image/png', 300000), null);
+  assert.deepEqual(anhangPruefen('foto', 'application/pdf', 1000), { code: 415, fehler: 'Nur Fotos (JPEG, PNG, HEIC)' });
+  assert.deepEqual(anhangPruefen('foto', 'image/jpeg', 6 * 1024 * 1024), { code: 413, fehler: 'Datei zu groß (höchstens 5 MB)' });
+  assert.equal(anhangPruefen('sprache', 'audio/mp4', 200000, 30), null);
+  assert.equal(anhangPruefen('sprache', 'audio/webm;codecs=opus', 200000, 30), null);
+  assert.equal(anhangPruefen('sprache', 'audio/ogg; codecs=opus', 200000, 30), null);
+  assert.deepEqual(anhangPruefen('sprache', 'audio/mp4', 200000, 181), { code: 413, fehler: 'Sprachnachricht zu lang (höchstens 3 Minuten)' });
+  assert.deepEqual(anhangPruefen('sprache', 'image/jpeg', 1000, 3), { code: 415, fehler: 'Nur Sprachaufnahmen' });
+  assert.deepEqual(anhangPruefen('video', 'video/mp4', 1000), { code: 415, fehler: 'Unbekannte Art' });
+  assert.deepEqual(anhangPruefen('foto', 'image/jpeg', 0), { code: 415, fehler: 'Leere Datei' });
 });

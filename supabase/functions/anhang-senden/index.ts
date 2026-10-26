@@ -61,7 +61,10 @@ Deno.serve(async (req) => {
     // Thema des Fahrers (legt es an, falls er noch keins hat)
     const t = await fetch(`${SUPABASE_URL}/functions/v1/telegram-senden`, { method: "POST", headers: kopf, body: JSON.stringify({ thema: p.fahrer_nr }) });
     const tj = await t.json().catch(() => ({}));
-    if (!t.ok || !tj.thread_id) return antwort(502, { fehler: "Senden hat nicht geklappt – bitte nochmal" });
+    if (!t.ok || !tj.thread_id) {
+      console.warn("anhang-senden: Thema", p.fahrer_nr, t.status, JSON.stringify(tj).slice(0, 200));
+      return antwort(502, { fehler: "Senden hat nicht geklappt – bitte nochmal" });
+    }
 
     const k: Kopf = { name: p.name, fahrer_nr: p.fahrer_nr, kennzeichen: p.kennzeichen, modell: p.fahrzeug_modell };
     const formular = (feld: string, name: string) => {

@@ -3,7 +3,7 @@
 // Teil 2: Lauf themen-pflegen ({themen: true}) legt Themen fuer alle Fahrer mit App an, Trigger gelesen ({gelesen: id}) setzt 👀.
 // Secrets TELEGRAM_BOT_TOKEN, TELEGRAM_GRUPPE_ID setzt scripts/telegram-einrichten.mjs.
 // Das Token steckt in der URL – Fehlermeldungen deshalb nie aus fetch() durchreichen (sie enthalten die URL).
-import { autoZeile, fahrerZeile, kopfPost, themenName, type Kopf } from "../_shared/telegram-logik.ts";
+import { autoZeile, fahrerZeile, gleich, kopfPost, themenName, type Kopf } from "../_shared/telegram-logik.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -156,7 +156,10 @@ async function gelesen(id: number) {
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return antwort(405, { fehler: "nur_post" });
-  if (rolle(req) !== "service_role") return antwort(403, { fehler: "nicht_berechtigt" });
+  // Trigger/Cron schicken den service_role-JWT aus dem Vault; andere Functions (anhang-senden, telegram-webhook) ihren
+  // SUPABASE_SERVICE_ROLE_KEY – der ist live kein JWT (neues Schluesselformat), deshalb zusaetzlich direkter Vergleich
+  const tok = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (rolle(req) !== "service_role" && !gleich(tok, SERVICE_KEY)) return antwort(403, { fehler: "nicht_berechtigt" });
   if (!TOKEN || !GRUPPE) return antwort(500, { fehler: "nicht_eingerichtet" });
   const b = await req.json().catch(() => ({}));
   if (b?.themen === true) return antwort(200, await themenPflegen());

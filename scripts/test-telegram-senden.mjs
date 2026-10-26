@@ -161,3 +161,13 @@ test('Thema auf Wunsch (Chat starten): anlegen bzw. vorhandenes liefern', async 
   const r = await handler(new Request('http://f', { method: 'POST', headers: { Authorization: 'Bearer ' + SERVICE }, body: JSON.stringify({ thema: 8 }) }));
   assert.equal(r.status, 404);
 });
+
+test('Aufruf aus einer anderen Function mit dem Service-Schluessel (kein JWT, neues Format) wird angenommen', async () => {
+  neueWelt();
+  W.liste = [{ fahrer_nr: 7, name: 'Max Muster', kennzeichen: 'W-1111TX', modell: 'Corolla' }];
+  const mit = (tok) => handler(new Request('http://f', { method: 'POST', headers: { Authorization: 'Bearer ' + tok }, body: JSON.stringify({ thema: 7 }) }));
+  const r = await mit('k');   // = SUPABASE_SERVICE_ROLE_KEY in der Attrappe
+  assert.equal(r.status, 200, await r.clone().text());
+  assert.equal((await mit('falsch')).status, 403);
+  assert.equal((await mit('')).status, 403);
+});

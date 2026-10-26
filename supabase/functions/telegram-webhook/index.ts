@@ -17,7 +17,7 @@ const SECRET = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") ?? "";
 const BOT_ID = TOKEN.split(":")[0];   // die Id des Bots steht vorne im Token
 const ENTWURF_GUELTIG_MS = 24 * 3600 * 1000;
 const kopf = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" };
-const HINWEIS = "Fotos, Sprachnachrichten und Sticker kommen noch nicht beim Fahrer an – bitte als Text schreiben.";
+const HINWEIS = "Videos, Dateien und Sticker kommen beim Fahrer nicht an – Fotos und Sprachnachrichten schon.";
 const letzterHinweis = new Map<number, number>();   // je Thema; gilt nur, solange diese Instanz lebt
 const leer = (s: number) => new Response(null, { status: s });
 
@@ -62,7 +62,8 @@ Deno.serve(async (req) => {
   }
 
   const r = await dbRoh("nachrichten", { method: "POST", headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({ fahrer_nr: thema.fahrer_nr, richtung: "team", text: e.text, team_name: e.team_name, tg_message_id: e.message_id }) });
+    body: JSON.stringify({ fahrer_nr: thema.fahrer_nr, richtung: "team", text: e.text, team_name: e.team_name, tg_message_id: e.message_id,
+      ...(e.anhang ? { anhang: e.anhang, tg_file_id: e.file_id, dauer: e.dauer ?? null } : {}) }) });
   const rt = await r.text();
   if (r.status === 409) return leer(200);                // schon gespeichert (Telegram hat wiederholt)
   if (!r.ok) { console.error("telegram-webhook: nachrichten", r.status, rt.slice(0, 200)); return leer(500); }

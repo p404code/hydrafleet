@@ -179,3 +179,18 @@ test('Fahrer finden ohne Thema: Chat starten legt das Thema an und verlinkt es',
   await klick('start:999');
   assert.equal(letzte('answerCallbackQuery').text, 'Fahrer nicht gefunden');
 });
+
+// ---------------- Teil 3: Fotos und Sprache vom Buero ----------------
+test('Team-Foto und -Sprache im Thema: Zeile mit Anhang, 👍; Video bekommt Hinweis', async () => {
+  neueWelt();
+  const im = (x) => senden({ update_id: 9, message: { message_id: 80 + W.tg.length, chat: { id: G }, is_topic_message: true, message_thread_id: 13,
+    from: { id: 9, is_bot: false, first_name: 'Boyko' }, ...x } });
+  await im({ caption: 'so sieht das aus', photo: [{ file_id: 'k', width: 90 }, { file_id: 'G', width: 1280 }] });
+  await im({ voice: { file_id: 'VO', duration: 9 } });
+  assert.deepEqual(W.nachrichten.map((n) => [n.fahrer_nr, n.anhang, n.tg_file_id, n.dauer ?? null, n.text]),
+    [[200, 'foto', 'G', null, 'so sieht das aus'], [200, 'sprache', 'VO', 9, '']]);
+  assert.equal(W.tg.filter((c) => c.methode === 'setMessageReaction').length, 2);
+  await im({ video: { file_id: 'X' } });
+  assert.equal(W.nachrichten.length, 2);
+  assert.equal(letzte('sendMessage').text, 'Videos, Dateien und Sticker kommen beim Fahrer nicht an – Fotos und Sprachnachrichten schon.');
+});

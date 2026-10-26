@@ -31,10 +31,10 @@ Deno.serve(async (req) => {
   if (!VAPID.publicKey || !VAPID.privateKey) return antwort(500, { fehler: "nicht_eingerichtet" });
   const b = await req.json().catch(() => ({}));
   if (!Number.isInteger(b?.id)) return antwort(400, { fehler: "id_fehlt" });
-  const [n] = await db(`nachrichten?id=eq.${b.id}&select=id,fahrer_nr,richtung,text,an_alle`);
+  const [n] = await db(`nachrichten?id=eq.${b.id}&select=id,fahrer_nr,richtung,text,an_alle,anhang,dauer`);
   if (!n || n.richtung !== "team") return antwort(200, { gesendet: 0 });
   const abos = await db(`push_abos?fahrer_nr=eq.${n.fahrer_nr}&select=id,endpoint,p256dh,auth`);
-  const nutzlast = JSON.stringify({ title: "HYDRAlink", body: pushText(n.text, n.an_alle === true), url: "/fahrer/#nachrichten", tag: "nachrichten" });
+  const nutzlast = JSON.stringify({ title: "HYDRAlink", body: pushText(n.text, n.an_alle === true, n.anhang, n.dauer), url: "/fahrer/#nachrichten", tag: "nachrichten" });
   let gesendet = 0, geloescht = 0;
   for (const a of abos) {
     try {

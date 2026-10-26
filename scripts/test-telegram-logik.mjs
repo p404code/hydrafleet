@@ -121,6 +121,7 @@ test('Menue, Info, Aufforderung', () => {
   assert.match(menueText(), /Fahrer-Chat/);
   assert.deepEqual(menueKnoepfe().inline_keyboard.map((z) => z[0].callback_data), ['menue:alle', 'menue:suche', 'menue:info']);
   assert.match(infoText(), /👍/); assert.match(infoText(), /👀/);
+  assert.match(infoText(), /Fotos und Sprachnachrichten kommen beim Fahrer an/);
   assert.equal(aufforderung('alle', '<Bo>', 9), '📢 <a href="tg://user?id=9">&lt;Bo&gt;</a>, schreib die Nachricht an alle Fahrer (als Antwort hierauf):');
   assert.equal(aufforderung('suche', 'Bo', 9), '🔎 <a href="tg://user?id=9">Bo</a>, Name, Fahrer-Nr. oder Kennzeichen? (als Antwort hierauf)');
 });

@@ -175,7 +175,7 @@ export function infoText(): string {
     "• Hier in „Allgemein“ ist alles intern – außer „📢 Nachricht an alle“.",
     "• 👍 auf eurer Nachricht = beim Fahrer angekommen, 👀 = er hat den Chat geöffnet.",
     "• Bearbeiten oder Löschen kommt beim Fahrer nicht an – lieber neu schreiben.",
-    "• Fotos und Sprachnachrichten kommen noch nicht an.",
+    "• Fotos und Sprachnachrichten kommen beim Fahrer an – Videos, Dateien und Sticker nicht.",
   ].join("\n");
 }
 const erwaehnt = (name: string, id: number) => `<a href="tg://user?id=${Number(id)}">${esc(name)}</a>`;

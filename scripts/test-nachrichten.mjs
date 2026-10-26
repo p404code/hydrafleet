@@ -15,7 +15,8 @@ const { PGlite } = await import(pathToFileURL(join(basis, 'node_modules/@electri
 const db = new PGlite();
 const migration = readFileSync(new URL('../migrations/2026-10-22-fahrer-nachrichten.sql', import.meta.url), 'utf8');
 const migration2 = () => readFileSync(new URL('../migrations/2026-10-26-nachrichten-menue.sql', import.meta.url), 'utf8')
-  + readFileSync(new URL('../migrations/2026-10-26-nachrichten-buero.sql', import.meta.url), 'utf8');
+  + readFileSync(new URL('../migrations/2026-10-26-nachrichten-buero.sql', import.meta.url), 'utf8')
+  + readFileSync(new URL('../migrations/2026-10-26-nachrichten-anhaenge.sql', import.meta.url), 'utf8');
 
 await db.exec(`
 create role anon; create role authenticated; create role service_role bypassrls;
@@ -296,6 +297,33 @@ try {
   await raus();
   const [job2] = await q(`select * from cron.job where jobname = 'themen-pflegen'`);
   assert.equal(job2.schedule, '*/5 * * * *'); assert.match(job2.command, /"themen": true/);
+
+  // ===================== Teil 3: Fotos und Sprachnachrichten =====================
+  await db.exec('set role service_role');
+  const [{ id: f1 }] = await q(`insert into public.nachrichten (fahrer_nr, richtung, text, anhang, tg_file_id, tg_message_id)
+                                values (101, 'fahrer', '', 'foto', 'FILE_A', 801) returning id`);
+  const [{ id: s1 }] = await q(`insert into public.nachrichten (fahrer_nr, richtung, text, anhang, tg_file_id, tg_message_id, dauer, team_name)
+                                values (101, 'team', 'hoer mal', 'sprache', 'FILE_B', 802, 12, 'Boyko') returning id`);
+  await nein(`insert into public.nachrichten (fahrer_nr, richtung, text) values (101, 'fahrer', '')`, [], /check/);
+  await nein(`insert into public.nachrichten (fahrer_nr, richtung, text, anhang, tg_file_id) values (101, 'fahrer', '', 'video', 'X')`, [], /check/);
+  await nein(`insert into public.nachrichten (fahrer_nr, richtung, text, anhang) values (101, 'fahrer', '', 'foto')`, [], /check/);   // Anhang ohne Datei
+  await raus();
+  await als(ANNA);
+  v = await q('select * from public.fahrer_app_nachrichten()');
+  const fz = v.find((m) => Number(m.id) === Number(f1)), sz = v.find((m) => Number(m.id) === Number(s1));
+  assert.deepEqual([fz.anhang, fz.dauer, fz.text, fz.zugestellt], ['foto', null, '', true]);
+  assert.deepEqual([sz.anhang, sz.dauer, sz.team_name, sz.text], ['sprache', 12, 'Büro', 'hoer mal']);
+  assert.ok(!('tg_file_id' in fz), 'die App bekommt keine Telegram-Kennung');
+  assert.deepEqual(await q('select * from public.fahrer_app_anhang($1)', [f1]), [{ tg_file_id: 'FILE_A', anhang: 'foto' }]);
+  await als(BERT);
+  assert.deepEqual(await q('select * from public.fahrer_app_anhang($1)', [f1]), [], 'Bert holt Annas Foto nicht');
+  assert.deepEqual(await q('select * from public.fahrer_app_anhang($1, 1)', [f1]), [], 'auch nicht mit fremder Vorschau-Id');
+  await als(BUERO);
+  assert.deepEqual(await q('select * from public.fahrer_app_anhang($1, 1)', [f1]), [{ tg_file_id: 'FILE_A', anhang: 'foto' }]);
+  assert.deepEqual(await q('select * from public.fahrer_app_anhang($1)', [f1]), []);
+  await raus(); await db.exec('set role anon');
+  await nein(`select * from public.fahrer_app_anhang(1)`, [], /permission denied/);
+  await raus();
 
   console.log('Nachrichten: alle Pruefungen bestanden');
 } finally {

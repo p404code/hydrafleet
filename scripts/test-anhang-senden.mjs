@@ -2,6 +2,7 @@
 //   node --test scripts/test-anhang-senden.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { fragmentiert, boxen } from './mp4-testdatei.mjs';
 
 const G = '-1004453022013';
 let handler;
@@ -99,4 +100,15 @@ test('Spam-Limit gemeinsam mit Text: 10 in 10 Minuten', async () => {
   assert.equal(r.status, 429);
   assert.deepEqual(await r.json(), { fehler: 'Zu viele Nachrichten – bitte kurz warten' });
   assert.equal(W.tg.length, 0);
+});
+
+test('Sprache vom iPhone (fragmentiertes MP4) wird vor Telegram umgepackt', async () => {
+  neueWelt();
+  const ein = fragmentiert(Array.from({ length: 5 }, (_, i) => Buffer.alloc(20, i + 1)));
+  const r = await senden({ art: 'sprache', datei: new File([ein], 'sprache.m4a', { type: 'audio/mp4' }), dauer: '1' });
+  assert.equal(r.status, 200);
+  const v = W.tg.find((c) => c.methode === 'sendVoice').voice;
+  const typen = boxen(Buffer.from(await v.arrayBuffer())).map((x) => x.typ);
+  assert.deepEqual(typen, ['ftyp', 'moov', 'mdat'], 'kein moof mehr');
+  assert.equal(v.type, 'audio/mp4');
 });

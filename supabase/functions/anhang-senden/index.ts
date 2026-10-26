@@ -3,6 +3,7 @@
 // dem JWT des Aufrufers – Buero/Vorschau bekommen 403). Pruefung von Art, Typ, Groesse, Dauer und Spam-Limit vor Telegram.
 // Das Token steckt in der URL – Fehlermeldungen aus fetch() nie durchreichen.
 import { anhangPruefen, anhangZeile, type Kopf } from "../_shared/telegram-logik.ts";
+import { fmp4ZuMp4 } from "../_shared/mp4-remux.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -67,12 +68,18 @@ Deno.serve(async (req) => {
     }
 
     const k: Kopf = { name: p.name, fahrer_nr: p.fahrer_nr, kennzeichen: p.kennzeichen, modell: p.fahrzeug_modell };
+    // iPhone (und Chrome) nehmen Sprache als fragmentiertes MP4 auf – Telegram spielt davon nur die erste Sekunde: umpacken
+    let inhalt: Blob = datei;
+    if (art === "sprache" && /mp4|m4a|aac/.test(datei.type)) {
+      const fest = fmp4ZuMp4(new Uint8Array(await datei.arrayBuffer()));
+      if (fest) inhalt = new Blob([fest], { type: "audio/mp4" });
+    }
     const formular = (feld: string, name: string) => {
       const fd = new FormData();
       fd.set("chat_id", GRUPPE); fd.set("message_thread_id", String(tj.thread_id));
       fd.set("caption", anhangZeile(k, art as "foto" | "sprache", text)); fd.set("parse_mode", "HTML");
       if (art === "sprache" && dauer) fd.set("duration", String(dauer));
-      fd.set(feld, datei, name);
+      fd.set(feld, inhalt, name);
       return fd;
     };
     let msg: any, fileId: string | undefined;

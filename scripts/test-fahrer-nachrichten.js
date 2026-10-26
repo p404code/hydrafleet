@@ -59,7 +59,18 @@
   ergebnis.anderer_reiter_normal = !document.body.classList.contains('chat-modus') && !document.body.classList.contains('tippen');
   location.hash = '#nachrichten'; await warte(100);
 
-  // 4) Abmelden: Push-Abo gekuendigt, Chat-Zustand des Fahrers weg
+  // 4) Zustellung und "an alle"
+  const jetzt = new Date().toISOString();
+  S.na.rows = [{ id: 90, richtung: 'fahrer', text: 'unterwegs', erstellt_am: jetzt, zugestellt: false },
+               { id: 91, richtung: 'fahrer', text: 'angekommen', erstellt_am: jetzt, zugestellt: true },
+               { id: 92, richtung: 'team', team_name: 'Boyko', text: 'Kontrolle', erstellt_am: jetzt, gelesen_am: jetzt, zugestellt: true, an_alle: true }];
+  listeZeichnen();
+  const blasen = [...document.querySelectorAll('#naListe .bubble')];
+  ergebnis.wird_zugestellt = /wird zugestellt/.test(blasen[0].querySelector('.zeit').textContent);
+  ergebnis.haekchen = /✓/.test(blasen[1].querySelector('.zeit').textContent) && !/✓/.test(blasen[0].querySelector('.zeit').textContent);
+  ergebnis.an_alle = blasen[2].querySelector('.wer').textContent === 'Boyko · an alle';
+
+  // 5) Abmelden: Push-Abo gekuendigt, Chat-Zustand des Fahrers weg
   S.aboGemeldet = true; S.push = 'an';
   await abmelden();
   await warte(50);

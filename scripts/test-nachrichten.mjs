@@ -14,6 +14,7 @@ if (!basis) { console.error('PGLITE fehlt – siehe Kopf dieser Datei.'); proces
 const { PGlite } = await import(pathToFileURL(join(basis, 'node_modules/@electric-sql/pglite/dist/index.js')).href);
 const db = new PGlite();
 const migration = readFileSync(new URL('../migrations/2026-10-22-fahrer-nachrichten.sql', import.meta.url), 'utf8');
+const migration2 = () => readFileSync(new URL('../migrations/2026-10-26-nachrichten-menue.sql', import.meta.url), 'utf8');
 
 await db.exec(`
 create role anon; create role authenticated; create role service_role bypassrls;
@@ -42,10 +43,15 @@ language sql stable security definer set search_path = public as $$
          case when f.kennzeichen is null then null else 'Toyota Corolla' end,
          (p_fahrer_id is not null and public.is_app_user()), true, 'aktiv', null::text, null::text
   from public.fahrer f where f.id = public.fahrer_app_ziel(p_fahrer_id) $$;
+create function public.kennzeichen_key(t text) returns text language sql immutable as $$
+  select regexp_replace(upper(split_part(coalesce(t, ''), '(', 1)), '[^A-Z0-9]', '', 'g') $$;   -- wie live
+create table public.fuhrpark (kennzeichen_key text primary key, modell text);
+insert into public.fuhrpark values ('W1111TX', 'Toyota Corolla'), ('W2222TX', 'Skoda Octavia');
 grant usage on schema public, auth to anon, authenticated, service_role;
 -- Attrappen: pg_net merkt sich die Aufrufe, Vault liefert einen Schluessel, pg_cron eine Job-Tabelle
 create schema net;
 create table net.aufrufe (nr serial, url text, headers jsonb, body jsonb);
+grant usage on schema net to service_role; grant select on net.aufrufe to service_role;   -- nur fuer die Pruef-Hilfe aufrufe()
 create function net.http_post(url text, body jsonb default '{}', params jsonb default '{}', headers jsonb default '{}',
   timeout_milliseconds integer default 5000) returns bigint language sql as $$
   insert into net.aufrufe (url, headers, body) values (url, headers, body) returning nr::bigint $$;
@@ -61,10 +67,12 @@ create function cron.unschedule(job_name text) returns boolean language sql as $
 
 -- id != Notion-Nr. (wie live); 3 = alte Zeile derselben Person (inaktiv); 4 ohne Auto
 insert into public.fahrer values (1, 'Anna Fahr', 'W-1111TX', true, 101), (2, 'Bert Fahr', 'W-2222TX', true, 102),
-                                 (3, 'Anna Alt', 'W-9999TX', false, 101), (4, 'Cem Ohne', null, true, 103);
+                                 (3, 'Anna Alt', 'W-9999TX', false, 101), (4, 'Cem Ohne', null, true, 103),
+                                 (5, 'Dora Gesperrt', 'W-5555TX', true, 104);
 insert into public.fahrer_app_zugang values (101, '00000000-0000-0000-0000-000000000101', false),
                                             (102, '00000000-0000-0000-0000-000000000102', false),
-                                            (103, '00000000-0000-0000-0000-000000000103', false);
+                                            (103, '00000000-0000-0000-0000-000000000103', false),
+                                            (104, '00000000-0000-0000-0000-000000000104', true);
 `);
 await db.exec(migration);
 await db.exec(migration);   // zweimal einspielen geht
@@ -216,6 +224,74 @@ try {
   // --- Nachhol-Lauf eingeplant
   const [job] = await q(`select * from cron.job where jobname = 'nachrichten-nachholen'`);
   assert.equal(job.schedule, '*/5 * * * *'); assert.match(job.command, /"nachholen": true/);
+
+  // ===================== Teil 2: Menue, Themen fuer alle, Gelesen =====================
+  await db.exec(`create or replace function net.http_post(url text, body jsonb default '{}', params jsonb default '{}', headers jsonb default '{}',
+    timeout_milliseconds integer default 5000) returns bigint language sql as $$
+    insert into net.aufrufe (url, headers, body) values (url, headers, body) returning nr::bigint $$;`);
+  await db.exec(migration2());
+  await db.exec(migration2());   // zweimal einspielen geht
+  const aufrufe = async (fn) => (await q(`select body from net.aufrufe where url like '%/' || $1 order by nr`, [fn])).map((x) => x.body);
+
+  await db.exec('set role service_role');
+  // berechtigte Fahrer: aktiv, Zugang nicht gesperrt, Nr. eindeutig – mit Kopf aus dem Fuhrpark
+  const liste = await q('select * from public.tg_fahrer_liste()');
+  assert.deepEqual(liste.map((x) => x.fahrer_nr).sort(), [101, 102, 103]);
+  assert.deepEqual(liste.find((x) => x.fahrer_nr === 101), { fahrer_nr: 101, name: 'Anna Fahr', kennzeichen: 'W-1111TX', modell: 'Toyota Corolla' });
+  assert.equal(liste.find((x) => x.fahrer_nr === 103).modell, null);
+  // Suche: Name, Nr., Kennzeichen ohne Strich; gesperrte nie; Thema mitliefern
+  const such = async (t) => (await q('select * from public.tg_fahrer_suchen($1)', [t])).map((x) => x.fahrer_nr);
+  assert.deepEqual(await such('anna'), [101]);
+  assert.deepEqual(await such('FAHR'), [101, 102]);
+  assert.deepEqual(await such('102'), [102]);
+  assert.deepEqual(await such('w1111'), [101]);
+  assert.deepEqual(await such('xyz'), []);
+  assert.deepEqual(await such('dora'), []);
+  assert.deepEqual(await such('  '), []);
+  assert.equal(Number((await q(`select thread_id from public.tg_fahrer_suchen('anna')`))[0].thread_id), 77);
+  // an alle: eine Zeile je berechtigtem Fahrer, doppelt = nichts, Push je Fahrer
+  const pushVorher = (await aufrufe('push-senden')).length;
+  assert.equal((await q(`select public.tg_an_alle('Morgen Kontrolle', 'Boyko', 900) n`))[0].n, 3);
+  assert.equal((await q(`select public.tg_an_alle('Morgen Kontrolle', 'Boyko', 900) n`))[0].n, 0, 'Doppelklick legt nichts doppelt an');
+  const alle = await q(`select fahrer_nr, richtung, an_alle, team_name, text from public.nachrichten where tg_message_id = 900 order by fahrer_nr`);
+  assert.deepEqual(alle.map((x) => [x.fahrer_nr, x.richtung, x.an_alle, x.team_name, x.text]),
+    [[101, 'team', true, 'Boyko', 'Morgen Kontrolle'], [102, 'team', true, 'Boyko', 'Morgen Kontrolle'], [103, 'team', true, 'Boyko', 'Morgen Kontrolle']]);
+  assert.equal((await aufrufe('push-senden')).length - pushVorher, 3);
+  await nein(`select public.tg_an_alle('   ', 'Boyko', 901)`, [], /leer/);
+  // neue Team-Nachricht mit Telegram-Id (fuer die Gelesen-Pruefung)
+  const [{ id: t700 }] = await q(`insert into public.nachrichten (fahrer_nr, richtung, text, team_name, tg_message_id) values (101, 'team', 'Neu', 'Stefan', 700) returning id`);
+  await raus();
+
+  // App: zugestellt / an alle
+  await als(ANNA);
+  v = await q('select * from public.fahrer_app_nachrichten()');
+  const anAlle = v.find((m) => m.an_alle);
+  assert.ok(anAlle && anAlle.richtung === 'team' && anAlle.zugestellt === true);
+  assert.ok(v.filter((m) => m.richtung === 'fahrer').every((m) => m.zugestellt === false), 'ohne tg_message_id: noch nicht zugestellt');
+  await raus();
+  await q(`update public.nachrichten set tg_message_id = 4711 where id = (select max(id) from public.nachrichten where fahrer_nr = 101 and richtung = 'fahrer')`);
+  await als(ANNA);
+  v = await q('select * from public.fahrer_app_nachrichten()');
+  assert.equal(v.filter((m) => m.richtung === 'fahrer' && m.zugestellt).length, 1);
+
+  // Gelesen: Trigger meldet nur normale Team-Nachrichten mit Telegram-Id, nicht "an alle"
+  await raus();
+  const gelesenVorher = (await aufrufe('telegram-senden')).filter((b) => b.gelesen).length;
+  await als(ANNA);
+  assert.equal((await q('select public.fahrer_app_nachrichten_gelesen() n'))[0].n, 2);   // 700 + an-alle-Zeile
+  await raus();
+  const gelesen = (await aufrufe('telegram-senden')).filter((b) => b.gelesen).slice(gelesenVorher);
+  assert.deepEqual(gelesen, [{ gelesen: Number(t700) }]);
+
+  // Rechte und Zeitplan
+  await als(ANNA);
+  await nein(`select * from public.tg_fahrer_liste()`, [], /permission denied/);
+  await nein(`select * from public.tg_fahrer_suchen('a')`, [], /permission denied/);
+  await nein(`select public.tg_an_alle('x', 'y', 1)`, [], /permission denied/);
+  await nein(`select * from public.tg_menue`, [], /permission denied/);
+  await raus();
+  const [job2] = await q(`select * from cron.job where jobname = 'themen-pflegen'`);
+  assert.equal(job2.schedule, '*/5 * * * *'); assert.match(job2.command, /"themen": true/);
 
   console.log('Nachrichten: alle Pruefungen bestanden');
 } finally {

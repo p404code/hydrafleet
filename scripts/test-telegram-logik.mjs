@@ -1,7 +1,9 @@
 // node --test scripts/test-telegram-logik.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { esc, kuerzen, vorname, themenName, kopfPost, autoZeile, fahrerZeile, pushText, gleich, einordnen } from '../supabase/functions/_shared/telegram-logik.ts';
+import { esc, kuerzen, vorname, themenName, kopfPost, autoZeile, fahrerZeile, pushText, gleich, einordnen,
+  menueText, menueKnoepfe, infoText, aufforderung, vorschau, vorschauKnoepfe, gesendetText, themaLink, trefferKnoepfe, knopfLesen }
+  from '../supabase/functions/_shared/telegram-logik.ts';
 
 const MAX = { name: 'Max Mustermann', fahrer_nr: 123, kennzeichen: 'W-1234TX', modell: 'Toyota Corolla' };
 const G = -1001234567890;
@@ -63,7 +65,8 @@ test('einordnen: nur Text von Menschen in einem Thema der Gruppe', () => {
   assert.deepEqual(einordnen(nachricht({ text: undefined, photo: [{}], caption: 'Schaden' }), G), { art: 'ohne_text', thread_id: 7 });
   assert.deepEqual(einordnen(nachricht({ text: '   ' }), G), { art: 'ohne_text', thread_id: 7 });
   assert.deepEqual(einordnen({ update_id: 2, edited_message: nachricht({}).message }, G), { art: 'ignorieren', grund: 'kein message' });
-  assert.deepEqual(einordnen({ update_id: 3, callback_query: {} }, G), { art: 'ignorieren', grund: 'kein message' });
+  // seit Teil 2 werden Knopf-Klicks ausgewertet – ohne Gruppen-Chat bleiben sie ignoriert
+  assert.deepEqual(einordnen({ update_id: 3, callback_query: {} }, G), { art: 'ignorieren', grund: 'fremder chat' });
 });
 
 test('einordnen: anonymer Admin zaehlt als Team, Name aus der Signatur', () => {
@@ -75,4 +78,66 @@ test('einordnen: anonymer Admin zaehlt als Team, Name aus der Signatur', () => {
 test('einordnen: Text wird auf 2000 gekuerzt', () => {
   const e = einordnen(nachricht({ text: 'z'.repeat(3000) }), G);
   assert.equal(e.art, 'team'); assert.ok(e.text.length <= 2000);
+});
+
+// ---------------- Teil 2: Menue ----------------
+const BOT = 8960907965;
+const knopf = (x) => ({ update_id: 5, callback_query: { id: 'cb1', data: 'menue:alle', from: { id: 9, is_bot: false, first_name: 'Boyko' },
+  message: { message_id: 3, chat: { id: G, type: 'supergroup' } }, ...x } });
+const allgemein = (x) => ({ update_id: 6, message: { message_id: 60, chat: { id: G, type: 'supergroup', is_forum: true },
+  from: { id: 9, is_bot: false, first_name: 'Boyko' }, text: 'Morgen Kontrolle',
+  reply_to_message: { message_id: 55, from: { id: BOT, is_bot: true, first_name: 'HydraLink' } }, ...x } });
+
+test('einordnen: Knopf-Klick nur aus der Gruppe', () => {
+  assert.deepEqual(einordnen(knopf({}), G, BOT), { art: 'knopf', id: 'cb1', daten: 'menue:alle', von: { id: 9, name: 'Boyko' }, message_id: 3 });
+  assert.deepEqual(einordnen(knopf({ message: { message_id: 3, chat: { id: -100999 } } }), G, BOT), { art: 'ignorieren', grund: 'fremder chat' });
+});
+
+test('einordnen: Antwort in Allgemein nur auf eine Nachricht des Bots', () => {
+  assert.deepEqual(einordnen(allgemein({}), G, BOT),
+    { art: 'allgemein_antwort', antwort_auf: 55, text: 'Morgen Kontrolle', von: { id: 9, name: 'Boyko' }, message_id: 60 });
+  assert.equal(einordnen(allgemein({ reply_to_message: { message_id: 55, from: { id: 7, is_bot: false } } }), G, BOT).art, 'ignorieren');
+  assert.equal(einordnen(allgemein({ reply_to_message: { message_id: 55, from: { id: 123, is_bot: true } } }), G, BOT).art, 'ignorieren', 'anderer Bot');
+  assert.equal(einordnen(allgemein({ reply_to_message: undefined }), G, BOT).art, 'ignorieren');
+  assert.equal(einordnen(allgemein({ text: undefined, photo: [{}] }), G, BOT).art, 'ignorieren');
+  assert.equal(einordnen(allgemein({ from: { id: 1, is_bot: true } }), G, BOT).art, 'ignorieren');
+  // Themen-Nachricht bleibt wie in Teil 1
+  assert.equal(einordnen(nachricht({}), G, BOT).art, 'team');
+});
+
+test('knopfLesen', () => {
+  assert.deepEqual(knopfLesen('menue:alle'), { aktion: 'menue', wert: 'alle' });
+  assert.deepEqual(knopfLesen('menue:info'), { aktion: 'menue', wert: 'info' });
+  assert.deepEqual(knopfLesen('alle:ok:123'), { aktion: 'alle_ok', id: 123 });
+  assert.deepEqual(knopfLesen('alle:nein:123'), { aktion: 'alle_nein', id: 123 });
+  assert.equal(knopfLesen('menue:boese'), null);
+  assert.equal(knopfLesen('alle:ok:x'), null);
+  assert.equal(knopfLesen(undefined), null);
+});
+
+test('Menue, Info, Aufforderung', () => {
+  assert.match(menueText(), /Fahrer-Chat/);
+  assert.deepEqual(menueKnoepfe().inline_keyboard.map((z) => z[0].callback_data), ['menue:alle', 'menue:suche', 'menue:info']);
+  assert.match(infoText(), /👍/); assert.match(infoText(), /👀/);
+  assert.equal(aufforderung('alle', '<Bo>', 9), '📢 <a href="tg://user?id=9">&lt;Bo&gt;</a>, schreib die Nachricht an alle Fahrer (als Antwort hierauf):');
+  assert.equal(aufforderung('suche', 'Bo', 9), '🔎 <a href="tg://user?id=9">Bo</a>, Name, Fahrer-Nr. oder Kennzeichen? (als Antwort hierauf)');
+});
+
+test('Vorschau und Bestaetigung: escaped, Knoepfe mit Id, Laenge begrenzt', () => {
+  assert.equal(vorschau('a < b', 54), '📢 An 54 Fahrer senden?\n\n„a &lt; b“');
+  assert.ok(vorschau('&'.repeat(2000), 54).length <= 4096);
+  assert.deepEqual(vorschauKnoepfe(77).inline_keyboard[0].map((k) => k.callback_data), ['alle:ok:77', 'alle:nein:77']);
+  assert.equal(gesendetText(54, 'Boyko', 'Hi'), '✅ An 54 Fahrer geschickt (von Boyko):\n„Hi“');
+});
+
+test('Themen-Link und Treffer-Knoepfe', () => {
+  assert.equal(themaLink(-1004453022013, 13), 'https://t.me/c/4453022013/13');
+  const k = trefferKnoepfe([{ fahrer_nr: 200, name: 'Murad Izrailov', kennzeichen: 'W-1TX', thread_id: 13 },
+                           { fahrer_nr: 201, name: 'Ohne Thema', kennzeichen: null, thread_id: null }], -1004453022013);
+  assert.deepEqual(k.inline_keyboard, [[{ text: '🚕 Murad Izrailov · #200 · W-1TX', url: 'https://t.me/c/4453022013/13' }]]);
+});
+
+test('pushText an alle', () => {
+  assert.equal(pushText('Boyko', 'Kontrolle', true), 'Boyko (an alle): Kontrolle');
+  assert.equal(pushText('Boyko', 'Kontrolle', false), 'Boyko: Kontrolle');
 });

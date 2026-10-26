@@ -12,7 +12,7 @@ HYDRAlink is the internal web dashboard for **HYDRAFLEET**, a taxi/ride-sharing 
 - **Automation**: n8n (self-hosted on Hetzner) — CSV processing, invoice PDF generation, Notion→`fahrer` sync
 - **Plattform-Sync**: Supabase Edge Functions (Deno) + `pg_cron`/`pg_net` — Bolt, Uber, Notion
 - **Driver/Vehicle master data**: Notion (source of truth — never replace)
-- **Notifications**: Telegram (implemented but currently deactivated)
+- **Notifications**: Fahrer-Nachrichten über Telegram-Themen + Web-Push (seit 2026-10-26, Abschnitt „Nachrichten“)
 - **Fonts**: Fraunces (logo), Inter (UI)
 - **Branding**: "HYDRA" bold + "link" in gold (#F5B51B), dark theme default
 
@@ -313,6 +313,29 @@ Migration `2026-10-18-abrechnung-api-automatisch.sql`.
   leerer Text zählt nicht, letzter Eintrag gewinnt). KW42 am 18.10. von Claude importiert (25 Terminals zugeordnet, 4 ohne Fahrer,
   120,88 €). Import künftiger Wochen: noch von Hand (Datei schicken) – Upload im Dashboard fehlt.
 
+## Nachrichten (seit 2026-10-26)
+
+Spec `docs/superpowers/specs/2026-10-22-fahrer-nachrichten-telegram-design.md`, Plan `docs/superpowers/plans/2026-10-26-fahrer-nachrichten-telegram.md`.
+Chat Fahrer ↔ Büro: Fahrer schreibt in der Fahrerapp (Reiter Nachrichten), das Büro antwortet in der **Telegram-Team-Gruppe,
+ein Thema je Fahrer**. Alles, was im Fahrer-Thema geschrieben wird, geht an den Fahrer; „Allgemein“ ist intern und wird nie gespeichert.
+- Schlüssel ist die **Notion-Fahrer-Nr.** (`fahrer_nr`), nicht `fahrer.id`. Tabellen `nachrichten`, `tg_themen` (Nr. → Thema),
+  `push_abos` – RLS, Büro liest nur `nachrichten`, geschrieben wird nur über `fahrer_app_nachricht_senden` / `_gelesen` / `fahrer_app_push_abo`
+  (Fahrer) und `service_role` (Functions). Kein Protokoll-Trigger (das Büro schreibt hier nicht).
+- Trigger `nachrichten_weiterleiten` (pg_net): `fahrer` → `telegram-senden`, `team` → `push-senden`. Cron `nachrichten-nachholen`
+  (5 Min) schickt Fahrer-Nachrichten ohne `tg_message_id` nach (max. 5 Versuche, Fehler in `tg_fehler`).
+- `telegram-senden` legt das Thema beim ersten Mal an (`tg_thema_reservieren`, atomar), öffnet geschlossene wieder, legt gelöschte neu an,
+  benennt bei Autowechsel um. `telegram-webhook` (`verify_jwt = false`, Header `X-Telegram-Bot-Api-Secret-Token`) speichert Team-Nachrichten
+  aus Fahrer-Themen und setzt 👍 (= angekommen). Bot ist Admin mit „Themen verwalten“ und bekommt deshalb alle Gruppennachrichten.
+- `push-senden`: Web-Push ohne Bibliothek (`_shared/webpush.ts`, aes128gcm + VAPID), 404/410 löscht das Abo. iPhone nur als Home-Bildschirm-App.
+- Secrets (nur Edge Functions): `TELEGRAM_BOT_TOKEN`, `TELEGRAM_GRUPPE_ID`, `TELEGRAM_WEBHOOK_SECRET`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+  `VAPID_SUBJECT`. Einrichten/prüfen: `pbpaste | node scripts/telegram-einrichten.mjs einrichten|pruefen` (Token aus der Zwischenablage).
+  `--neue-vapid` macht alle Push-Abos ungültig. Der öffentliche VAPID-Key steht als `VAPID_PUBLIC` in `fahrer/index.html`.
+  Nicht derselbe Bot wie der USP-Bot.
+- Gruppe „HydraLink_Fahrer Kommunikation“ (`-1004453022013`), Bot `@hydralink_Fahrer_bot` (Admin, nur „Themen verwalten“).
+- Team-Regeln: im Fahrer-Thema = an den Fahrer; Absprache in „Allgemein“; Bearbeiten kommt nicht an; Fotos/Sprachnachrichten noch nicht.
+- Tests: `PGLITE=/tmp/pglite node scripts/test-nachrichten.mjs`, `node --test scripts/test-telegram-logik.mjs scripts/test-webpush.mjs`.
+  Testzeilen mit `fahrer_nr = 999999` stammen vom Live-Test am Einrichtungstag.
+
 ## Key Supabase Tables
 
 **Bestehend (altes System, nicht anfassen):**
@@ -449,4 +472,4 @@ deployte Fassung wieder angleichen.
 | Uber | Fleet-Portal (Sitzung) | `fleethub.uber.com` |
 | Cloudflare Pages | Static hosting | Auto-deploy from GitHub |
 | Nginx Proxy Manager | SSL for webhooks | `webhook.hydrafleet.at` |
-| Telegram | Driver notifications | Implemented, currently deactivated |
+| Telegram | Fahrer-Nachrichten (Team-Gruppe, ein Thema je Fahrer) | Bot-Token als Edge-Function-Secret |

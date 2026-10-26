@@ -294,3 +294,50 @@ Das Token des USP-Bots (anderer Bot) ist davon unberührt.
 - Antworten und Themen direkt aus dem Dashboard (schreibt `richtung 'team'` mit Büro-Namen; dann Protokoll-Trigger nötig)
 - Büro schreibt einem Fahrer zuerst, der noch kein Thema hat (Thema aus dem Dashboard anlegen)
 - App-Store-Version: nur den Push-Kanal auf nativ umstellen
+
+---
+
+# Teil 2: Menü, Themen für alle, Gelesen-Anzeige (26.10.2026)
+
+Vom Betreiber am 26.10. freigegeben, nachdem Teil 1 live war. Reihenfolge danach: Fotos, dann Sprachnachrichten (eigene Entwürfe).
+
+## Themen für alle Fahrer
+- Jeder **aktive Fahrer mit App-Zugang** (nicht gesperrt, Notion-Nr. eindeutig – heute 54) bekommt ein Thema, auch ohne eigene
+  Nachricht. Fahrer ohne App-Zugang nicht (sie könnten nichts lesen).
+- Lauf `themen-pflegen` (pg_cron alle 5 Min → `telegram-senden` `{themen: true}`): legt fehlende Themen an (Kopf-Post wie in Teil 1),
+  benennt bei Autowechsel um. Telegram erlaubt ~20 Nachrichten/Min in einer Gruppe → höchstens 6 neue Themen je Lauf mit Pause;
+  der erste Durchgang dauert ~45 Min. Der Lauf ruft die Function nur, wenn es etwas zu tun gibt.
+- Fahrerliste mit Kopf kommt aus der DB (`tg_fahrer_liste()`, nur service_role, gleicher Fuhrpark-Join wie `fahrer_app_profil`).
+
+## Menü in „Allgemein“
+Angeheftete Bot-Nachricht mit drei Knöpfen (eingerichtet per `scripts/telegram-einrichten.mjs menue`):
+
+- **📢 Nachricht an alle Fahrer** → Bot: „Schreib die Nachricht an alle Fahrer:“ (Antwortfeld nur beim Klicker, force_reply +
+  selective mit Erwähnung) → Antwort → Vorschau „An 54 Fahrer senden? „…““ mit **[✅ Senden] [✖ Abbrechen]** → nur der Klicker darf
+  bestätigen (andere: „Nur <Name> kann das senden“) → je Fahrer eine Zeile `nachrichten` (`richtung 'team'`, `an_alle = true`) →
+  Push an jeden → Bot ersetzt die Vorschau durch „✅ An 54 Fahrer geschickt (von <Name>)“. In die Themen wird nichts kopiert.
+  Entwürfe verfallen nach 24 h.
+- **🔎 Fahrer finden** → Bot: „Name, Fahrer-Nr. oder Kennzeichen?“ → Antwort → bis zu 8 Treffer als Knöpfe mit Link ins Thema
+  (`https://t.me/c/<Gruppen-ID ohne -100>/<thread>`); keine Treffer → „Kein Fahrer gefunden“.
+- **ℹ️ So funktioniert's** → Bot antwortet mit den Regeln (Thema = an den Fahrer, „Allgemein“ intern, 👍 angekommen, 👀 gelesen,
+  Bearbeiten kommt nicht an, Fotos/Sprache noch nicht).
+
+Gespeichert wird aus „Allgemein“ nur: offene Menü-Schritte (`tg_menue`: Bot-Nachricht, Art, Telegram-Nutzer, Entwurf) und die
+bestätigte Nachricht an alle. Alles andere in „Allgemein“ bleibt wie bisher unbeachtet. Webhook bekommt zusätzlich `callback_query`
+(nur aus der Gruppe). Bot braucht zusätzlich das Admin-Recht **„Nachrichten anheften“**.
+
+## Gelesen-Anzeige
+- **Telegram:** Öffnet der Fahrer den Chat (`fahrer_app_nachrichten_gelesen`), ersetzt der Bot die Reaktion 👍 auf jeder dadurch
+  gelesenen Team-Nachricht durch 👀 (Trigger auf `gelesen_am` → `telegram-senden` `{gelesen: id}`). Nicht bei Nachrichten an alle.
+- **App:** unter eigenen Nachrichten „✓“ sobald sie in der Gruppe steht (`tg_message_id` gesetzt), sonst „wird zugestellt“.
+  Nachrichten an alle tragen „an alle“ neben dem Namen. „Büro hat gelesen“ gibt es nicht (Telegram meldet das Bots nicht).
+
+## Datenbank (Migration `2026-10-26-nachrichten-menue.sql`)
+- `nachrichten.an_alle boolean not null default false`; Unique-Index Team-Nachrichten neu auf `(tg_message_id, fahrer_nr)`.
+- `tg_menue(prompt_message_id bigint PK, art text check in ('alle','suche'), tg_user_id bigint, tg_name text, entwurf text,
+  vorschau_message_id bigint, erstellt_am)` – RLS an, nur service_role.
+- `tg_fahrer_liste()` → `(fahrer_nr, name, kennzeichen, modell)` der berechtigten Fahrer; `tg_fahrer_suchen(q)` → bis 8 Treffer mit
+  `thread_id`; `tg_an_alle(p_text, p_team_name, p_tg_message_id)` legt die Zeilen atomar an und liefert die Anzahl (nur service_role,
+  doppelter Aufruf mit gleicher `tg_message_id` legt nichts doppelt an).
+- `fahrer_app_nachrichten` liefert zusätzlich `zugestellt` und `an_alle`.
+- Trigger `nachrichten_gelesen_melden` (after update of `gelesen_am`), Cron `themen-pflegen`.

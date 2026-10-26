@@ -302,6 +302,9 @@ Das Token des USP-Bots (anderer Bot) ist davon unberührt.
 Vom Betreiber am 26.10. freigegeben, nachdem Teil 1 live war. Reihenfolge danach: Fotos, dann Sprachnachrichten (eigene Entwürfe).
 
 ## Themen für alle Fahrer
+**Am 26.10. wieder abgeschaltet** (Betreiber: zu viele offene Themen). Themen entstehen nur, wenn ein Fahrer schreibt;
+`migrations/2026-10-26-themen-lauf-aus.sql`. Der folgende Absatz beschreibt den abgeschalteten Stand.
+
 - Jeder **aktive Fahrer mit App-Zugang** (nicht gesperrt, Notion-Nr. eindeutig – heute 54) bekommt ein Thema, auch ohne eigene
   Nachricht. Fahrer ohne App-Zugang nicht (sie könnten nichts lesen).
 - Lauf `themen-pflegen` (pg_cron alle 5 Min → `telegram-senden` `{themen: true}`): legt fehlende Themen an (Kopf-Post wie in Teil 1),

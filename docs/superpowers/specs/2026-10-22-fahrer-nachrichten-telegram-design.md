@@ -344,3 +344,43 @@ bestätigte Nachricht an alle. Alles andere in „Allgemein“ bleibt wie bisher
   doppelter Aufruf mit gleicher `tg_message_id` legt nichts doppelt an).
 - `fahrer_app_nachrichten` liefert zusätzlich `zugestellt` und `an_alle`.
 - Trigger `nachrichten_gelesen_melden` (after update of `gelesen_am`), Cron `themen-pflegen`.
+
+---
+
+# Teil 3: Fotos und Sprachnachrichten (26.10.2026)
+
+Vom Betreiber freigegeben: **beide Richtungen**, **Dateien nur in Telegram** (HYDRAlink speichert keine Datei, nur die
+Telegram-`file_id`). Videos, Dokumente, Sticker weiterhin nicht (Hinweis im Thema).
+
+## Fahrer → Büro
+- App: neben dem Eingabefeld **📷** (Kamera/Galerie, `<input type=file accept=image/*>`) und **🎤** (antippen = Aufnahme startet,
+  Leiste „● 0:07 [✖] [Senden]“; höchstens 3 Minuten, dann automatisch senden). Abweichung vom Entwurf (gedrückt halten): die
+  Mikrofon-Erlaubnis unterbricht beim ersten Mal das Halten, und Antippen ist beim Fahren sicherer.
+- Foto wird in der App auf längste Seite 1600 px verkleinert (JPEG 0,8). Sprache: `MediaRecorder`, Format in dieser Reihenfolge
+  `audio/mp4` → `audio/ogg;codecs=opus` → `audio/webm;codecs=opus`. Höchstens 5 MB je Datei.
+- Upload an die neue Edge Function **`anhang-senden`** (verify_jwt an, Fahrer-JWT; Dashboard-User/Vorschau abgelehnt):
+  Fahrer über `fahrer_app_profil()` mit seinem JWT, Spam-Limit wie Text (10 in 10 Min), Thema über `telegram-senden {thema}`,
+  dann `sendPhoto` / `sendVoice` (Fallback `sendAudio`) ins Thema mit Bildunterschrift „<b>Max:</b> …“. Danach eine Zeile
+  `nachrichten` (`richtung 'fahrer'`, `anhang`, `tg_file_id`, `dauer`, `tg_message_id` schon gesetzt → `telegram-senden` tut nichts).
+
+## Büro → Fahrer
+- `telegram-webhook`: Foto (größte Auflösung) oder Sprachnachricht (`voice`, auch `audio`) im Fahrer-Thema → Zeile wie eine
+  Team-Nachricht mit `anhang`, `tg_file_id`, `dauer`, Bildunterschrift als Text; 👍 wie bisher. Videos/Dokumente/Sticker → Hinweis
+  „Videos, Dateien und Sticker kommen beim Fahrer nicht an – Fotos und Sprachnachrichten schon.“
+- Push: „Büro: 📷 Foto“ / „Büro: 🎤 Sprachnachricht (0:12)“ (+ Bildunterschrift).
+
+## Anzeigen
+- Neue Edge Function **`anhang`** (verify_jwt an): `GET …/anhang?id=<nachricht>` mit Fahrer- oder Büro-JWT. Prüft über
+  `fahrer_app_anhang(p_id)` (mit dem JWT des Aufrufers, gleiche Regel wie `fahrer_app_nachrichten`: Fahrer nur eigene, Büro
+  Vorschau), holt per `getFile` + Download bei Telegram und reicht die Datei durch (`Content-Type` aus der Endung,
+  `Cache-Control: private, max-age=86400`). Token nie in Antwort oder Fehler.
+- App lädt Anhänge per `fetch` mit Authorization als Blob (Objekt-URL, im Speicher zwischengespeichert). Foto: Vorschaubild in der
+  Blase, Tippen = groß. Sprache: ▶ mit Dauer. Kann das Gerät OGG/Opus nicht abspielen (`canPlayType`), dekodiert die App mit
+  `ogg-opus-decoder` (jsDelivr, erst bei Bedarf geladen) zu WAV.
+- Telegram liefert Dateien bis 20 MB; ist eine Datei bei Telegram weg, zeigt die Blase „nicht mehr verfügbar“.
+
+## Datenbank (Migration `2026-10-26-nachrichten-anhaenge.sql`)
+- `nachrichten`: `anhang text check in ('foto','sprache')`, `tg_file_id text`, `dauer integer`; Text-Regel: ohne Anhang 1–2000
+  Zeichen, mit Anhang 0–2000.
+- `fahrer_app_nachrichten` zusätzlich `anhang`, `dauer` (Team-Name weiter nur „Büro“).
+- `fahrer_app_anhang(p_id bigint, p_fahrer_id integer default null) → (tg_file_id, anhang)` – nur eigene bzw. Vorschau.

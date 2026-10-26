@@ -150,3 +150,14 @@ test('Gelesen: 👀 auf die Team-Nachricht, nicht bei an alle', async () => {
   const r = W.tg.filter((c) => c.methode === 'setMessageReaction');
   assert.deepEqual(r.map((c) => [c.message_id, c.reaction[0].emoji]), [[55, '👀']]);
 });
+
+test('Thema auf Wunsch (Chat starten): anlegen bzw. vorhandenes liefern', async () => {
+  neueWelt();
+  W.liste = [{ fahrer_nr: 7, name: 'Max Muster', kennzeichen: 'W-1111TX', modell: 'Corolla' }];
+  assert.deepEqual(await lauf({ thema: 7 }), { thread_id: 100 });
+  assert.equal(W.tg.filter((c) => c.methode === 'createForumTopic').length, 1);
+  assert.deepEqual(await lauf({ thema: 7 }), { thread_id: 100 }, 'zweimal = dasselbe Thema');
+  assert.equal(W.tg.filter((c) => c.methode === 'createForumTopic').length, 1);
+  const r = await handler(new Request('http://f', { method: 'POST', headers: { Authorization: 'Bearer ' + SERVICE }, body: JSON.stringify({ thema: 8 }) }));
+  assert.equal(r.status, 404);
+});

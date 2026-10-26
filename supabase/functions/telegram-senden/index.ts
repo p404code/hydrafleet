@@ -161,6 +161,16 @@ Deno.serve(async (req) => {
   const b = await req.json().catch(() => ({}));
   if (b?.themen === true) return antwort(200, await themenPflegen());
   if (Number.isInteger(b?.gelesen)) return antwort(200, await gelesen(b.gelesen));
+  if (Number.isInteger(b?.thema)) {   // "Chat starten" aus dem Menue: Thema fuer genau diesen Fahrer
+    const f = (await db("rpc/tg_fahrer_liste", { method: "POST", body: "{}" })).find((x: any) => x.fahrer_nr === b.thema);
+    if (!f) return antwort(404, { fehler: "kein_fahrer" });
+    try {
+      return antwort(200, { thread_id: await themaHolen(f.fahrer_nr, { name: f.name, fahrer_nr: f.fahrer_nr, kennzeichen: f.kennzeichen, modell: f.modell }) });
+    } catch (e) {
+      console.warn("thema", b.thema, (e as Error).message);
+      return antwort(500, { fehler: "thema_nicht_angelegt" });
+    }
+  }
   let ids: number[];
   if (b?.nachholen === true) {
     const grenze = new Date(Date.now() - 2 * 60 * 1000).toISOString();

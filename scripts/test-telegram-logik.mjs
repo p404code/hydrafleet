@@ -110,6 +110,8 @@ test('knopfLesen', () => {
   assert.deepEqual(knopfLesen('menue:info'), { aktion: 'menue', wert: 'info' });
   assert.deepEqual(knopfLesen('alle:ok:123'), { aktion: 'alle_ok', id: 123 });
   assert.deepEqual(knopfLesen('alle:nein:123'), { aktion: 'alle_nein', id: 123 });
+  assert.deepEqual(knopfLesen('start:201'), { aktion: 'start', nr: 201 });
+  assert.equal(knopfLesen('start:abc'), null);
   assert.equal(knopfLesen('menue:boese'), null);
   assert.equal(knopfLesen('alle:ok:x'), null);
   assert.equal(knopfLesen(undefined), null);
@@ -134,7 +136,9 @@ test('Themen-Link und Treffer-Knoepfe', () => {
   assert.equal(themaLink(-1004453022013, 13), 'https://t.me/c/4453022013/13');
   const k = trefferKnoepfe([{ fahrer_nr: 200, name: 'Murad Izrailov', kennzeichen: 'W-1TX', thread_id: 13 },
                            { fahrer_nr: 201, name: 'Ohne Thema', kennzeichen: null, thread_id: null }], -1004453022013);
-  assert.deepEqual(k.inline_keyboard, [[{ text: '🚕 Murad Izrailov · #200 · W-1TX', url: 'https://t.me/c/4453022013/13' }]]);
+  // ohne Thema: Knopf "Chat starten" – das Thema entsteht erst beim Klick (Themen fuer alle wurde am 26.10. verworfen)
+  assert.deepEqual(k.inline_keyboard, [[{ text: '🚕 Murad Izrailov · #200 · W-1TX', url: 'https://t.me/c/4453022013/13' }],
+                                       [{ text: '💬 Chat starten: Ohne Thema · #201', callback_data: 'start:201' }]]);
 });
 
 test('pushText an alle', () => {

@@ -6,7 +6,7 @@
 // Teil 2: Menue in "Allgemein" (Knoepfe an alle / Fahrer finden / Info). Offene Schritte in tg_menue; gespeichert wird aus
 // "Allgemein" nur der Entwurf einer Nachricht an alle und – nach Bestaetigung durch denselben Nutzer – die Nachricht selbst.
 import {
-  aufforderung, einordnen, gesendetText, gleich, infoText, knopfLesen, trefferKnoepfe, vorschau, vorschauKnoepfe,
+  aufforderung, einordnen, esc, gesendetText, gleich, infoText, knopfLesen, themaLink, trefferKnoepfe, vorschau, vorschauKnoepfe,
 } from "../_shared/telegram-logik.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -99,6 +99,18 @@ async function knopf(e: { id: string; daten: string; von: { id: number; name: st
         body: JSON.stringify({ prompt_message_id: m.message_id, art: k.wert, tg_user_id: e.von.id, tg_name: e.von.name }) });
       return leer(200);
     }
+    if (k.aktion === "start") {   // "Chat starten": Thema erst jetzt anlegen (telegram-senden kennt die Telegram-Logik dafuer)
+      const f = (await dbJson("rpc/tg_fahrer_liste", { method: "POST", body: "{}" })).find((x: any) => x.fahrer_nr === k.nr);
+      if (!f) { await antworte("Fahrer nicht gefunden"); return leer(200); }
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/telegram-senden`, { method: "POST", headers: kopf, body: JSON.stringify({ thema: k.nr }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.thread_id) { await antworte("Hat nicht geklappt – bitte nochmal"); return leer(200); }
+      await antworte();
+      await tg("sendMessage", { chat_id: GRUPPE, parse_mode: "HTML",
+        text: `💬 Chat mit <b>${esc(f.name)}</b> ist bereit – was ihr dort schreibt, geht an den Fahrer.`,
+        reply_markup: { inline_keyboard: [[{ text: "➡️ Zum Chat", url: themaLink(GRUPPE, Number(j.thread_id)) }]] } });
+      return leer(200);
+    }
     // ✅ Senden / ✖ Abbrechen einer Nachricht an alle
     const z = await menueZeile(k.id);
     if (!z || z.art !== "alle" || !z.entwurf || abgelaufen(z)) { await antworte("Abgelaufen – bitte neu über das Menü"); return leer(200); }
@@ -134,9 +146,7 @@ async function menueAntwort(e: { antwort_auf: number; text: string; von: { id: n
     if (z.art === "suche") {
       const treffer = await dbJson("rpc/tg_fahrer_suchen", { method: "POST", body: JSON.stringify({ p_q: e.text }) });
       const knoepfe = trefferKnoepfe(treffer, GRUPPE);
-      const ohneThema = treffer.length - knoepfe.inline_keyboard.length;
-      const text = !treffer.length ? "Kein Fahrer gefunden."
-        : (ohneThema ? `Gefunden (${ohneThema} noch ohne Thema – kommt in den nächsten Minuten):` : "Gefunden:");
+      const text = treffer.length ? "Gefunden:" : "Kein Fahrer gefunden.";
       await tg("sendMessage", { chat_id: GRUPPE, text, reply_parameters: { message_id: e.message_id, allow_sending_without_reply: true },
         ...(knoepfe.inline_keyboard.length ? { reply_markup: knoepfe } : {}) });
       await menueWeg(z.prompt_message_id);

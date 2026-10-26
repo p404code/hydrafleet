@@ -152,14 +152,18 @@ export function gesendetText(anzahl: number, name: string, text: string): string
 export function themaLink(gruppeId: string | number, threadId: number): string {
   return `https://t.me/c/${String(gruppeId).replace(/^-100/, "")}/${threadId}`;
 }
+// Treffer mit Thema: Link hinein; ohne Thema: "Chat starten" (das Thema entsteht erst beim Klick)
 export function trefferKnoepfe(treffer: Treffer[], gruppeId: string | number) {
-  return { inline_keyboard: treffer.filter((t) => t.thread_id).map((t) => [{
-    text: kuerzen(["🚕 " + sauber(t.name), "#" + t.fahrer_nr, sauber(t.kennzeichen)].filter((x) => x && x !== "#null").join(" · "), 60),
-    url: themaLink(gruppeId, Number(t.thread_id)),
-  }]) };
+  const name = (t: Treffer) => [sauber(t.name), "#" + t.fahrer_nr, sauber(t.kennzeichen)].filter((x) => x && x !== "#null").join(" · ");
+  return { inline_keyboard: treffer.map((t) => [t.thread_id
+    ? { text: kuerzen("🚕 " + name(t), 60), url: themaLink(gruppeId, Number(t.thread_id)) }
+    : { text: kuerzen("💬 Chat starten: " + name(t), 60), callback_data: `start:${t.fahrer_nr}` }]) };
 }
-export function knopfLesen(d: unknown): { aktion: "menue"; wert: "alle" | "suche" | "info" } | { aktion: "alle_ok" | "alle_nein"; id: number } | null {
+export function knopfLesen(d: unknown): { aktion: "menue"; wert: "alle" | "suche" | "info" } | { aktion: "alle_ok" | "alle_nein"; id: number }
+  | { aktion: "start"; nr: number } | null {
   const s = String(d ?? "");
+  const m0 = /^start:(\d{1,9})$/.exec(s);
+  if (m0) return { aktion: "start", nr: Number(m0[1]) };
   const m1 = /^menue:(alle|suche|info)$/.exec(s);
   if (m1) return { aktion: "menue", wert: m1[1] as "alle" | "suche" | "info" };
   const m2 = /^alle:(ok|nein):(\d{1,15})$/.exec(s);

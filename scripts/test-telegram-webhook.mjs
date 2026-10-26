@@ -12,7 +12,7 @@ let W;
 const FAHRER = [{ fahrer_nr: 200, name: 'Murad Izrailov', kennzeichen: 'W-1TX', modell: null },
                 { fahrer_nr: 201, name: 'Anna Fahr', kennzeichen: 'W-2TX', modell: null }];
 function neueWelt() {
-  W = { tg_menue: [], tg_themen: [{ fahrer_nr: 200, thread_id: 13 }], nachrichten: [], naechsteMsg: 1000, tg: [] };
+  W = { tg_menue: [], tg_themen: [{ fahrer_nr: 200, thread_id: 13 }], nachrichten: [], naechsteMsg: 1000, tg: [], themaAufrufe: [] };
 }
 const tick = () => new Promise((r) => setImmediate(r));
 const json = (status, body) => new Response(body == null ? null : JSON.stringify(body), { status });
@@ -30,6 +30,12 @@ globalThis.fetch = async (url, init = {}) => {
     const methode = u.pathname.split('/').pop();
     W.tg.push({ methode, ...body });
     return json(200, { ok: true, result: methode === 'sendMessage' ? { message_id: W.naechsteMsg++ } : true });
+  }
+  if (u.pathname === '/functions/v1/telegram-senden') {          // Thema auf Wunsch anlegen
+    W.themaAufrufe.push(body);
+    if (!FAHRER.some((f) => f.fahrer_nr === body.thema)) return json(404, { fehler: 'kein_fahrer' });
+    W.tg_themen.push({ fahrer_nr: body.thema, thread_id: 55 });
+    return json(200, { thread_id: 55 });
   }
   const pfad = u.pathname.replace('/rest/v1/', '');
   if (pfad === 'rpc/tg_fahrer_liste') return json(200, FAHRER);
@@ -157,4 +163,19 @@ test('Team-Nachricht im Fahrer-Thema wie in Teil 1 (👍)', async () => {
     from: { id: 9, is_bot: false, first_name: 'Boyko' }, text: 'Hallo Murad' } });
   assert.deepEqual(W.nachrichten.map((n) => [n.fahrer_nr, n.text, n.team_name]), [[200, 'Hallo Murad', 'Boyko']]);
   assert.equal(letzte('setMessageReaction').reaction[0].emoji, '👍');
+});
+
+test('Fahrer finden ohne Thema: Chat starten legt das Thema an und verlinkt es', async () => {
+  neueWelt();
+  await klick('menue:suche');
+  await antwort(1000, 'anna');
+  assert.deepEqual(letzte('sendMessage').reply_markup.inline_keyboard, [[{ text: '💬 Chat starten: Anna Fahr · #201 · W-2TX', callback_data: 'start:201' }]]);
+  await klick('start:201');
+  assert.deepEqual(W.themaAufrufe, [{ thema: 201 }]);
+  const m = letzte('sendMessage');
+  assert.match(m.text, /Anna Fahr/);
+  assert.deepEqual(m.reply_markup.inline_keyboard, [[{ text: '➡️ Zum Chat', url: 'https://t.me/c/4453022013/55' }]]);
+  // unbekannter Fahrer
+  await klick('start:999');
+  assert.equal(letzte('answerCallbackQuery').text, 'Fahrer nicht gefunden');
 });

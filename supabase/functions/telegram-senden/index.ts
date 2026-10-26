@@ -1,5 +1,6 @@
 // telegram-senden – Fahrer-Nachricht ins Telegram-Thema des Fahrers (Team-Gruppe); legt das Thema beim ersten Mal an.
 // Nur service_role: Trigger nachrichten_weiterleiten ({id}) und Nachhol-Lauf nachrichten-nachholen ({nachholen: true}).
+// Teil 2: Lauf themen-pflegen ({themen: true}) legt Themen fuer alle Fahrer mit App an, Trigger gelesen ({gelesen: id}) setzt 👀.
 // Secrets TELEGRAM_BOT_TOKEN, TELEGRAM_GRUPPE_ID setzt scripts/telegram-einrichten.mjs.
 // Das Token steckt in der URL – Fehlermeldungen deshalb nie aus fetch() durchreichen (sie enthalten die URL).
 import { autoZeile, fahrerZeile, kopfPost, themenName, type Kopf } from "../_shared/telegram-logik.ts";
@@ -8,6 +9,9 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
 const GRUPPE = Deno.env.get("TELEGRAM_GRUPPE_ID") ?? "";
+// Telegram erlaubt ~20 Nachrichten/Min in einer Gruppe; ein neues Thema kostet zwei (Anlegen + Kopf-Post)
+const THEMEN_JE_LAUF = 6;
+const THEMEN_PAUSE_MS = Number(Deno.env.get("TELEGRAM_THEMEN_PAUSE_MS") ?? 3500);
 const kopf = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" };
 const antwort = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });
 const warte = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -112,11 +116,51 @@ async function senden(id: number): Promise<{ id: number; ok: boolean; fehler?: s
   }
 }
 
+// Themen fuer alle berechtigten Fahrer: fehlende anlegen, bei Autowechsel umbenennen – in Etappen
+async function themenPflegen() {
+  const liste = await db("rpc/tg_fahrer_liste", { method: "POST", body: "{}" });
+  const themen = new Map((await db("tg_themen?select=fahrer_nr,thread_id,kennzeichen")).map((t: any) => [t.fahrer_nr, t]));
+  let angelegt = 0, umbenannt = 0, rest = 0;
+  for (const f of liste) {
+    const t: any = themen.get(f.fahrer_nr);
+    const k: Kopf = { name: f.name, fahrer_nr: f.fahrer_nr, kennzeichen: f.kennzeichen, modell: f.modell };
+    const fehlt = !t || !t.thread_id;
+    const anders = !fehlt && (t.kennzeichen ?? null) !== (f.kennzeichen ?? null);
+    if (!fehlt && !anders) continue;
+    if (angelegt + umbenannt >= THEMEN_JE_LAUF) { rest++; continue; }
+    try {
+      if (fehlt) { await themaHolen(f.fahrer_nr, k); angelegt++; }
+      else { await autoGewechselt(f.fahrer_nr, t.thread_id, k); umbenannt++; }
+    } catch (e) {
+      const m = String((e as Error)?.message ?? e);
+      if (/ 429:/.test(m)) { rest++; break; }   // Telegram bremst: der naechste Lauf macht weiter
+      console.warn("themen-pflegen", f.fahrer_nr, m);
+    }
+    if (THEMEN_PAUSE_MS) await warte(THEMEN_PAUSE_MS);
+  }
+  return { angelegt, umbenannt, rest };
+}
+
+// Fahrer hat die Team-Nachricht gesehen: 👍 -> 👀 (nicht bei "an alle", die steht nicht im Thema)
+async function gelesen(id: number) {
+  const [n] = await db(`nachrichten?id=eq.${id}&select=richtung,an_alle,tg_message_id`);
+  if (!n || n.richtung !== "team" || n.an_alle || !n.tg_message_id) return { id, ok: true };
+  try {
+    await tg("setMessageReaction", { chat_id: GRUPPE, message_id: n.tg_message_id, reaction: [{ type: "emoji", emoji: "👀" }] });
+    return { id, ok: true };
+  } catch (e) {
+    console.warn("gelesen", id, (e as Error).message);
+    return { id, ok: false };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return antwort(405, { fehler: "nur_post" });
   if (rolle(req) !== "service_role") return antwort(403, { fehler: "nicht_berechtigt" });
   if (!TOKEN || !GRUPPE) return antwort(500, { fehler: "nicht_eingerichtet" });
   const b = await req.json().catch(() => ({}));
+  if (b?.themen === true) return antwort(200, await themenPflegen());
+  if (Number.isInteger(b?.gelesen)) return antwort(200, await gelesen(b.gelesen));
   let ids: number[];
   if (b?.nachholen === true) {
     const grenze = new Date(Date.now() - 2 * 60 * 1000).toISOString();

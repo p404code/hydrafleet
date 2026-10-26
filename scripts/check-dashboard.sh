@@ -13,7 +13,7 @@ for i, s in enumerate(scripts):
 ids_used = set(re.findall(r"getElementById\(\s*'([^']+)'\s*\)", html))
 ids_def = set(re.findall(r'\bid="([^"]+)"', html))
 # IDs, die nur dynamisch per innerHTML erzeugt werden (kein statisches Markup):
-dynamic_ok = set()
+dynamic_ok = {"bkIban-f"}  # Fahrerapp-Bankformular: id + '-f'
 missing = sorted(i for i in ids_used if i not in ids_def and i not in dynamic_ok)
 if missing:
     print("FEHLENDE IDs im Markup:", ", ".join(missing))

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hydralink-v56';
+const CACHE_NAME = 'hydralink-v57';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
@@ -67,4 +67,28 @@ self.addEventListener('fetch', (e) => {
       return cached || fetchPromise;
     })
   );
+});
+
+/* Web-Push (Fahrer-Nachrichten): Text kommt von push-senden, Klick öffnet den Chat */
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'HYDRAlink', {
+    body: d.body || 'Neue Nachricht vom Büro',
+    tag: d.tag || 'nachrichten',
+    renotify: true,
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    data: { url: d.url || '/fahrer/#nachrichten' }
+  }));
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const ziel = (e.notification.data && e.notification.data.url) || '/fahrer/#nachrichten';
+  e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then((fenster) => {
+    const app = fenster.find((c) => new URL(c.url).pathname.startsWith('/fahrer'));
+    if (app) { app.postMessage({ typ: 'nachrichten' }); return app.focus(); }
+    return clients.openWindow(ziel);
+  }));
 });

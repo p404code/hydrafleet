@@ -107,6 +107,28 @@
         .tab.off { color: var(--text-dim); cursor: default; gap: 1px; }
         .tab .soon { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; line-height: 1; }
         .tab-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* ---------- Nachrichten ---------- */
+        .tab { position: relative; }
+        .tab .badge { position: absolute; top: 4px; left: calc(50% + 5px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--err); color: #FFFFFF; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; }
+        .push-karte { margin: 10px 12px 0; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; color: var(--text-mut); line-height: 1.5; }
+        .push-karte .btn-ghost { height: 40px; }
+        .chat { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px calc(84px + var(--safe-bot)); }
+        .chat.ohne-eingabe { padding-bottom: 12px; }
+        .chat .empty { margin: 12px 0 0; }
+        .chat-tag { align-self: center; font-size: 10.5px; font-weight: 600; color: var(--text-mut); margin: 10px 0 2px; }
+        .bubble { max-width: 82%; padding: 7px 10px 5px; border-radius: 10px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+        .bubble.ich { align-self: flex-end; background: var(--text); color: var(--bg); border-bottom-right-radius: 3px; }
+        .bubble.team { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 3px; }
+        .bubble .wer { display: block; font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 1px; white-space: normal; }
+        .bubble .zeit { display: block; font-size: 10px; opacity: .6; text-align: right; margin-top: 2px; white-space: normal; }
+        .bubble.wartet { opacity: .55; }
+        .composer { position: fixed; left: 0; right: 0; bottom: calc(54px + var(--safe-bot)); z-index: 19; padding: 8px 12px; background: var(--surface); border-top: 1px solid var(--border); }
+        .composer-row { display: flex; gap: 6px; align-items: flex-end; }
+        .composer-err { color: var(--err); font-size: 12px; font-weight: 500; }
+        .composer-err:not(:empty) { margin-bottom: 6px; }
+        .composer textarea { flex: 1; min-width: 0; height: 40px; max-height: 120px; resize: none; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-2); color: var(--text); font-family: inherit; font-size: 16px; line-height: 1.3; padding: 9px 10px; outline: none; }
+        .composer textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-faint); }
+        .composer .btn-primary { height: 40px; width: auto; flex-shrink: 0; }
 
         /* ---------- Inhalte ---------- */
         .hero { padding: 14px 12px 12px; background: var(--surface); border-bottom: 1px solid var(--border); }
@@ -275,7 +297,7 @@
         <nav class="tabbar" id="tabbar" aria-label="Hauptmenü">
             <a class="tab" href="#start" data-tab="start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg><span class="tab-label">Start</span></a>
             <a class="tab" href="#abrechnung" data-tab="abrechnung"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"></rect><path d="M9 8h6"></path><path d="M9 12h6"></path><path d="M9 16h3"></path></svg><span class="tab-label">Abrechnung</span></a>
-            <span class="tab off" aria-disabled="true" title="Kommt bald"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg><span class="tab-label">Nachrichten</span><span class="soon">bald</span></span>
+            <a class="tab" href="#nachrichten" data-tab="nachrichten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg><span class="tab-label">Nachrichten</span><span class="badge" id="naBadge" hidden></span></a>
             <a class="tab" href="#fahrzeug" data-tab="fahrzeug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 16h14v-4l-2-5H7l-2 5z"></path><circle cx="8" cy="16.5" r="1.5"></circle><circle cx="16" cy="16.5" r="1.5"></circle><path d="M5 12h14"></path></svg><span class="tab-label">Fahrzeug</span></a>
             <a class="tab" href="#mehr" data-tab="mehr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg><span class="tab-label">Mehr</span></a>
         </nav>
@@ -290,10 +312,11 @@
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         /* Zustand. mode: 'fahrer' (eigene Sitzung) oder 'vorschau' (Büro-Sitzung, ?vorschau=<fahrer_id>). */
-        const S = { mode: null, vorschauId: null, profil: null, abr: [], offen: [], bank: null, bankFehler: false, ueberw: null, auszahlung: null, loadedAt: 0, loading: false, lz: lzLeer(), st: stLeer() };
+        const S = { mode: null, vorschauId: null, profil: null, abr: [], offen: [], bank: null, bankFehler: false, ueberw: null, auszahlung: null, loadedAt: 0, loading: false, lz: lzLeer(), st: stLeer(), na: naLeer(), push: null, pushFehler: false, aboGemeldet: false };
         /* Lohnzettel + Dienstgeber: eigener Ladezustand, lazy beim ersten Öffnen (Start oder Lohnzettel), nach >5 Min neu */
         function lzLeer() { return { rows: [], dg: [], err: false, loadedAt: 0, loading: false }; }
         function stLeer() { return { rows: [], err: false, loadedAt: 0, loading: false }; }
+        function naLeer() { return { rows: [], wartend: [], err: false, loadedAt: 0, loading: false, nochmal: false }; }
 
         const ICON_BACK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>';
         const ICON_CHEV = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>';
@@ -554,6 +577,7 @@
             show('shell');
             renderBand();
             render();
+            ladenNachrichten();
         }
 
         /* ---------- Vorschau-Band ---------- */
@@ -577,17 +601,17 @@
         function route() {
             const h = decodeURIComponent((location.hash || '').replace(/^#/, ''));
             const parts = h.split('/');
-            const name = ['start', 'abrechnung', 'offen', 'kontakt', 'mehr', 'lohnzettel', 'fahrzeug', 'strafen', 'bank'].indexOf(parts[0]) >= 0 ? parts[0] : 'start';
+            const name = ['start', 'abrechnung', 'offen', 'kontakt', 'mehr', 'lohnzettel', 'fahrzeug', 'strafen', 'bank', 'nachrichten'].indexOf(parts[0]) >= 0 ? parts[0] : 'start';
             return { name: name, arg: parts.slice(1).join('/') };
         }
-        const TAB_FOR = { start: 'start', abrechnung: 'abrechnung', offen: 'mehr', kontakt: 'mehr', mehr: 'mehr', lohnzettel: 'mehr', fahrzeug: 'fahrzeug', strafen: 'mehr', bank: 'mehr' };
+        const TAB_FOR = { start: 'start', abrechnung: 'abrechnung', offen: 'mehr', kontakt: 'mehr', mehr: 'mehr', lohnzettel: 'mehr', fahrzeug: 'fahrzeug', strafen: 'mehr', bank: 'mehr', nachrichten: 'nachrichten' };
 
         function render() {
             if (!S.profil || document.getElementById('shell').hidden) return;
             const r = route();
             if ((r.name === 'start' || r.name === 'lohnzettel') && lzAlt() && !S.lz.loading) ladenLohn();
             if ((r.name === 'start' || r.name === 'strafen') && stAlt() && !S.st.loading) ladenStrafen();
-            const out = ({ start: viewStart, abrechnung: viewAbrechnung, offen: viewOffen, kontakt: viewKontakt, mehr: viewMehr, lohnzettel: viewLohnzettel, fahrzeug: viewFahrzeug, strafen: viewStrafen, bank: (a) => a === 'aendern' ? viewBankAendern() : viewBank() })[r.name](r.arg);
+            const out = ({ start: viewStart, abrechnung: viewAbrechnung, offen: viewOffen, kontakt: viewKontakt, mehr: viewMehr, lohnzettel: viewLohnzettel, fahrzeug: viewFahrzeug, strafen: viewStrafen, nachrichten: viewNachrichten, bank: (a) => a === 'aendern' ? viewBankAendern() : viewBank() })[r.name](r.arg);
             document.getElementById('topbar').className = 'topbar' + (out.back ? ' sub' : '');
             document.getElementById('topbar').innerHTML = out.back
                 ? '<a class="back" href="' + out.back + '" aria-label="Zurück">' + ICON_BACK + '</a><div class="title">' + esc(out.title) + '</div><div class="who">' + esc(out.right || '') + '</div>'
@@ -598,6 +622,8 @@
                 a.classList.toggle('active', on);
                 if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
             });
+            badgeSetzen();
+            if (r.name === 'nachrichten') naGeoeffnet();
         }
 
         function offenSumme() { return S.offen.reduce((t, o) => t + num(o.offen), 0); }
@@ -943,6 +969,194 @@
             return { html: html };
         }
 
+        /* ---------- Nachrichten (Chat mit dem Büro, Spec 2026-10-22-fahrer-nachrichten-telegram) ---------- */
+        // Öffentlicher VAPID-Schlüssel (gibt scripts/telegram-einrichten.mjs aus). Leer = Benachrichtigungen noch nicht eingerichtet.
+        const VAPID_PUBLIC = '';
+        function naAlt() { return !S.na.loadedAt || Date.now() - S.na.loadedAt > 15 * 1000; }
+        async function ladenNachrichten() {
+            if (!S.profil) return;
+            if (S.na.loading) { S.na.nochmal = true; return; }
+            S.na.loading = true;
+            const arg = S.mode === 'vorschau' ? { p_fahrer_id: S.vorschauId } : null;
+            try {
+                const r = await (arg ? sb.rpc('fahrer_app_nachrichten', arg) : sb.rpc('fahrer_app_nachrichten')).then(x => x, e => ({ error: e }));
+                if (r.error) { S.na.err = true; console.warn('Nachrichten:', r.error); }
+                else { S.na.rows = r.data || []; S.na.err = false; S.na.loadedAt = Date.now(); }
+            } finally { S.na.loading = false; }
+            badgeSetzen();
+            if (route().name === 'nachrichten') { listeZeichnen(); gelesenMelden(); }
+            if (S.na.nochmal) { S.na.nochmal = false; ladenNachrichten(); }
+        }
+        function ungelesen() { return S.na.rows.filter(m => m.richtung === 'team' && !m.gelesen_am).length; }
+        function badgeSetzen() {
+            const b = document.getElementById('naBadge');
+            if (!b) return;
+            const n = S.mode === 'fahrer' ? ungelesen() : 0;
+            b.hidden = n === 0;
+            b.textContent = n > 9 ? '9+' : String(n);
+        }
+        async function gelesenMelden() {
+            if (S.mode !== 'fahrer' || !ungelesen()) return;
+            const r = await sb.rpc('fahrer_app_nachrichten_gelesen').then(x => x, e => ({ error: e }));
+            if (r.error) return;
+            const jetzt = new Date().toISOString();
+            S.na.rows.forEach(m => { if (m.richtung === 'team' && !m.gelesen_am) m.gelesen_am = jetzt; });
+            badgeSetzen();
+        }
+        function wienTag(d) { return d.toLocaleDateString('de-AT', { timeZone: 'Europe/Vienna', day: '2-digit', month: '2-digit', year: 'numeric' }); }
+        function tagText(ts) {
+            const t = wienTag(new Date(ts));
+            if (t === wienTag(new Date())) return 'Heute';
+            if (t === wienTag(new Date(Date.now() - 864e5))) return 'Gestern';
+            return t;
+        }
+        function uhrzeit(ts) { return new Date(ts).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Vienna' }); }
+        function chatHtml() {
+            const rows = S.na.rows.concat(S.na.wartend);
+            if (!rows.length && S.na.err) return '<div class="empty"><b>Nachrichten konnten nicht geladen werden</b><span>Bitte Internetverbindung prüfen.</span></div>';
+            if (!rows.length && !S.na.loadedAt) return '<div class="note" style="text-align:center">Lade …</div>';
+            if (!rows.length) return '<div class="empty"><b>Noch keine Nachrichten</b><span>Schreib uns – das Büro antwortet hier.</span></div>';
+            let tag = '', out = '';
+            rows.forEach(function (m) {
+                const t = tagText(m.erstellt_am);
+                if (t !== tag) { tag = t; out += '<div class="chat-tag">' + esc(t) + '</div>'; }
+                const ich = m.richtung === 'fahrer';
+                out += '<div class="bubble ' + (ich ? 'ich' : 'team') + (m.wartet ? ' wartet' : '') + '">'
+                    + (ich ? '' : '<span class="wer">' + esc(m.team_name || 'Büro') + '</span>')
+                    + esc(m.text)
+                    + '<span class="zeit">' + (m.wartet ? 'wird gesendet …' : esc(uhrzeit(m.erstellt_am))) + '</span></div>';
+            });
+            return out;
+        }
+        function nachUnten() { window.scrollTo(0, document.body.scrollHeight); }
+        function listeZeichnen() {
+            const el = document.getElementById('naListe');
+            if (!el) return;
+            const neu = chatHtml();
+            if (el.innerHTML === neu) return;
+            const unten = window.innerHeight + window.scrollY >= document.body.scrollHeight - 120;
+            el.innerHTML = neu;
+            if (unten) nachUnten();
+        }
+        function viewNachrichten() {
+            const vorschau = S.mode === 'vorschau';
+            const html = '<div id="naPush"></div>'
+                + (vorschau ? '<div class="note">Vorschau: so sieht der Fahrer den Chat. Antworten kommen aus Telegram.</div>' : '')
+                + '<div class="chat' + (vorschau ? ' ohne-eingabe' : '') + '" id="naListe">' + chatHtml() + '</div>'
+                + (vorschau ? '' : '<form class="composer" id="naForm" autocomplete="off">'
+                    + '<div class="composer-err" id="naFehler" role="alert"></div>'
+                    + '<div class="composer-row"><textarea id="naText" rows="1" maxlength="2000" placeholder="Nachricht an das Büro" aria-label="Nachricht an das Büro"></textarea>'
+                    + '<button type="submit" class="btn-primary" id="naSenden">Senden</button></div></form>');
+            return { html: html };
+        }
+        function naGeoeffnet() {
+            nachUnten();
+            gelesenMelden();
+            pushStatus();
+            if (naAlt()) ladenNachrichten();
+        }
+        function naMeldung(err) {
+            const m = (err && err.message) || '';
+            if (/Zu viele|leer|zu lang|nur der Fahrer/.test(m)) return m;
+            if (/fetch|network|Failed|Load failed/i.test(m)) return 'Keine Verbindung – bitte nochmal senden.';
+            return 'Senden hat nicht geklappt – bitte nochmal versuchen.';
+        }
+        function feldHoehe(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+        document.addEventListener('input', function (e) { if (e.target && e.target.id === 'naText') feldHoehe(e.target); });
+        document.addEventListener('submit', async function (e) {
+            if (!e.target || e.target.id !== 'naForm') return;
+            e.preventDefault();
+            if (S.mode !== 'fahrer') return;
+            const feld = document.getElementById('naText'), fehler = document.getElementById('naFehler'), knopf = document.getElementById('naSenden');
+            const text = feld.value.trim();
+            fehler.textContent = '';
+            if (!text || knopf.disabled) return;
+            knopf.disabled = true;
+            const w = { richtung: 'fahrer', text: text, erstellt_am: new Date().toISOString(), wartet: true };
+            S.na.wartend.push(w);
+            feld.value = ''; feldHoehe(feld);
+            listeZeichnen(); nachUnten();
+            const r = await sb.rpc('fahrer_app_nachricht_senden', { p_text: text }).then(x => x, err => ({ error: err }));
+            S.na.wartend = S.na.wartend.filter(x => x !== w);
+            knopf.disabled = false;
+            if (r.error) {
+                // Text nicht verlieren: zurück ins Feld (vor das, was inzwischen getippt wurde)
+                feld.value = feld.value ? text + '\n' + feld.value : text; feldHoehe(feld);
+                fehler.textContent = naMeldung(r.error);
+                listeZeichnen();
+                return;
+            }
+            await ladenNachrichten();
+            nachUnten();
+        });
+        // Solange der Chat offen und sichtbar ist: alle 15 Sekunden neu (kein Realtime)
+        setInterval(function () {
+            if (S.profil && document.visibilityState === 'visible' && route().name === 'nachrichten') ladenNachrichten();
+        }, 15 * 1000);
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible' && S.profil) ladenNachrichten();
+        });
+        // Klick auf eine Benachrichtigung (sw.js schickt {typ: 'nachrichten'} an das offene Fenster)
+        if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', function (e) {
+            if (!e.data || e.data.typ !== 'nachrichten' || !S.profil) return;
+            if (location.hash !== '#nachrichten') location.hash = '#nachrichten';
+            ladenNachrichten();
+        });
+
+        /* Benachrichtigungen (Web-Push). iPhone: nur als Home-Bildschirm-App (iOS 16.4+). */
+        function istIos() { return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+        function istHomescreen() { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
+        function b64uBytes(s) { const t = s.replace(/-/g, '+').replace(/_/g, '/'); const r = atob(t + '='.repeat((4 - t.length % 4) % 4)); return Uint8Array.from(r, c => c.charCodeAt(0)); }
+        async function aboMelden(sub, immer) {
+            if (S.aboGemeldet && !immer) return true;
+            const j = sub.toJSON();
+            const r = await sb.rpc('fahrer_app_push_abo', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth }).then(x => x, e => ({ error: e }));
+            if (r.error) { console.warn('Push-Abo:', r.error); return false; }
+            S.aboGemeldet = true;
+            return true;
+        }
+        async function pushStatus() {
+            if (S.mode !== 'fahrer' || !VAPID_PUBLIC) S.push = 'nicht_moeglich';
+            else if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) S.push = istIos() && !istHomescreen() ? 'ios_install' : 'nicht_moeglich';
+            else if (Notification.permission === 'denied') S.push = 'abgelehnt';
+            else {
+                try {
+                    const reg = await navigator.serviceWorker.ready;
+                    const sub = await reg.pushManager.getSubscription();
+                    // vorhandenes Abo einmal je Sitzung melden: das Gerät gehört dem, der gerade angemeldet ist
+                    if (sub && Notification.permission === 'granted') { S.push = 'an'; aboMelden(sub, false); }
+                    else S.push = 'aus';
+                } catch (e) { S.push = 'aus'; }
+            }
+            pushZeichnen();
+        }
+        function pushZeichnen() {
+            const el = document.getElementById('naPush');
+            if (!el) return;
+            const t = {
+                aus: '<span>Bekomm Bescheid, wenn das Büro antwortet.</span><button type="button" class="btn-ghost" data-act="push">Benachrichtigungen aktivieren</button>'
+                    + (S.pushFehler ? '<span class="neg">Das hat nicht geklappt. Bitte später nochmal versuchen.</span>' : ''),
+                ios_install: '<span>Für Benachrichtigungen am iPhone: unten auf <b>Teilen</b> → <b>Zum Home-Bildschirm</b>, die App dann von dort öffnen und hier aktivieren.</span>',
+                abgelehnt: '<span>Benachrichtigungen sind blockiert. Du kannst sie in den Einstellungen des Handys für HYDRAlink wieder erlauben.</span>'
+            }[S.push];
+            el.className = t ? 'push-karte' : '';
+            el.innerHTML = t || '';
+        }
+        async function pushAktivieren(btn) {
+            btn.disabled = true;
+            S.pushFehler = false;
+            try {
+                const erlaubnis = await Notification.requestPermission();
+                if (erlaubnis !== 'granted') { S.push = erlaubnis === 'denied' ? 'abgelehnt' : 'aus'; pushZeichnen(); return; }
+                const reg = await navigator.serviceWorker.ready;
+                const sub = (await reg.pushManager.getSubscription())
+                    || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uBytes(VAPID_PUBLIC) });
+                S.push = (await aboMelden(sub, true)) ? 'an' : 'aus';
+                S.pushFehler = S.push !== 'an';
+            } catch (e) { console.warn('Push:', e); S.push = 'aus'; S.pushFehler = true; }
+            pushZeichnen();
+        }
+
         /* ---------- Ereignisse ---------- */
         document.addEventListener('click', function(e) {
             const t = e.target.closest('[data-act]');
@@ -952,6 +1166,7 @@
             else if (act === 'theme') { e.preventDefault(); toggleTheme(); }
             else if (act === 'retry') { e.preventDefault(); startApp(); }
             else if (act === 'pdf') { e.preventDefault(); pdfOeffnen(t); }
+            else if (act === 'push') { e.preventDefault(); pushAktivieren(t); }
         });
         async function bankNeuLaden() {
             const r = await sb.rpc('fahrer_app_bank').then(x => x, err => ({ error: err }));
@@ -997,7 +1212,7 @@
             await bankNeuLaden();
             location.hash = '#start';
         });
-        window.addEventListener('hashchange', function() { render(); window.scrollTo(0, 0); });
+        window.addEventListener('hashchange', function() { render(); if (route().name !== 'nachrichten') window.scrollTo(0, 0); });
         document.addEventListener('visibilitychange', async function() {
             if (document.visibilityState !== 'visible' || !S.profil || S.loading) return;
             if (Date.now() - S.loadedAt < 5 * 60 * 1000) return;

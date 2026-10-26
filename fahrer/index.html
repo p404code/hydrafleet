@@ -1041,7 +1041,7 @@
                 if (t !== tag) { tag = t; out += '<div class="chat-tag">' + esc(t) + '</div>'; }
                 const ich = m.richtung === 'fahrer';
                 out += '<div class="bubble ' + (ich ? 'ich' : 'team') + (m.wartet ? ' wartet' : '') + '">'
-                    + (ich ? '' : '<span class="wer">' + esc(m.team_name || 'Büro') + (m.an_alle ? ' · an alle' : '') + '</span>')
+                    + (ich ? '' : '<span class="wer">Büro' + (m.an_alle ? ' · an alle' : '') + '</span>')   // nie der Name (Betreiber 26.10.)
                     + esc(m.text)
                     + '<span class="zeit">' + (m.wartet ? 'wird gesendet …' : esc(uhrzeit(m.erstellt_am))
                         + (ich && !m.wartet ? (m.zugestellt ? ' ✓' : ' · wird zugestellt') : '')) + '</span></div>';

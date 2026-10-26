@@ -68,7 +68,9 @@
   const blasen = [...document.querySelectorAll('#naListe .bubble')];
   ergebnis.wird_zugestellt = /wird zugestellt/.test(blasen[0].querySelector('.zeit').textContent);
   ergebnis.haekchen = /✓/.test(blasen[1].querySelector('.zeit').textContent) && !/✓/.test(blasen[0].querySelector('.zeit').textContent);
-  ergebnis.an_alle = blasen[2].querySelector('.wer').textContent === 'Boyko · an alle';
+  ergebnis.an_alle = blasen[2].querySelector('.wer').textContent === 'Büro · an alle';
+  // auch wenn (alte Daten) ein Name mitkommt: der Fahrer sieht nur "Büro"
+  ergebnis.nur_buero = [...document.querySelectorAll('#naListe .wer')].every((w) => /^Büro/.test(w.textContent));
 
   // 5) Abmelden: Push-Abo gekuendigt, Chat-Zustand des Fahrers weg
   S.aboGemeldet = true; S.push = 'an';

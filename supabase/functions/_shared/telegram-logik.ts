@@ -61,9 +61,9 @@ export function fahrerZeile(k: Kopf, text: string): string {
   return s;
 }
 
-// Push-Text: "Boyko: Fahr zur Werkstatt" bzw. "Boyko (an alle): …" (Klartext, kein HTML)
-export function pushText(teamName: unknown, text: unknown, anAlle = false): string {
-  return kuerzen(`${sauber(teamName) || "Büro"}${anAlle ? " (an alle)" : ""}: ${sauber(text)}`, 120);
+// Push-Text: "Büro: Fahr zur Werkstatt" bzw. "Büro (an alle): …" – nie der Name des Teammitglieds (Betreiber 26.10.)
+export function pushText(text: unknown, anAlle = false): string {
+  return kuerzen(`Büro${anAlle ? " (an alle)" : ""}: ${sauber(text)}`, 120);
 }
 
 // Vergleich in konstanter Zeit (Webhook-Secret)

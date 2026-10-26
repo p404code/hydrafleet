@@ -44,10 +44,9 @@ test('fahrerZeile: escaped und nie ueber 4096, kein zerschnittenes &amp;', () =>
   assert.doesNotMatch(s.replace(/&amp;/g, ''), /&/);
 });
 
-test('pushText: Name + Text, Klartext, max 120', () => {
-  assert.equal(pushText('Boyko', 'Fahr zur\nWerkstatt'), 'Boyko: Fahr zur Werkstatt');
-  assert.equal(pushText(null, 'x'), 'Büro: x');
-  assert.ok(pushText('B', 'y'.repeat(500)).length <= 120);
+test('pushText: immer "Büro", nie der Name des Teammitglieds; Klartext, max 120', () => {
+  assert.equal(pushText('Fahr zur\nWerkstatt'), 'Büro: Fahr zur Werkstatt');
+  assert.ok(pushText('y'.repeat(500)).length <= 120);
 });
 
 test('gleich: Secret-Vergleich', () => {
@@ -142,6 +141,6 @@ test('Themen-Link und Treffer-Knoepfe', () => {
 });
 
 test('pushText an alle', () => {
-  assert.equal(pushText('Boyko', 'Kontrolle', true), 'Boyko (an alle): Kontrolle');
-  assert.equal(pushText('Boyko', 'Kontrolle', false), 'Boyko: Kontrolle');
+  assert.equal(pushText('Kontrolle', true), 'Büro (an alle): Kontrolle');
+  assert.equal(pushText('Kontrolle', false), 'Büro: Kontrolle');
 });

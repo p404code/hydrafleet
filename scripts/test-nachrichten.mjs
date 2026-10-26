@@ -14,7 +14,8 @@ if (!basis) { console.error('PGLITE fehlt – siehe Kopf dieser Datei.'); proces
 const { PGlite } = await import(pathToFileURL(join(basis, 'node_modules/@electric-sql/pglite/dist/index.js')).href);
 const db = new PGlite();
 const migration = readFileSync(new URL('../migrations/2026-10-22-fahrer-nachrichten.sql', import.meta.url), 'utf8');
-const migration2 = () => readFileSync(new URL('../migrations/2026-10-26-nachrichten-menue.sql', import.meta.url), 'utf8');
+const migration2 = () => readFileSync(new URL('../migrations/2026-10-26-nachrichten-menue.sql', import.meta.url), 'utf8')
+  + readFileSync(new URL('../migrations/2026-10-26-nachrichten-buero.sql', import.meta.url), 'utf8');
 
 await db.exec(`
 create role anon; create role authenticated; create role service_role bypassrls;
@@ -267,6 +268,9 @@ try {
   v = await q('select * from public.fahrer_app_nachrichten()');
   const anAlle = v.find((m) => m.an_alle);
   assert.ok(anAlle && anAlle.richtung === 'team' && anAlle.zugestellt === true);
+  // Fahrer sieht nie, wer im Buero geantwortet hat (Betreiber 26.10.) – nur "Büro"
+  assert.ok(v.filter((m) => m.richtung === 'team').every((m) => m.team_name === 'Büro'), JSON.stringify(v.filter((m) => m.richtung === 'team')));
+  assert.ok(v.filter((m) => m.richtung === 'fahrer').every((m) => m.team_name === null));
   assert.ok(v.filter((m) => m.richtung === 'fahrer').every((m) => m.zugestellt === false), 'ohne tg_message_id: noch nicht zugestellt');
   await raus();
   await q(`update public.nachrichten set tg_message_id = 4711 where id = (select max(id) from public.nachrichten where fahrer_nr = 101 and richtung = 'fahrer')`);

@@ -134,6 +134,21 @@
         .composer textarea { flex: 1; min-width: 0; height: 40px; max-height: 120px; resize: none; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-2); color: var(--text); font-family: inherit; font-size: 16px; line-height: 1.3; padding: 9px 10px; outline: none; }
         .composer textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-faint); }
         .composer .btn-primary { height: 40px; width: auto; flex-shrink: 0; }
+        /* Fotos und Sprachnachrichten (Teil 3) */
+        .icon-knopf { width: 40px; height: 40px; flex-shrink: 0; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 18px; line-height: 1; cursor: pointer; padding: 0; }
+        .composer-row[hidden], .aufnahme[hidden], .foto-gross[hidden] { display: none; }
+        .aufnahme { display: flex; align-items: center; gap: 8px; }
+        .aufnahme #naZeit { flex: 1; font-family: var(--mono); font-size: 15px; }
+        .rec-punkt { width: 10px; height: 10px; border-radius: 50%; background: var(--err); animation: rec-blink 1s infinite; }
+        @keyframes rec-blink { 50% { opacity: .3; } }
+        .aufnahme .btn-ghost, .aufnahme .btn-primary { height: 40px; width: auto; padding: 0 14px; }
+        .anhang-foto { display: block; padding: 0; border: 0; background: none; cursor: pointer; margin: 2px 0 4px; }
+        .anhang-foto img { display: block; max-width: 220px; max-height: 260px; min-width: 120px; min-height: 90px; border-radius: 8px; background: var(--surface-2); object-fit: cover; }
+        .anhang-ton { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 18px; border: 0; background: var(--surface-2); color: var(--text); font: inherit; font-size: 14px; cursor: pointer; margin: 2px 0 4px; white-space: nowrap; }
+        .bubble.ich .anhang-ton { background: rgba(255, 255, 255, .15); color: inherit; }
+        .anhang-weg, .anhang-wartet { display: block; font-size: 12.5px; opacity: .75; }
+        .foto-gross { position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, .92); display: flex; align-items: center; justify-content: center; }
+        .foto-gross img { max-width: 100%; max-height: 100%; }
 
         /* ---------- Inhalte ---------- */
         .hero { padding: 14px 12px 12px; background: var(--surface); border-bottom: 1px solid var(--border); }
@@ -321,7 +336,8 @@
         /* Lohnzettel + Dienstgeber: eigener Ladezustand, lazy beim ersten Öffnen (Start oder Lohnzettel), nach >5 Min neu */
         function lzLeer() { return { rows: [], dg: [], err: false, loadedAt: 0, loading: false }; }
         function stLeer() { return { rows: [], err: false, loadedAt: 0, loading: false }; }
-        function naLeer() { return { rows: [], wartend: [], err: false, loadedAt: 0, loading: false, nochmal: false, sendet: false }; }
+        function naLeer() { return { rows: [], wartend: [], err: false, loadedAt: 0, loading: false, nochmal: false, sendet: false,
+            blobs: new Map(), urls: new Map(), weg: new Set(), audio: null, spielt: null, rec: null }; }
 
         const ICON_BACK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>';
         const ICON_CHEV = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>';
@@ -1042,6 +1058,7 @@
                 const ich = m.richtung === 'fahrer';
                 out += '<div class="bubble ' + (ich ? 'ich' : 'team') + (m.wartet ? ' wartet' : '') + '">'
                     + (ich ? '' : '<span class="wer">Büro' + (m.an_alle ? ' · an alle' : '') + '</span>')   // nie der Name (Betreiber 26.10.)
+                    + anhangHtml(m)
                     + esc(m.text)
                     + '<span class="zeit">' + (m.wartet ? 'wird gesendet …' : esc(uhrzeit(m.erstellt_am))
                         + (ich && !m.wartet ? (m.zugestellt ? ' ✓' : ' · wird zugestellt') : '')) + '</span></div>';
@@ -1068,6 +1085,7 @@
             const unten = el.scrollTop + el.clientHeight >= el.scrollHeight - 120;
             el.innerHTML = neu;
             if (unten) nachUnten();
+            anhaengeLaden();
         }
         function viewNachrichten() {
             const vorschau = S.mode === 'vorschau';
@@ -1076,13 +1094,22 @@
                 + '<div class="chat" id="naListe">' + chatHtml() + '</div>'
                 + (vorschau ? '' : '<form class="composer" id="naForm" autocomplete="off">'
                     + '<div class="composer-err" id="naFehler" role="alert"></div>'
-                    + '<div class="composer-row"><textarea id="naText" rows="1" maxlength="2000" placeholder="Nachricht an das Büro" aria-label="Nachricht an das Büro"></textarea>'
-                    + '<button type="submit" class="btn-primary" id="naSenden">Senden</button></div></form>') + '</div>';
+                    + '<div class="aufnahme" id="naAufnahme"' + (S.na.rec ? '' : ' hidden') + '><span class="rec-punkt"></span><span id="naZeit">0:00</span>'
+                    + '<button type="button" class="btn-ghost" data-act="aufnahme-weg" aria-label="Aufnahme verwerfen">✖</button>'
+                    + '<button type="button" class="btn-primary" data-act="aufnahme-senden">Senden</button></div>'
+                    + '<div class="composer-row"' + (S.na.rec ? ' hidden' : '') + '>'
+                    + '<button type="button" class="icon-knopf" data-act="kamera" aria-label="Foto senden">📷</button>'
+                    + '<button type="button" class="icon-knopf" data-act="mikro" aria-label="Sprachnachricht aufnehmen">🎤</button>'
+                    + '<textarea id="naText" rows="1" maxlength="2000" placeholder="Nachricht an das Büro" aria-label="Nachricht an das Büro"></textarea>'
+                    + '<button type="submit" class="btn-primary" id="naSenden">Senden</button></div>'
+                    + '<input type="file" id="naDatei" accept="image/*" hidden></form>')
+                + '<div class="foto-gross" id="naFotoGross" data-act="foto-zu" hidden><img alt="Foto"></div></div>';
             return { html: html };
         }
         function naGeoeffnet() {
             chatHoehe();
             nachUnten();
+            anhaengeLaden();
             gelesenMelden();
             pushStatus();
             if (naAlt()) ladenNachrichten();
@@ -1210,6 +1237,176 @@
             pushZeichnen();
         }
 
+        /* ---------- Fotos und Sprachnachrichten (Teil 3) – Dateien liegen nur in Telegram ---------- */
+        function dauerAnzeige(s) { const n = Math.max(0, Math.round(Number(s) || 0)); return Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0'); }
+        function naFehlerSetzen(t) { const f = document.getElementById('naFehler'); if (f) f.textContent = t; }
+        function anhangHtml(m) {
+            if (!m.anhang) return '';
+            if (m.wartet) return '<span class="anhang-wartet">' + (m.anhang === 'foto' ? '📷 Foto' : '🎤 Sprachnachricht') + ' …</span>';
+            if (S.na.weg.has(m.id)) return '<span class="anhang-weg">' + (m.anhang === 'foto' ? '📷' : '🎤') + ' nicht mehr verfügbar</span>';
+            if (m.anhang === 'foto') {
+                const src = S.na.urls.get(m.id);
+                return '<button type="button" class="anhang-foto" data-act="foto" data-id="' + m.id + '"><img data-anhang="' + m.id + '" alt="Foto"'
+                    + (src ? ' src="' + src + '"' : '') + '></button>';
+            }
+            return '<button type="button" class="anhang-ton" data-act="ton" data-id="' + m.id + '">' + (S.na.spielt === m.id ? '⏸' : '▶')
+                + ' 🎤 ' + dauerAnzeige(m.dauer) + '</button>';
+        }
+        // Datei ueber die Function anhang (prueft mit dem eigenen JWT, ob die Nachricht einem gehoert)
+        function anhangBlob(id) {
+            if (S.na.blobs.has(id)) return S.na.blobs.get(id);
+            const p = (async function () {
+                const s = await sb.auth.getSession();
+                const tok = s && s.data && s.data.session && s.data.session.access_token;
+                const url = SUPABASE_URL + '/functions/v1/anhang?id=' + id + (S.mode === 'vorschau' ? '&fahrer=' + S.vorschauId : '');
+                const r = await fetch(url, { headers: { Authorization: 'Bearer ' + tok, apikey: SUPABASE_KEY } });
+                if (!r.ok) { if (r.status === 404) S.na.weg.add(id); throw new Error('Anhang ' + r.status); }
+                return await r.blob();
+            })();
+            S.na.blobs.set(id, p);
+            p.catch(function () { S.na.blobs.delete(id); });
+            return p;
+        }
+        function anhaengeLaden() {
+            document.querySelectorAll('#naListe img[data-anhang]:not([src])').forEach(async function (img) {
+                const id = Number(img.getAttribute('data-anhang'));
+                try {
+                    const b = await anhangBlob(id);
+                    if (!S.na.urls.has(id)) S.na.urls.set(id, URL.createObjectURL(b));
+                    // stand die Liste unten, bleibt sie unten – das Bild macht die Blase erst beim Laden hoeher
+                    const liste = document.getElementById('naListe');
+                    const unten = liste && liste.scrollTop + liste.clientHeight >= liste.scrollHeight - 120;
+                    img.addEventListener('load', function () { if (unten) nachUnten(); }, { once: true });
+                    img.src = S.na.urls.get(id);
+                } catch (e) { if (S.na.weg.has(id)) listeZeichnen(); }
+            });
+        }
+        function fotoGross(id) {
+            const g = document.getElementById('naFotoGross'), src = S.na.urls.get(id);
+            if (!g || !src) return;
+            g.querySelector('img').src = src; g.hidden = false;
+        }
+        // Telegram-Sprachnachrichten sind OGG/Opus; kann das Geraet das nicht abspielen, wird es hier zu WAV dekodiert
+        async function tonQuelle(blob) {
+            const typ = (blob.type || '').split(';')[0];
+            if (typ === 'audio/ogg' && !document.createElement('audio').canPlayType('audio/ogg; codecs=opus')) {
+                return await (S.oggDekoder || oggZuWav)(await blob.arrayBuffer());
+            }
+            return blob;
+        }
+        async function oggZuWav(buf) {
+            const lib = await import('https://cdn.jsdelivr.net/npm/ogg-opus-decoder@1/+esm');
+            const d = new lib.OggOpusDecoder(); await d.ready;
+            const r = await d.decodeFile(new Uint8Array(buf)); d.free();
+            const k = r.channelData, n = k[0].length, pcm = new DataView(new ArrayBuffer(44 + n * 2));
+            const w = (o, t) => { for (let i = 0; i < t.length; i++) pcm.setUint8(o + i, t.charCodeAt(i)); };
+            w(0, 'RIFF'); pcm.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); pcm.setUint32(16, 16, true); pcm.setUint16(20, 1, true);
+            pcm.setUint16(22, 1, true); pcm.setUint32(24, r.sampleRate, true); pcm.setUint32(28, r.sampleRate * 2, true);
+            pcm.setUint16(32, 2, true); pcm.setUint16(34, 16, true); w(36, 'data'); pcm.setUint32(40, n * 2, true);
+            for (let i = 0; i < n; i++) {
+                let v = 0; for (let c = 0; c < k.length; c++) v += k[c][i]; v = Math.max(-1, Math.min(1, v / k.length));
+                pcm.setInt16(44 + i * 2, v * 0x7fff, true);
+            }
+            return new Blob([pcm.buffer], { type: 'audio/wav' });
+        }
+        const STILLE = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+        async function tonSpielen(btn) {
+            const id = Number(btn.getAttribute('data-id'));
+            if (S.na.audio) S.na.audio.pause();
+            if (S.na.spielt === id) { S.na.spielt = null; listeZeichnen(); return; }
+            // iPhone: das Audio-Element muss im Tipp selbst gestartet werden, sonst blockiert Safari das spaetere play()
+            const a = new Audio(STILLE); a.play().catch(function () {});
+            S.na.audio = a; S.na.spielt = id; listeZeichnen();
+            try {
+                a.src = URL.createObjectURL(await tonQuelle(await anhangBlob(id)));
+                a.onended = function () { if (S.na.spielt === id) { S.na.spielt = null; listeZeichnen(); } };
+                await a.play();
+            } catch (e) {
+                console.warn('Abspielen:', e);
+                S.na.spielt = null; listeZeichnen();
+                if (!S.na.weg.has(id)) naFehlerSetzen('Abspielen hat nicht geklappt.');
+            }
+        }
+        // Foto: laengste Seite 1600 px, JPEG – ueber <img>, damit die Ausrichtung (EXIF) stimmt
+        async function bildVerkleinern(datei) {
+            const url = URL.createObjectURL(datei);
+            try {
+                const img = new Image(); img.src = url; await img.decode();
+                const f = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+                const c = document.createElement('canvas');
+                c.width = Math.round(img.naturalWidth * f); c.height = Math.round(img.naturalHeight * f);
+                c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                const b = await new Promise(function (r) { c.toBlob(r, 'image/jpeg', 0.8); });
+                return b || datei;
+            } catch (e) { return datei; } finally { URL.revokeObjectURL(url); }
+        }
+        const endungVon = (typ) => /ogg/.test(typ) ? '.ogg' : /webm/.test(typ) ? '.webm' : '.m4a';
+        async function anhangHochladen(art, blob, dauer) {
+            if (S.mode !== 'fahrer') return;
+            naFehlerSetzen('');
+            if (blob.size > 5 * 1024 * 1024) { naFehlerSetzen('Datei zu groß (höchstens 5 MB).'); return; }
+            const w = { richtung: 'fahrer', text: '', anhang: art, erstellt_am: new Date().toISOString(), wartet: true };
+            S.na.wartend.push(w); listeZeichnen(); nachUnten();
+            let fehler = null;
+            try {
+                const s = await sb.auth.getSession();
+                const tok = s && s.data && s.data.session && s.data.session.access_token;
+                const fd = new FormData();
+                fd.append('art', art);
+                fd.append('datei', blob, art === 'foto' ? 'foto.jpg' : 'sprache' + endungVon(blob.type || ''));
+                if (dauer) fd.append('dauer', String(dauer));
+                const r = await fetch(SUPABASE_URL + '/functions/v1/anhang-senden', { method: 'POST', headers: { Authorization: 'Bearer ' + tok, apikey: SUPABASE_KEY }, body: fd });
+                if (!r.ok) { const j = await r.json().catch(function () { return {}; }); fehler = j.fehler || 'Senden hat nicht geklappt – bitte nochmal.'; }
+            } catch (e) { fehler = 'Keine Verbindung – bitte nochmal senden.'; }
+            S.na.wartend = S.na.wartend.filter(function (x) { return x !== w; });
+            if (fehler) { naFehlerSetzen(fehler); listeZeichnen(); return; }
+            await ladenNachrichten(); nachUnten();
+        }
+        document.addEventListener('change', async function (e) {
+            if (!e.target || e.target.id !== 'naDatei' || !e.target.files || !e.target.files[0]) return;
+            const datei = e.target.files[0]; e.target.value = '';
+            await anhangHochladen('foto', await bildVerkleinern(datei));
+        });
+        // Sprachnachricht: antippen = Aufnahme laeuft, Senden/✖ in der Leiste, nach 3 Minuten automatisch senden
+        const AUFNAHME_TYPEN = ['audio/mp4', 'audio/ogg;codecs=opus', 'audio/webm;codecs=opus'];
+        function aufnahmeLeiste() {
+            const bar = document.getElementById('naAufnahme'), reihe = document.querySelector('#naForm .composer-row');
+            if (bar) bar.hidden = !S.na.rec;
+            if (reihe) reihe.hidden = !!S.na.rec;
+        }
+        async function aufnahmeStart() {
+            if (S.na.rec || S.mode !== 'fahrer') return;
+            naFehlerSetzen('');
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) { naFehlerSetzen('Sprachaufnahme geht auf diesem Gerät nicht.'); return; }
+            let stream;
+            try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+            catch (e) { naFehlerSetzen('Kein Zugriff aufs Mikrofon – bitte in den Einstellungen erlauben.'); return; }
+            const typ = AUFNAHME_TYPEN.find(function (t) { return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t); });
+            const rec = new MediaRecorder(stream, typ ? { mimeType: typ } : undefined);
+            const r = { rec: rec, teile: [], start: Date.now(), verwerfen: false, uhr: null };
+            rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) r.teile.push(ev.data); };
+            rec.onstop = function () {
+                stream.getTracks().forEach(function (t) { t.stop(); });
+                clearInterval(r.uhr);
+                S.na.rec = null; aufnahmeLeiste();
+                if (r.verwerfen || !r.teile.length) return;
+                const dauer = Math.max(1, Math.round((Date.now() - r.start) / 1000));
+                anhangHochladen('sprache', new Blob(r.teile, { type: rec.mimeType || typ || 'audio/mp4' }), dauer);
+            };
+            S.na.rec = r; rec.start(); aufnahmeLeiste();
+            const zeit = document.getElementById('naZeit'); if (zeit) zeit.textContent = '0:00';
+            r.uhr = setInterval(function () {
+                const sek = (Date.now() - r.start) / 1000;
+                const z = document.getElementById('naZeit'); if (z) z.textContent = dauerAnzeige(Math.floor(sek));
+                if (sek >= 180) aufnahmeStop(false);
+            }, 250);
+        }
+        function aufnahmeStop(verwerfen) {
+            const r = S.na.rec; if (!r) return;
+            r.verwerfen = verwerfen;
+            try { r.rec.stop(); } catch (e) { S.na.rec = null; aufnahmeLeiste(); }
+        }
+
         /* ---------- Ereignisse ---------- */
         document.addEventListener('click', function(e) {
             const t = e.target.closest('[data-act]');
@@ -1220,6 +1417,13 @@
             else if (act === 'retry') { e.preventDefault(); startApp(); }
             else if (act === 'pdf') { e.preventDefault(); pdfOeffnen(t); }
             else if (act === 'push') { e.preventDefault(); pushAktivieren(t); }
+            else if (act === 'kamera') { e.preventDefault(); const d = document.getElementById('naDatei'); if (d) d.click(); }
+            else if (act === 'mikro') { e.preventDefault(); aufnahmeStart(); }
+            else if (act === 'aufnahme-senden') { e.preventDefault(); aufnahmeStop(false); }
+            else if (act === 'aufnahme-weg') { e.preventDefault(); aufnahmeStop(true); }
+            else if (act === 'foto') { e.preventDefault(); fotoGross(Number(t.getAttribute('data-id'))); }
+            else if (act === 'foto-zu') { e.preventDefault(); t.hidden = true; }
+            else if (act === 'ton') { e.preventDefault(); tonSpielen(t); }
         });
         async function bankNeuLaden() {
             const r = await sb.rpc('fahrer_app_bank').then(x => x, err => ({ error: err }));

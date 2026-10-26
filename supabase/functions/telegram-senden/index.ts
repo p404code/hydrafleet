@@ -53,15 +53,18 @@ async function themaAnlegen(nr: number, k: Kopf): Promise<number> {
     await loeschen(`tg_themen?fahrer_nr=eq.${nr}&thread_id=is.null`).catch(() => {});   // naechster Versuch sofort
     throw e;
   }
+  // erst der Kopf-Post, dann eintragen: wartende Aufrufe fuer denselben Fahrer senden so erst nach dem Kopf
+  await tg("sendMessage", { chat_id: GRUPPE, message_thread_id: thread, text: kopfPost(k), parse_mode: "HTML" })
+    .catch((e) => console.warn("Kopf-Post", e.message));
   await patch(`tg_themen?fahrer_nr=eq.${nr}`, { thread_id: thread, name, kennzeichen: k.kennzeichen ?? null });
-  await tg("sendMessage", { chat_id: GRUPPE, message_thread_id: thread, text: kopfPost(k), parse_mode: "HTML" });
   return thread;
 }
 
 async function autoGewechselt(nr: number, thread: number, k: Kopf) {
   const name = themenName(k);
   await tg("editForumTopic", { chat_id: GRUPPE, message_thread_id: thread, name }).catch((e) => console.warn("editForumTopic", e.message));
-  if (k.kennzeichen) await tg("sendMessage", { chat_id: GRUPPE, message_thread_id: thread, text: autoZeile(k), parse_mode: "HTML" });
+  if (k.kennzeichen) await tg("sendMessage", { chat_id: GRUPPE, message_thread_id: thread, text: autoZeile(k), parse_mode: "HTML" })
+    .catch((e) => console.warn("Autowechsel-Zeile", e.message));
   await patch(`tg_themen?fahrer_nr=eq.${nr}`, { name, kennzeichen: k.kennzeichen ?? null });
 }
 
@@ -95,7 +98,8 @@ async function senden(id: number): Promise<{ id: number; ok: boolean; fehler?: s
           parse_mode: "HTML", link_preview_options: { is_disabled: true } });
       } catch (e) {
         if (!themaWeg(e) || versuch > 0) throw e;
-        await loeschen(`tg_themen?fahrer_nr=eq.${n.fahrer_nr}`);   // Thema in Telegram geloescht: im 2. Durchgang neu anlegen
+        // Thema in Telegram geloescht: nur diese Zuordnung weg (ein parallel neu angelegtes Thema bleibt), im 2. Durchgang neu
+        await loeschen(`tg_themen?fahrer_nr=eq.${n.fahrer_nr}&thread_id=eq.${thread}`);
       }
     }
     await patch(`nachrichten?id=eq.${id}`, { tg_message_id: msg!.message_id, tg_fehler: null });

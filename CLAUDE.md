@@ -120,13 +120,16 @@ Geld entscheidet weiterhin das alte System.
 | `post-senden` | SMTP Gmail (`sw.hydrafleet@gmail.com`, App-Passwort) | `post_ausgang`, Status in `post_eingang` |
 | `revolut-auszahlung` | Revolut Business API (Serdo, READ+WRITE) | `revolut_zahlungen`, Gegenpartei in `fahrer_bank` |
 | `revolut-webhook` | Revolut-Webhook (HMAC, `verify_jwt = false`) | Status in `revolut_zahlungen`, `revolut_webhook_events` |
+| `telegram-senden` | Fahrer-Nachricht (Trigger/Nachhol-Lauf, nur service_role) | Telegram-Thema des Fahrers, `tg_themen`, `nachrichten.tg_*` |
+| `telegram-webhook` | Telegram-Webhook (Secret-Header, `verify_jwt = false`) | `nachrichten` (`richtung 'team'`) |
+| `push-senden` | Team-Nachricht (Trigger, nur service_role) | Web-Push an `push_abos`, tote Abos löschen |
 
 Jeder Lauf schreibt eine Zeile nach `sync_runs`.
 
 **Aufrufschutz (seit 2026-09-28):** Die drei Syncs nehmen nur den service_role-Key
 (Zeitplan) oder Buero-User (`app_metadata.app_role` admin/user) an, sonst 403 —
 der anon-Key steht im Frontend und ist ein gueltiges JWT. Die Rolle wird aus dem
-Token gelesen, die Signatur prueft das Gateway: `verify_jwt` NIE abschalten (einzige Ausnahme: `revolut-webhook`, HMAC-geschützt).
+Token gelesen, die Signatur prueft das Gateway: `verify_jwt` NIE abschalten (einzige Ausnahmen: `revolut-webhook`, HMAC-geschützt, und `telegram-webhook`, Secret-Header – beide bekommen kein Supabase-JWT).
 `uber-probe` ist stillgelegt (410) und kann im Supabase-Dashboard geloescht werden.
 
 ### Zeitplan (`pg_cron`)
@@ -246,7 +249,7 @@ Spec `docs/superpowers/specs/2026-10-15-iban-fahrerapp-design.md`, Plan `docs/su
     (`revolut_kandidaten.seit_freigabe_ueberwiesen`, Referenz mit anderer KW zählt nicht), bleibt draußen – außer die Überweisung ist
     als **Vorschuss** markiert (`revolut_buchungen.vorschuss`, `revolut_buchung_vorschuss`, Knopf im Fahrer-Detail). Bar Ausgezahltes
     (Kassabuch) sieht die Sperre NICHT; ältere Wochen zeigen im Dialog deshalb einen Warnhinweis (Entwürfe bewusst für alle Wochen).
-  - `revolut-webhook` läuft als einzige Function mit `verify_jwt = false` (Revolut schickt kein Supabase-JWT); Schutz ist die
+  - `revolut-webhook` läuft (neben `telegram-webhook`, siehe „Nachrichten“) mit `verify_jwt = false` (Revolut schickt kein Supabase-JWT); Schutz ist die
     HMAC-Signatur (`Revolut-Signature`, max. 5 Min alt). Ohne Secret wird alles mit 401 abgelehnt. Doppelte Events: `revolut_webhook_events`.
 
 ## Auszahlung (seit 2026-10-19)
@@ -333,7 +336,8 @@ ein Thema je Fahrer**. Alles, was im Fahrer-Thema geschrieben wird, geht an den 
   Nicht derselbe Bot wie der USP-Bot.
 - Gruppe „HydraLink_Fahrer Kommunikation“ (`-1004453022013`), Bot `@hydralink_Fahrer_bot` (Admin, nur „Themen verwalten“).
 - Team-Regeln: im Fahrer-Thema = an den Fahrer; Absprache in „Allgemein“; Bearbeiten kommt nicht an; Fotos/Sprachnachrichten noch nicht.
-- Tests: `PGLITE=/tmp/pglite node scripts/test-nachrichten.mjs`, `node --test scripts/test-telegram-logik.mjs scripts/test-webpush.mjs`.
+- Tests: `PGLITE=/tmp/pglite node scripts/test-nachrichten.mjs`, `node --test scripts/test-telegram-logik.mjs scripts/test-webpush.mjs scripts/test-telegram-senden.mjs`,
+  `bash scripts/test-fahrer-nachrichten.sh` (Fahrerapp im headless Chromium, Attrappen statt Supabase).
   Testzeilen mit `fahrer_nr = 999999` stammen vom Live-Test am Einrichtungstag.
 
 ## Key Supabase Tables

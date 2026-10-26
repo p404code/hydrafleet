@@ -971,7 +971,7 @@
 
         /* ---------- Nachrichten (Chat mit dem Büro, Spec 2026-10-22-fahrer-nachrichten-telegram) ---------- */
         // Öffentlicher VAPID-Schlüssel (gibt scripts/telegram-einrichten.mjs aus). Leer = Benachrichtigungen noch nicht eingerichtet.
-        const VAPID_PUBLIC = '';
+        const VAPID_PUBLIC = 'BDw_fpeMWscD7qj4KqVBiY7XkWz-jTgmLHaFxhycnnyV0WcPzYgI-qrbX3Cmd3wES272WPwvBqn93FlrzGMi-w4';
         function naAlt() { return !S.na.loadedAt || Date.now() - S.na.loadedAt > 15 * 1000; }
         async function ladenNachrichten() {
             if (!S.profil) return;

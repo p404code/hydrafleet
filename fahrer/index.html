@@ -316,7 +316,7 @@
         /* Lohnzettel + Dienstgeber: eigener Ladezustand, lazy beim ersten Öffnen (Start oder Lohnzettel), nach >5 Min neu */
         function lzLeer() { return { rows: [], dg: [], err: false, loadedAt: 0, loading: false }; }
         function stLeer() { return { rows: [], err: false, loadedAt: 0, loading: false }; }
-        function naLeer() { return { rows: [], wartend: [], err: false, loadedAt: 0, loading: false, nochmal: false }; }
+        function naLeer() { return { rows: [], wartend: [], err: false, loadedAt: 0, loading: false, nochmal: false, sendet: false }; }
 
         const ICON_BACK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>';
         const ICON_CHEV = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>';
@@ -432,6 +432,7 @@
 
         function showLogin() {
             S.mode = null; S.profil = null; S.abr = []; S.offen = []; S.lz = lzLeer(); S.st = stLeer();
+            S.na = naLeer(); S.push = null; S.pushFehler = false; S.aboGemeldet = false; badgeSetzen();
             clearPins();
             document.getElementById('loginErr').textContent = '';
             try { const last = localStorage.getItem('fahrer_nr_last'); if (last && /^[0-9]{1,9}$/.test(last) && !fidInput.value) fidInput.value = last; } catch (e) {}
@@ -481,6 +482,12 @@
 
         async function abmelden() {
             if (S.mode === 'vorschau') return; // Vorschau meldet nie ab – sonst wäre das Büro abgemeldet
+            // Push-Abo kündigen: sonst bekäme der nächste Fahrer auf diesem Gerät die Nachrichten des alten
+            try {
+                const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+                const sub = reg && reg.pushManager ? await reg.pushManager.getSubscription() : null;
+                if (sub) await sub.unsubscribe();
+            } catch (e) { console.warn('Push-Abo kündigen:', e); }
             try { await sb.auth.signOut(); } catch (e) {}
             try { history.replaceState(null, '', '/fahrer/'); } catch (e) {}
             showLogin();
@@ -578,6 +585,7 @@
             renderBand();
             render();
             ladenNachrichten();
+            pushStatus();
         }
 
         /* ---------- Vorschau-Band ---------- */
@@ -616,7 +624,11 @@
             document.getElementById('topbar').innerHTML = out.back
                 ? '<a class="back" href="' + out.back + '" aria-label="Zurück">' + ICON_BACK + '</a><div class="title">' + esc(out.title) + '</div><div class="who">' + esc(out.right || '') + '</div>'
                 : '<div class="brand">HYDRA<span>link</span></div><div class="who">' + esc(S.profil.name) + ' · <span class="num">' + esc(fhr(S.profil.fahrer_nr)) + '</span></div>';
+            const entwurf = document.getElementById('naText');
+            const entwurfText = entwurf ? entwurf.value : '';
             document.getElementById('view').innerHTML = out.html;
+            const feldNeu = entwurfText && document.getElementById('naText');
+            if (feldNeu) { feldNeu.value = entwurfText; feldHoehe(feldNeu); }
             document.querySelectorAll('#tabbar [data-tab]').forEach(a => {
                 const on = a.getAttribute('data-tab') === TAB_FOR[r.name];
                 a.classList.toggle('active', on);
@@ -1070,19 +1082,22 @@
             const feld = document.getElementById('naText'), fehler = document.getElementById('naFehler'), knopf = document.getElementById('naSenden');
             const text = feld.value.trim();
             fehler.textContent = '';
-            if (!text || knopf.disabled) return;
-            knopf.disabled = true;
+            if (!text || S.na.sendet) return;
+            S.na.sendet = true; knopf.disabled = true;
             const w = { richtung: 'fahrer', text: text, erstellt_am: new Date().toISOString(), wartet: true };
             S.na.wartend.push(w);
             feld.value = ''; feldHoehe(feld);
             listeZeichnen(); nachUnten();
             const r = await sb.rpc('fahrer_app_nachricht_senden', { p_text: text }).then(x => x, err => ({ error: err }));
             S.na.wartend = S.na.wartend.filter(x => x !== w);
-            knopf.disabled = false;
+            S.na.sendet = false;
+            // während des Sendens kann neu gezeichnet worden sein: Feld, Meldung und Knopf neu holen
+            const feld2 = document.getElementById('naText'), fehler2 = document.getElementById('naFehler'), knopf2 = document.getElementById('naSenden');
+            if (knopf2) knopf2.disabled = false;
             if (r.error) {
                 // Text nicht verlieren: zurück ins Feld (vor das, was inzwischen getippt wurde)
-                feld.value = feld.value ? text + '\n' + feld.value : text; feldHoehe(feld);
-                fehler.textContent = naMeldung(r.error);
+                if (feld2) { feld2.value = feld2.value ? text + '\n' + feld2.value : text; feldHoehe(feld2); }
+                if (fehler2) fehler2.textContent = naMeldung(r.error);
                 listeZeichnen();
                 return;
             }

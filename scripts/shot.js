@@ -28,6 +28,6 @@ async function main() {
   const shot = await send('Page.captureScreenshot', { format: 'png' });
   fs.writeFileSync(out, Buffer.from(shot.result.data, 'base64'));
   console.log('saved', out);
-  ws.close(); chrome.kill(); fs.rmSync(udd, { recursive: true, force: true });
+  ws.close(); chrome.kill(); fs.rmSync(udd, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });  // Chrome schreibt beim Beenden noch
 }
 main().catch(e => { console.error(e); chrome.kill(); process.exit(1); });

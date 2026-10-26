@@ -112,8 +112,13 @@
         .tab .badge { position: absolute; top: 4px; left: calc(50% + 5px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--err); color: #FFFFFF; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; }
         .push-karte { margin: 10px 12px 0; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; color: var(--text-mut); line-height: 1.5; }
         .push-karte .btn-ghost { height: 40px; }
-        .chat { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px calc(84px + var(--safe-bot)); }
-        .chat.ohne-eingabe { padding-bottom: 12px; }
+        /* Chat-Reiter: eine Flaeche in Hoehe des sichtbaren Bereichs (chatHoehe()), nur die Liste scrollt, das Feld sitzt
+           im Fluss darunter. Ein fixiertes Feld rutschte in der iPhone-Home-Bildschirm-App beim Tippen weg (26.10.). */
+        body.chat-modus { overflow: hidden; }
+        body.chat-modus main { padding-bottom: 0; }
+        body.tippen .tabbar, body.tippen #naPush { display: none; }
+        .chat-seite { display: flex; flex-direction: column; height: calc(100dvh - 46px - var(--safe-top) - 54px - var(--safe-bot)); }
+        .chat { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; }
         .chat .empty { margin: 12px 0 0; }
         .chat-tag { align-self: center; font-size: 10.5px; font-weight: 600; color: var(--text-mut); margin: 10px 0 2px; }
         .bubble { max-width: 82%; padding: 7px 10px 5px; border-radius: 10px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -122,7 +127,7 @@
         .bubble .wer { display: block; font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 1px; white-space: normal; }
         .bubble .zeit { display: block; font-size: 10px; opacity: .6; text-align: right; margin-top: 2px; white-space: normal; }
         .bubble.wartet { opacity: .55; }
-        .composer { position: fixed; left: 0; right: 0; bottom: calc(54px + var(--safe-bot)); z-index: 19; padding: 8px 12px; background: var(--surface); border-top: 1px solid var(--border); }
+        .composer { flex-shrink: 0; padding: 8px 12px; background: var(--surface); border-top: 1px solid var(--border); }
         .composer-row { display: flex; gap: 6px; align-items: flex-end; }
         .composer-err { color: var(--err); font-size: 12px; font-weight: 500; }
         .composer-err:not(:empty) { margin-bottom: 6px; }
@@ -635,6 +640,8 @@
                 if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
             });
             badgeSetzen();
+            document.body.classList.toggle('chat-modus', r.name === 'nachrichten');
+            if (r.name !== 'nachrichten') document.body.classList.remove('tippen');
             if (r.name === 'nachrichten') naGeoeffnet();
         }
 
@@ -1040,28 +1047,40 @@
             });
             return out;
         }
-        function nachUnten() { window.scrollTo(0, document.body.scrollHeight); }
+        function nachUnten() { const el = document.getElementById('naListe'); if (el) el.scrollTop = el.scrollHeight; }
+        // Hoehe der Chat-Flaeche = sichtbarer Bereich (ohne Tastatur) minus Kopf minus Tab-Leiste (beim Tippen ausgeblendet)
+        function chatHoehe() {
+            const seite = document.getElementById('naSeite');
+            if (!seite) return;
+            const vv = window.visualViewport;
+            const sichtbar = vv ? vv.height : window.innerHeight;
+            const oben = document.querySelector('.top').getBoundingClientRect().height;
+            const unten = document.body.classList.contains('tippen') ? 0 : document.getElementById('tabbar').getBoundingClientRect().height;
+            seite.style.height = Math.max(160, Math.round(sichtbar - oben - unten)) + 'px';
+            if (window.scrollY) window.scrollTo(0, 0);   // iOS schiebt beim Tippen die ganze Seite hoch
+        }
         function listeZeichnen() {
             const el = document.getElementById('naListe');
             if (!el) return;
             const neu = chatHtml();
             if (el.innerHTML === neu) return;
-            const unten = window.innerHeight + window.scrollY >= document.body.scrollHeight - 120;
+            const unten = el.scrollTop + el.clientHeight >= el.scrollHeight - 120;
             el.innerHTML = neu;
             if (unten) nachUnten();
         }
         function viewNachrichten() {
             const vorschau = S.mode === 'vorschau';
-            const html = '<div id="naPush"></div>'
+            const html = '<div class="chat-seite" id="naSeite"><div id="naPush"></div>'
                 + (vorschau ? '<div class="note">Vorschau: so sieht der Fahrer den Chat. Antworten kommen aus Telegram.</div>' : '')
-                + '<div class="chat' + (vorschau ? ' ohne-eingabe' : '') + '" id="naListe">' + chatHtml() + '</div>'
+                + '<div class="chat" id="naListe">' + chatHtml() + '</div>'
                 + (vorschau ? '' : '<form class="composer" id="naForm" autocomplete="off">'
                     + '<div class="composer-err" id="naFehler" role="alert"></div>'
                     + '<div class="composer-row"><textarea id="naText" rows="1" maxlength="2000" placeholder="Nachricht an das Büro" aria-label="Nachricht an das Büro"></textarea>'
-                    + '<button type="submit" class="btn-primary" id="naSenden">Senden</button></div></form>');
+                    + '<button type="submit" class="btn-primary" id="naSenden">Senden</button></div></form>') + '</div>';
             return { html: html };
         }
         function naGeoeffnet() {
+            chatHoehe();
             nachUnten();
             gelesenMelden();
             pushStatus();
@@ -1075,6 +1094,21 @@
         }
         function feldHoehe(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
         document.addEventListener('input', function (e) { if (e.target && e.target.id === 'naText') feldHoehe(e.target); });
+        document.addEventListener('focusin', function (e) {
+            if (!e.target || e.target.id !== 'naText') return;
+            document.body.classList.add('tippen'); chatHoehe(); nachUnten();
+            setTimeout(function () { chatHoehe(); nachUnten(); }, 350);   // iOS: Tastatur faehrt erst noch hoch
+        });
+        document.addEventListener('focusout', function (e) {
+            if (!e.target || e.target.id !== 'naText') return;
+            document.body.classList.remove('tippen'); chatHoehe();
+            setTimeout(chatHoehe, 350);
+        });
+        document.addEventListener('mousedown', function (e) {
+            if (e.target.closest && e.target.closest('#naSenden') && document.activeElement && document.activeElement.id === 'naText') e.preventDefault();
+        });
+        if (window.visualViewport) { visualViewport.addEventListener('resize', chatHoehe); visualViewport.addEventListener('scroll', chatHoehe); }
+        window.addEventListener('resize', chatHoehe);
         document.addEventListener('submit', async function (e) {
             if (!e.target || e.target.id !== 'naForm') return;
             e.preventDefault();
@@ -1154,8 +1188,11 @@
                 ios_install: '<span>Für Benachrichtigungen am iPhone: unten auf <b>Teilen</b> → <b>Zum Home-Bildschirm</b>, die App dann von dort öffnen und hier aktivieren.</span>',
                 abgelehnt: '<span>Benachrichtigungen sind blockiert. Du kannst sie in den Einstellungen des Handys für HYDRAlink wieder erlauben.</span>'
             }[S.push];
+            const liste = document.getElementById('naListe');
+            const unten = liste && liste.scrollTop + liste.clientHeight >= liste.scrollHeight - 120;
             el.className = t ? 'push-karte' : '';
             el.innerHTML = t || '';
+            if (unten) nachUnten();   // der Hinweis kommt spaeter dazu und verkleinert die Liste
         }
         async function pushAktivieren(btn) {
             btn.disabled = true;

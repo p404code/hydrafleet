@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Browser-Test der Fahrerapp (Reiter Nachrichten) mit Attrappen statt Supabase – headless Chromium ueber scripts/shot.js.
 #   bash scripts/test-fahrer-nachrichten.sh
-# Prueft: Abmelden kuendigt das Push-Abo und leert den Chat-Zustand (Geraet wechselt den Fahrer);
+# Prueft: Chat-Layout (Liste scrollt, Feld ueber Tab-Leiste, beim Tippen Leiste weg); Abmelden kuendigt das Push-Abo und leert den Chat-Zustand (Geraet wechselt den Fahrer);
 #         Neuzeichnen behaelt den Entwurf; scheitert das Senden nach einem Neuzeichnen, steht der Text im neuen Feld.
 set -euo pipefail
 cd "$(dirname "$0")/.."

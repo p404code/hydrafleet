@@ -34,7 +34,32 @@
   ergebnis.text_nach_fehler = document.getElementById('naText').value === 'wichtige Nachricht';
   ergebnis.fehler_sichtbar = /Zu viele/.test(document.getElementById('naFehler').textContent);
 
-  // 3) Abmelden: Push-Abo gekuendigt, Chat-Zustand des Fahrers weg
+  // 3) Layout: Chat ist eine Flaeche in Bildschirmhoehe, nur die Liste scrollt, Feld sitzt direkt ueber der Tab-Leiste;
+  //    beim Tippen verschwindet die Tab-Leiste und das Feld rutscht an den unteren Rand (ueber die Tastatur)
+  const nah = (a, b) => Math.abs(a - b) <= 2;
+  const form = () => document.getElementById('naForm').getBoundingClientRect();
+  const leiste = document.getElementById('tabbar');
+  ergebnis.liste_scrollt = getComputedStyle(document.getElementById('naListe')).overflowY === 'auto';
+  ergebnis.feld_nicht_fixiert = getComputedStyle(document.getElementById('naForm')).position !== 'fixed';
+  ergebnis.feld_ueber_leiste = nah(form().bottom, leiste.getBoundingClientRect().top);
+  // Hinweis zu Benachrichtigungen erscheint spaeter (pushStatus ist async): die letzte Nachricht muss trotzdem sichtbar bleiben
+  const liste = document.getElementById('naListe');
+  S.na.rows = Array.from({ length: 20 }, (_, i) => ({ id: i + 10, richtung: i % 2 ? 'team' : 'fahrer', team_name: 'Boyko',
+    text: 'Zeile ' + i, erstellt_am: new Date().toISOString(), gelesen_am: 'x' }));
+  liste.innerHTML = chatHtml(); nachUnten();
+  S.push = 'aus'; pushZeichnen(); await warte(50);
+  ergebnis.letzte_sichtbar_nach_hinweis = nah(liste.scrollTop + liste.clientHeight, liste.scrollHeight);
+  document.getElementById('naText').focus(); await warte(400);
+  ergebnis.tippen_leiste_weg = document.body.classList.contains('tippen') && getComputedStyle(leiste).display === 'none';
+  ergebnis.tippen_feld_unten = nah(form().bottom, (window.visualViewport ? visualViewport.height : innerHeight));
+  ergebnis.tippen_hinweis_weg = getComputedStyle(document.getElementById('naPush')).display === 'none';
+  document.getElementById('naText').blur(); await warte(100);
+  ergebnis.nach_tippen_leiste_da = getComputedStyle(leiste).display !== 'none' && nah(form().bottom, leiste.getBoundingClientRect().top);
+  location.hash = '#start'; await warte(100);
+  ergebnis.anderer_reiter_normal = !document.body.classList.contains('chat-modus') && !document.body.classList.contains('tippen');
+  location.hash = '#nachrichten'; await warte(100);
+
+  // 4) Abmelden: Push-Abo gekuendigt, Chat-Zustand des Fahrers weg
   S.aboGemeldet = true; S.push = 'an';
   await abmelden();
   await warte(50);

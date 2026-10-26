@@ -6,11 +6,13 @@
 //   pbpaste | node scripts/telegram-einrichten.mjs einrichten                Gruppe finden, pruefen, Secrets setzen, Webhook setzen
 //   … einrichten --gruppe -100…                                              Gruppen-ID vorgeben (wenn mehrere/keine gefunden)
 //   … einrichten --neue-vapid                                                VAPID neu erzeugen (alle Push-Abos werden ungueltig!)
+//   pbpaste | node scripts/telegram-einrichten.mjs menue --gruppe -100…      Menue in "Allgemein" posten und anheften (Teil 2)
 import { execFileSync } from 'node:child_process';
 import { writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'node:fs';
 import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { menueKnoepfe, menueText } from '../supabase/functions/_shared/telegram-logik.ts';
 
 const PROJEKT = 'pkxcwfkfaaorwnbdmylg';
 const WEBHOOK = `https://${PROJEKT}.supabase.co/functions/v1/telegram-webhook`;
@@ -82,9 +84,12 @@ async function gruppePruefen(gruppe, me) {
   const probleme = [];
   if (!chat.is_forum) probleme.push('In der Gruppe sind die Themen nicht eingeschaltet (Gruppeninfo → Bearbeiten → Themen).');
   if (mitglied.status !== 'administrator') probleme.push('Der Bot ist kein Admin der Gruppe.');
-  else if (!mitglied.can_manage_topics) probleme.push('Dem Bot fehlt das Admin-Recht „Themen verwalten“.');
+  else {
+    if (!mitglied.can_manage_topics) probleme.push('Dem Bot fehlt das Admin-Recht „Themen verwalten“.');
+    if (!mitglied.can_pin_messages) probleme.push('Dem Bot fehlt das Admin-Recht „Nachrichten anheften“ (für das Menü).');
+  }
   console.log(`Gruppe: ${chat.title} (${gruppe}) · Themen ${chat.is_forum ? 'an' : 'AUS'} · Bot ${mitglied.status}`
-    + (mitglied.can_manage_topics ? ' mit „Themen verwalten“' : ''));
+    + (mitglied.can_manage_topics ? ' mit „Themen verwalten“' : '') + (mitglied.can_pin_messages ? ', „Nachrichten anheften“' : ''));
   return probleme;
 }
 
@@ -114,10 +119,17 @@ if (schritt === 'pruefen') {
     Object.assign(werte, { VAPID_PUBLIC_KEY: vapid.pub, VAPID_PRIVATE_KEY: vapid.priv, VAPID_SUBJECT });
   }
   secretsSetzen(werte);
-  await tg('setWebhook', { url: WEBHOOK, secret_token: geheim, allowed_updates: ['message'], drop_pending_updates: true, max_connections: 10 });
+  await tg('setWebhook', { url: WEBHOOK, secret_token: geheim, allowed_updates: ['message', 'callback_query'], drop_pending_updates: true, max_connections: 10 });
   console.log(`Webhook gesetzt: ${WEBHOOK}`);
   if (vapid) console.log(`\nVAPID (öffentlich) – in fahrer/index.html als VAPID_PUBLIC eintragen:\n${vapid.pub}`);
   else console.log('VAPID bleibt wie es ist (steht schon in fahrer/index.html).');
+} else if (schritt === 'menue') {
+  const gruppe = opt('--gruppe') || raus('Bitte --gruppe <id> angeben (steht in CLAUDE.md, Abschnitt „Nachrichten“).');
+  const probleme = await gruppePruefen(gruppe, me);
+  if (probleme.length) raus(probleme.join('\n'));
+  const m = await tg('sendMessage', { chat_id: gruppe, text: menueText(), parse_mode: 'HTML', reply_markup: menueKnoepfe() });
+  await tg('pinChatMessage', { chat_id: gruppe, message_id: m.message_id, disable_notification: true });
+  console.log('Menü gepostet und angeheftet (Nachricht ' + m.message_id + ').');
 } else {
-  raus('Schritt fehlt: pruefen | einrichten');
+  raus('Schritt fehlt: pruefen | einrichten | menue');
 }

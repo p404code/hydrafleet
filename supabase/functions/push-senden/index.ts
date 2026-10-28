@@ -2,7 +2,7 @@
 // Abos, die der Push-Dienst mit 404/410 ablehnt, werden geloescht.
 // Secrets VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT setzt scripts/telegram-einrichten.mjs.
 import { pushSenden } from "../_shared/webpush.ts";
-import { pushText } from "../_shared/telegram-logik.ts";
+import { pushNutzlast } from "../_shared/telegram-logik.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -34,7 +34,10 @@ Deno.serve(async (req) => {
   const [n] = await db(`nachrichten?id=eq.${b.id}&select=id,fahrer_nr,richtung,text,an_alle,anhang,dauer`);
   if (!n || n.richtung !== "team") return antwort(200, { gesendet: 0 });
   const abos = await db(`push_abos?fahrer_nr=eq.${n.fahrer_nr}&select=id,endpoint,p256dh,auth`);
-  const nutzlast = JSON.stringify({ title: "HYDRAlink", body: pushText(n.text, n.an_alle === true, n.anhang, n.dauer), url: "/fahrer/#nachrichten", tag: "nachrichten" });
+  // Zahl ungelesener Buero-Nachrichten fuers App-Symbol; scheitert die Abfrage, geht der Push trotzdem raus
+  const ungelesen = await db(`nachrichten?fahrer_nr=eq.${n.fahrer_nr}&richtung=eq.team&gelesen_am=is.null&select=id`)
+    .then((z) => z.length, (e) => { console.warn("push-senden: ungelesen", (e as Error).message); return null; });
+  const nutzlast = pushNutzlast(n, ungelesen);
   let gesendet = 0, geloescht = 0;
   for (const a of abos) {
     try {

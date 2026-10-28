@@ -351,9 +351,13 @@ ein Thema je Fahrer**. Alles, was im Fahrer-Thema geschrieben wird, geht an den 
   → `anhang-senden` (prüft Typ/Größe/Spam vor Telegram, `sendPhoto`/`sendVoice`, Fallback `sendAudio`). Anzeige über `anhang`
   (Recht über `fahrer_app_anhang` mit dem JWT des Aufrufers; Token bleibt in der Function). OGG/Opus, das das Gerät nicht
   abspielt, dekodiert die App mit `ogg-opus-decoder` (jsDelivr). Team-Fotos/-Sprache im Thema speichert `telegram-webhook`.
+- **Hinweis auf neue Nachrichten (28.10.):** Außerhalb des Chats Banner oben (Vorschau bzw. „N neue Nachrichten vom Büro“, Antippen
+  → Chat, ✖, nach 8 s weg; einmal beim App-Start, wenn Ungelesenes da ist), Zähler am Reiter und Zahl am App-Symbol (`setAppBadge`,
+  iPhone nur als Home-Bildschirm-App mit Push-Erlaubnis, Android je nach Launcher). `push-senden` schickt `ungelesen` mit, `sw.js` setzt
+  damit das Symbol und meldet der offenen App `{typ: 'neu'}`. Die App fragt sichtbar alle 30 s nach (im Chat 15 s). Vorschau: nie.
 - Team-Regeln: im Fahrer-Thema = an den Fahrer; Absprache in „Allgemein“; Bearbeiten kommt nicht an; Videos/Dateien/Sticker nicht.
-- Tests: `PGLITE=/tmp/pglite node scripts/test-nachrichten.mjs`, `node --test scripts/test-telegram-logik.mjs scripts/test-webpush.mjs scripts/test-telegram-senden.mjs scripts/test-telegram-webhook.mjs scripts/test-anhang-senden.mjs scripts/test-anhang.mjs`,
-  `bash scripts/test-fahrer-nachrichten.sh` (Fahrerapp im headless Chromium, Attrappen statt Supabase; beide Testdateien).
+- Tests: `PGLITE=/tmp/pglite node scripts/test-nachrichten.mjs`, `node --test scripts/test-telegram-logik.mjs scripts/test-webpush.mjs scripts/test-telegram-senden.mjs scripts/test-telegram-webhook.mjs scripts/test-anhang-senden.mjs scripts/test-anhang.mjs scripts/test-sw-push.mjs`,
+  `bash scripts/test-fahrer-nachrichten.sh` (Fahrerapp im headless Chromium, Attrappen statt Supabase; alle drei Testdateien).
 - **Achtung:** `npx playwright install` räumt `~/Library/Caches/ms-playwright` auf; `chromium-1234` und `chromium_headless_shell-1234`
   sind seit 26.10. Symlinks auf 1248 (für `shot.js`, `uber-capture.js`, `uber-fahrzeugbilder.js`).
   Testzeilen mit `fahrer_nr = 999999` vom Einrichtungstag wurden am 26.10. gelöscht.

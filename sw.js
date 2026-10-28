@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hydralink-v61';
+const CACHE_NAME = 'hydralink-v62';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
@@ -73,14 +73,20 @@ self.addEventListener('fetch', (e) => {
 self.addEventListener('push', (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : '' }; }
-  e.waitUntil(self.registration.showNotification(d.title || 'HYDRAlink', {
+  // Zahl ungelesener Nachrichten am App-Symbol (iPhone ab iOS 16.4 als Home-Bildschirm-App, manche Android-Launcher)
+  const symbol = Number.isInteger(d.ungelesen) && self.navigator && self.navigator.setAppBadge
+    ? self.navigator.setAppBadge(d.ungelesen).catch(() => {}) : null;
+  // offene Fahrerapp holt sofort neu (Zaehler am Reiter, Banner)
+  const offen = clients.matchAll({ type: 'window', includeUncontrolled: true }).then((fenster) => fenster
+    .filter((c) => new URL(c.url).pathname.startsWith('/fahrer')).forEach((c) => c.postMessage({ typ: 'neu' })));
+  e.waitUntil(Promise.all([self.registration.showNotification(d.title || 'HYDRAlink', {
     body: d.body || 'Neue Nachricht vom Büro',
     tag: d.tag || 'nachrichten',
     renotify: true,
     icon: '/icon-192x192.png',
     badge: '/icon-192x192.png',
     data: { url: d.url || '/fahrer/#nachrichten' }
-  }));
+  }), symbol, offen]));
 });
 
 self.addEventListener('notificationclick', (e) => {

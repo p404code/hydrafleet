@@ -69,6 +69,13 @@ export function pushText(text: unknown, anAlle = false, anhang?: Anhang | null, 
   return kuerzen(`Büro${anAlle ? " (an alle)" : ""}: ${inhalt}`, 120);
 }
 
+// Web-Push an die Fahrerapp; ungelesen = Zahl fuers App-Symbol (sw.js), null = unbekannt, dann ohne Feld
+export function pushNutzlast(n: { text: unknown; an_alle?: boolean | null; anhang?: Anhang | null; dauer?: number | null },
+  ungelesen: number | null): string {
+  return JSON.stringify({ title: "HYDRAlink", body: pushText(n.text, n.an_alle === true, n.anhang, n.dauer), url: "/fahrer/#nachrichten",
+    tag: "nachrichten", ...(ungelesen == null ? {} : { ungelesen }) });
+}
+
 export function dauerText(s: unknown): string {
   if (s == null || s === "" || !Number.isFinite(Number(s))) return "";
   const n = Math.max(0, Math.round(Number(s)));

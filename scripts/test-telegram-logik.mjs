@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { esc, kuerzen, vorname, themenName, kopfPost, autoZeile, fahrerZeile, pushText, gleich, einordnen,
   menueText, menueKnoepfe, infoText, aufforderung, vorschau, vorschauKnoepfe, gesendetText, themaLink, trefferKnoepfe, knopfLesen,
-  dauerText, anhangZeile, anhangPruefen }
+  dauerText, anhangZeile, anhangPruefen, pushNutzlast }
   from '../supabase/functions/_shared/telegram-logik.ts';
 
 const MAX = { name: 'Max Mustermann', fahrer_nr: 123, kennzeichen: 'W-1234TX', modell: 'Toyota Corolla' };
@@ -187,4 +187,12 @@ test('anhangPruefen: Art, Typ, Groesse, Dauer', () => {
   assert.deepEqual(anhangPruefen('sprache', 'image/jpeg', 1000, 3), { code: 415, fehler: 'Nur Sprachaufnahmen' });
   assert.deepEqual(anhangPruefen('video', 'video/mp4', 1000), { code: 415, fehler: 'Unbekannte Art' });
   assert.deepEqual(anhangPruefen('foto', 'image/jpeg', 0), { code: 415, fehler: 'Leere Datei' });
+});
+
+test('pushNutzlast: Text, Ziel und Zahl ungelesener Nachrichten fuers App-Symbol', () => {
+  const n = { text: 'Bitte morgen ins Büro', an_alle: false, anhang: null, dauer: null };
+  assert.deepEqual(JSON.parse(pushNutzlast(n, 3)),
+    { title: 'HYDRAlink', body: 'Büro: Bitte morgen ins Büro', url: '/fahrer/#nachrichten', tag: 'nachrichten', ungelesen: 3 });
+  // Zahl unbekannt (Abfrage gescheitert): kein Feld, sw.js laesst das Symbol dann in Ruhe
+  assert.equal('ungelesen' in JSON.parse(pushNutzlast(n, null)), false);
 });

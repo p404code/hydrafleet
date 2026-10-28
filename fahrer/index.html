@@ -110,6 +110,13 @@
         /* ---------- Nachrichten ---------- */
         .tab { position: relative; }
         .tab .badge { position: absolute; top: 4px; left: calc(50% + 5px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--err); color: #FFFFFF; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; }
+        .na-hinweis { position: fixed; z-index: 50; top: calc(var(--safe-top) + 8px); left: 12px; right: 12px; max-width: 520px; margin: 0 auto; display: flex; align-items: flex-start; gap: 10px; padding: 10px 6px 10px 12px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,.18); cursor: pointer; animation: na-hinweis-rein .2s ease-out; -webkit-tap-highlight-color: transparent; }
+        .na-hinweis[hidden] { display: none; }
+        .na-hinweis .grow { flex: 1; min-width: 0; }
+        .na-hinweis .wer { font-size: 12px; font-weight: 700; color: var(--text); }
+        .na-hinweis .was { font-size: 13px; color: var(--text-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+        .na-hinweis .zu { flex-shrink: 0; width: 36px; height: 36px; margin: -6px 0; border: 0; background: transparent; color: var(--text-mut); font-size: 16px; cursor: pointer; }
+        @keyframes na-hinweis-rein { from { transform: translateY(-120%); opacity: 0; } to { transform: none; opacity: 1; } }
         .push-karte { margin: 10px 12px 0; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; color: var(--text-mut); line-height: 1.5; }
         .push-karte .btn-ghost { height: 40px; }
         /* Chat-Reiter: eine Flaeche in Hoehe des sichtbaren Bereichs (chatHoehe()), nur die Liste scrollt, das Feld sitzt
@@ -314,6 +321,7 @@
             <header class="topbar" id="topbar"></header>
         </div>
         <main id="view"></main>
+        <div class="na-hinweis" id="naHinweis" role="status" hidden></div>
         <nav class="tabbar" id="tabbar" aria-label="Hauptmenü">
             <a class="tab" href="#start" data-tab="start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg><span class="tab-label">Start</span></a>
             <a class="tab" href="#abrechnung" data-tab="abrechnung"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"></rect><path d="M9 8h6"></path><path d="M9 12h6"></path><path d="M9 16h3"></path></svg><span class="tab-label">Abrechnung</span></a>
@@ -336,7 +344,7 @@
         /* Lohnzettel + Dienstgeber: eigener Ladezustand, lazy beim ersten Öffnen (Start oder Lohnzettel), nach >5 Min neu */
         function lzLeer() { return { rows: [], dg: [], err: false, loadedAt: 0, loading: false }; }
         function stLeer() { return { rows: [], err: false, loadedAt: 0, loading: false }; }
-        function naLeer() { return { rows: [], wartend: [], err: false, loadedAt: 0, loading: false, nochmal: false, sendet: false,
+        function naLeer() { return { rows: [], wartend: [], err: false, loadedAt: 0, loading: false, nochmal: false, sendet: false, hinweisBis: 0,
             blobs: new Map(), urls: new Map(), weg: new Set(), audio: null, spielt: null, rec: null }; }
 
         const ICON_BACK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>';
@@ -453,7 +461,7 @@
 
         function showLogin() {
             S.mode = null; S.profil = null; S.abr = []; S.offen = []; S.lz = lzLeer(); S.st = stLeer();
-            S.na = naLeer(); S.push = null; S.pushFehler = false; S.aboGemeldet = false; badgeSetzen();
+            S.na = naLeer(); S.push = null; S.pushFehler = false; S.aboGemeldet = false; badgeSetzen(); hinweisWeg();
             clearPins();
             document.getElementById('loginErr').textContent = '';
             try { const last = localStorage.getItem('fahrer_nr_last'); if (last && /^[0-9]{1,9}$/.test(last) && !fidInput.value) fidInput.value = last; } catch (e) {}
@@ -658,7 +666,7 @@
             badgeSetzen();
             document.body.classList.toggle('chat-modus', r.name === 'nachrichten');
             if (r.name !== 'nachrichten') document.body.classList.remove('tippen');
-            if (r.name === 'nachrichten') naGeoeffnet();
+            if (r.name === 'nachrichten') { hinweisWeg(); naGeoeffnet(); }
         }
 
         function offenSumme() { return S.offen.reduce((t, o) => t + num(o.offen), 0); }
@@ -1016,20 +1024,54 @@
             try {
                 const r = await (arg ? sb.rpc('fahrer_app_nachrichten', arg) : sb.rpc('fahrer_app_nachrichten')).then(x => x, e => ({ error: e }));
                 if (r.error) { S.na.err = true; console.warn('Nachrichten:', r.error); }
-                else { S.na.rows = r.data || []; S.na.err = false; S.na.loadedAt = Date.now(); }
+                else { S.na.rows = r.data || []; S.na.err = false; S.na.loadedAt = Date.now(); neueMelden(); }
             } finally { S.na.loading = false; }
             badgeSetzen();
             if (route().name === 'nachrichten') { listeZeichnen(); gelesenMelden(); }
             if (S.na.nochmal) { S.na.nochmal = false; ladenNachrichten(); }
         }
         function ungelesen() { return S.na.rows.filter(m => m.richtung === 'team' && !m.gelesen_am).length; }
+        let symbolZahl = null;
         function badgeSetzen() {
             const b = document.getElementById('naBadge');
             if (!b) return;
             const n = S.mode === 'fahrer' ? ungelesen() : 0;
             b.hidden = n === 0;
             b.textContent = n > 9 ? '9+' : String(n);
+            // Zahl am App-Symbol (iPhone als Home-Bildschirm-App, manche Android); die Buero-Vorschau fasst sie nicht an
+            if (S.mode === 'vorschau' || n === symbolZahl || !navigator.setAppBadge) return;
+            symbolZahl = n;
+            (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => {});
         }
+        // Banner oben, wenn außerhalb des Chats eine neue Büro-Nachricht ankommt (auch einmal beim App-Start, wenn Ungelesenes da ist)
+        let hinweisUhr = null;
+        function neueMelden() {
+            const team = S.na.rows.filter(m => m.richtung === 'team');
+            const neu = team.filter(m => !m.gelesen_am && m.id > S.na.hinweisBis);
+            S.na.hinweisBis = team.reduce((x, m) => Math.max(x, m.id), S.na.hinweisBis);
+            if (S.mode === 'fahrer' && neu.length && route().name !== 'nachrichten') hinweisZeigen(neu);
+        }
+        function hinweisZeigen(neu) {
+            const m = neu[neu.length - 1];
+            const art = m.anhang === 'foto' ? '📷 Foto' : m.anhang === 'sprache' ? '🎤 Sprachnachricht' : '';
+            const was = neu.length > 1 ? neu.length + ' neue Nachrichten vom Büro' : [art, m.text].filter(Boolean).join(' – ');
+            const el = document.getElementById('naHinweis');
+            el.innerHTML = '<div class="grow"><div class="wer">💬 Büro' + (neu.length === 1 && m.an_alle ? ' · an alle' : '') + '</div>'
+                + '<div class="was">' + esc(was) + '</div></div>'
+                + '<button type="button" class="zu" data-act="hinweis-zu" aria-label="Schließen">✖</button>';
+            el.hidden = false;
+            clearTimeout(hinweisUhr);
+            hinweisUhr = setTimeout(hinweisWeg, 8000);
+        }
+        function hinweisWeg() {
+            clearTimeout(hinweisUhr);
+            const el = document.getElementById('naHinweis');
+            if (el) el.hidden = true;
+        }
+        document.getElementById('naHinweis').addEventListener('click', function (e) {
+            hinweisWeg();
+            if (!e.target.closest('[data-act="hinweis-zu"]')) location.hash = '#nachrichten';
+        });
         async function gelesenMelden() {
             if (S.mode !== 'fahrer' || !ungelesen()) return;
             const r = await sb.rpc('fahrer_app_nachrichten_gelesen').then(x => x, e => ({ error: e }));
@@ -1166,19 +1208,23 @@
             await ladenNachrichten();
             nachUnten();
         });
-        // Solange der Chat offen und sichtbar ist: alle 15 Sekunden neu (kein Realtime)
+        // Solange die App sichtbar ist: im Chat alle 15 Sekunden neu, sonst alle 30 (kein Realtime; fängt Fahrer ohne Push auf)
         setInterval(function () {
-            if (S.profil && document.visibilityState === 'visible' && route().name === 'nachrichten') ladenNachrichten();
+            if (!S.profil || document.visibilityState !== 'visible') return;
+            if (route().name === 'nachrichten' || Date.now() - S.na.loadedAt >= 30 * 1000) ladenNachrichten();
         }, 15 * 1000);
         document.addEventListener('visibilitychange', function () {
             if (document.visibilityState === 'visible' && S.profil) ladenNachrichten();
         });
-        // Klick auf eine Benachrichtigung (sw.js schickt {typ: 'nachrichten'} an das offene Fenster)
-        if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', function (e) {
-            if (!e.data || e.data.typ !== 'nachrichten' || !S.profil) return;
+        // sw.js: {typ: 'neu'} = Push angekommen (sofort neu laden), {typ: 'nachrichten'} = Klick auf die Benachrichtigung
+        function swNachricht(e) {
+            if (!e.data || !S.profil) return;
+            if (e.data.typ === 'neu') ladenNachrichten();
+            if (e.data.typ !== 'nachrichten') return;
             if (location.hash !== '#nachrichten') location.hash = '#nachrichten';
             ladenNachrichten();
-        });
+        }
+        if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', swNachricht);
 
         /* Benachrichtigungen (Web-Push). iPhone: nur als Home-Bildschirm-App (iOS 16.4+). */
         function istIos() { return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }

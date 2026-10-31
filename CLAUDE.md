@@ -11,7 +11,7 @@ HYDRAlink is the internal web dashboard for **HYDRAFLEET**, a taxi/ride-sharing 
 - **Hosting**: Cloudflare Pages — Dashboard läuft auf `hydrafleet.pages.dev` (`hydrafleet.at` ist eine andere Seite, NICHT das Dashboard)
 - **Automation**: n8n (self-hosted on Hetzner) — CSV processing, invoice PDF generation, Notion→`fahrer` sync
 - **Plattform-Sync**: Supabase Edge Functions (Deno) + `pg_cron`/`pg_net` — Bolt, Uber, Notion
-- **Driver/Vehicle master data**: Notion (source of truth — never replace)
+- **Driver/Vehicle master data**: Notion (source of truth) – **außer Pauschalen: seit 2026-10-31 in HYDRAlink** (Abschnitt „Pauschalen“)
 - **Notifications**: Fahrer-Nachrichten über Telegram-Themen + Web-Push (seit 2026-10-26, Abschnitt „Nachrichten“)
 - **Fonts**: Fraunces (logo), Inter (UI)
 - **Branding**: "HYDRA" bold + "link" in gold (#F5B51B), dark theme default
@@ -318,6 +318,30 @@ Migration `2026-10-18-abrechnung-api-automatisch.sql`.
   leerer Text zählt nicht, letzter Eintrag gewinnt). KW42 am 18.10. von Claude importiert (25 Terminals zugeordnet, 4 ohne Fahrer,
   120,88 €). Import künftiger Wochen: noch von Hand (Datei schicken) – Upload im Dashboard fehlt.
 
+## Pauschalen (seit 2026-10-31)
+
+Spec `docs/superpowers/specs/2026-10-31-pauschalen-design.md`. Erster Schritt, Notion abzulösen: **die Pauschale gehört dem Fahrer
+und wird nur noch im Dashboard gepflegt** (Fahrer → App → Detail „Pauschale ändern“, alle Büro-Benutzer). Notion-Feld „Pauschale “
+zählt nicht mehr.
+- Verlauf `pauschalen` (je `notion_fahrer_id`; UPDATE/DELETE/TRUNCATE gesperrt, Protokoll-Bereich `geld`): `art` fix · f11 · f12 · eigene
+  (eigener `prozent_satz` ab `prozent_schwelle`, **Schwelle 0 = % vom ganzen Umsatz**), `betrag` (0 erlaubt), `gilt_ab`/`gilt_bis`
+  (ISO-Woche, bis optional = befristet), `grund` (optional), `quelle` hand · uebernahme · neuanlage, `von` aus dem JWT.
+- Es gilt der **zuletzt gespeicherte Eintrag, der die Woche abdeckt** (`pauschale_fuer(nr, woche)`, security invoker – als definer
+  konnten Fahrer fremde Pauschalen lesen). **Stichwoche** = letzte Freigabe + 1 (`pauschale_stichwoche()`); früher gilt nichts
+  (`pauschale_setzen` lehnt ab – freigegebene Wochen nur über Zu-/Abschläge).
+- **`fahrer.mietmodell/basis_miete/prozent_*` hält immer die Pauschale der Stichwoche** → Bot, `api_abrechnung`, myPOS, Fahrerapp lesen
+  unverändert `fahrer`. Dafür: Trigger **`fahrer_pauschale_waechter`** (überschreibt, was der n8n-Notion-Sync schickt; neuer/reaktivierter
+  Fahrer ohne Eintrag → einmalige Übernahme `neuanlage`), `pauschalen_anwenden()` nach `pauschale_setzen` und per Trigger
+  **`pauschalen_nach_freigabe`** (Stichwoche rückt → Befristungen beginnen/enden von selbst).
+- `pauschalen_abweichung` muss leer sein (Sicherheitsnetz). `pauschalen_uebernehmen()` hängt für Abweichungen eine Übernahme-Zeile an.
+- Grenze: wird eine **schon freigegebene Woche neu hochgeladen/gerechnet**, zählt die Pauschale der Stichwoche (wie früher der aktuelle Notion-Stand).
+- **Schwelle 0 bleibt 0** in Bot (`berechnung-v16.js`, Zeile 268), `prozent_nach_regel`, `api_abrechnung`, Dashboard-Neurechnen.
+  Nie wieder `|| 1200` / `nullif(…, 0)`.
+- Dashboard: Präfix **`pau`** (nicht `ps` – das ist Post), Logik `pauschalen-logik.js` (gleiche Regeln wie SQL), Schalter `PAU_AKTIV`.
+- Tests: `PGLITE=<dir> node scripts/test-pauschalen.mjs` (18), `node --test scripts/test-pauschalen-logik.mjs`,
+  `node scripts/test-pauschalen-ansicht.mjs <ordner>` (Dashboard mit Attrappe, Screenshots).
+- Der Knoten „Berechnung“ im AbrechnungsBot enthält den service_role-Key im Klartext (Z. 625) – nur lesend exportieren, nie ausgeben.
+
 ## Nachrichten (seit 2026-10-26)
 
 Spec `docs/superpowers/specs/2026-10-22-fahrer-nachrichten-telegram-design.md`, Plan `docs/superpowers/plans/2026-10-26-fahrer-nachrichten-telegram.md`.
@@ -468,6 +492,7 @@ aktiviert ist — aktuell zwei.
 ### Design Principles
 - **Keep it simple** — no overengineering. Always offer the simpler path first.
 - **Notion bleibt Stammdaten** (Fahrer, Fuhrpark), **Supabase nur Transaktionen.** Nicht zusammenlegen.
+  Ausnahme seit 2026-10-31 (Entscheidung Betreiber, Notion wird schrittweise abgelöst): **Pauschalen leben in HYDRAlink.**
 - **Jeder importierte Datensatz trägt die ID des Anbieters als Unique-Key** → Upsert,
   doppelter Import unmöglich.
 - **Keine Daten erfinden** (IDs, Endpunkte, Feldnamen). Wenn etwas fehlt: fragen.

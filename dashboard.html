@@ -3343,7 +3343,7 @@
         // Pauschalen-Verlauf je Notion-Nr. (Tabelle pauschalen), Stichwoche = naechste abzurechnende Woche. Praefix pau (ps = Post)
         let PAU = {}, PAU_DA = false, PAU_STICH = null, pauForm = null, pauWerte = null;
         // Erst beim Scharfschalten (migrations/2026-10-31-pauschalen-scharf.sql) auf true – vorher bleibt alles wie bisher
-        const PAU_AKTIV = false;
+        const PAU_AKTIV = true;
         let FZ_BANK = {}, FZ_BANK_DA = false, FB_OFFEN = [], FB_NOTION = [], fzBankForm = null, fzBankVerlauf = {};
         let FZ = [], fzFilter = 'alle', fzSearch = '', fzSort = 'name', fzDir = 1, fzSel = null, fzLoaded = false;
 

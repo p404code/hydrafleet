@@ -28,6 +28,7 @@ create function public.is_app_user() returns boolean language sql stable as $$
 create table public.fahrer (id integer primary key, name text not null, aktiv boolean default true, notion_fahrer_id integer,
   mietmodell text, basis_miete numeric, prozent_satz numeric, prozent_schwelle numeric);
 create table public.abrechnung_freigaben (woche text primary key, freigegeben_am timestamptz default now());
+create function public.protokoll_schreiben() returns trigger language plpgsql as $$ begin return null; end $$;
 insert into public.abrechnung_freigaben (woche) values ('2026-W42'), ('2026-W43');
 insert into public.fahrer values
   (1, 'F12 Fahrer',   true,  101, 'f12', 550, 10, 1200),
@@ -113,6 +114,95 @@ await pruefe('RLS: Buero liest, Fahrer/anon nicht', async () => {
   await db.exec(`set role authenticated; select set_config('request.jwt.claims', '{"app_metadata":{"app_role":"fahrer"}}', false)`);
   try { assert.equal((await eins(`select (pauschale_fuer(101, '2026-W44')).betrag b`)).b, null); } finally { await db.exec(`reset role`); }
   await assert.rejects(als({}, 'anon'));
+});
+
+// ---------- Schritt 1: Speichern ----------
+await db.exec(lies('../migrations/2026-10-31-pauschalen-setzen.sql'));
+const alsBuero = (name = 'Mohamed') => db.exec(`select set_config('request.jwt.claims', '${JSON.stringify({ app_metadata: { app_role: 'user', app_name: name } })}', false)`);
+const setzen = (nr, art, betrag, satz, schwelle, ab, bis, grund) => eins(
+  `select * from pauschale_setzen($1, $2, $3, $4, $5, $6, $7, $8)`, [nr, art, betrag, satz ?? null, schwelle ?? null, ab ?? null, bis ?? null, grund ?? null]);
+const fz = (id) => eins(`select mietmodell, basis_miete::float b, prozent_satz::float s, prozent_schwelle::float w from fahrer where id = $1`, [id]);
+
+await pruefe('Umbenennung: notion_fahrer_id, Abfragen laufen weiter', async () => {
+  assert.equal((await eins(`select count(*)::int n from information_schema.columns where table_name = 'pauschalen' and column_name = 'notion_fahrer_id'`)).n, 1);
+  assert.equal((await eins(`select (pauschale_fuer(101, '2026-W44')).betrag::float b`)).b, 600);
+  assert.equal((await eins(`select count(*)::int n from pauschalen_abweichung`)).n, 0);
+});
+
+await pruefe('pauschale_setzen: Buero, ab Stichwoche, wirkt sofort auf fahrer', async () => {
+  await alsBuero();
+  const r = await setzen(103, 'f12', 480, null, null, null, null, '  ');
+  assert.equal(r.von, 'Mohamed'); assert.equal(r.gilt_ab, '2026-W44'); assert.equal(r.quelle, 'hand'); assert.equal(r.grund, null);
+  assert.deepEqual(await fz(3), { mietmodell: 'f12', b: 480, s: 10, w: 1200 });
+});
+
+await pruefe('pauschale_setzen: spaeter gueltig -> fahrer bleibt bis dahin', async () => {
+  await alsBuero('Stefan');
+  const r = await setzen(101, 'fix', 300, null, null, '2026-W45', '2026-W48', 'Einstieg nach Unfall');
+  assert.equal(r.gilt_bis, '2026-W48'); assert.equal(r.grund, 'Einstieg nach Unfall');
+  assert.deepEqual(await fz(1), { mietmodell: 'f12', b: 600, s: 10, w: 1200 });
+});
+
+await pruefe('pauschale_setzen: eigene Regel, % vom ganzen Umsatz (Schwelle 0)', async () => {
+  await alsBuero();
+  await setzen(105, 'eigene', 0, 25, 0, null, null, 'Eigenes Auto');
+  assert.deepEqual(await fz(5), { mietmodell: 'eigene', b: 0, s: 25, w: 0 });
+  const r = await eins(`select prozent_satz::float s, prozent_schwelle::float w from pauschalen where notion_fahrer_id = 105 order by id desc limit 1`);
+  assert.deepEqual(r, { s: 25, w: 0 });
+  assert.equal((await eins(`select count(*)::int n from pauschalen_abweichung`)).n, 0);
+});
+
+await pruefe('pauschale_setzen: Satz/Schwelle bei f-Modellen werden ignoriert', async () => {
+  await alsBuero();
+  const r = await setzen(102, 'f11', 500, 99, 5, '2026-W53');
+  assert.equal(r.prozent_satz, null); assert.equal(r.prozent_schwelle, null);
+});
+
+await pruefe('pauschale_setzen: Regeln und Rechte', async () => {
+  await alsBuero();
+  await assert.rejects(setzen(101, 'f12', 500, null, null, '2026-W43'), /frühestens ab 2026-W44/);
+  await assert.rejects(setzen(101, 'f12', 500, null, null, '2026-W46', '2026-W45'), /bis/);
+  await assert.rejects(setzen(999, 'f12', 500), /nicht gefunden/);
+  await assert.rejects(setzen(101, 'f13', 500), /Unbekannte Art/);
+  await assert.rejects(setzen(101, 'f12', 5001), /zwischen 0 und 5.000/);
+  await assert.rejects(setzen(101, 'f12', -1), /zwischen 0 und 5.000/);
+  await assert.rejects(setzen(101, 'eigene', 100), /Prozentsatz/);
+  await assert.rejects(setzen(101, 'eigene', 100, 10), /Umsatzschwelle/);
+  await assert.rejects(setzen(101, 'f12', 500, null, null, 'KW45'), /JJJJ-Wnn/);
+  await db.exec(`select set_config('request.jwt.claims', '{"app_metadata":{"app_role":"fahrer","fahrer_nr":101}}', false)`);
+  await assert.rejects(setzen(101, 'f12', 1), /Nicht autorisiert/);
+  await db.exec(`select set_config('request.jwt.claims', '', false)`);
+  await assert.rejects(setzen(101, 'f12', 1), /Nicht autorisiert/);
+});
+
+// ---------- Scharfschalten ----------
+await db.exec(lies('../migrations/2026-10-31-pauschalen-scharf.sql'));
+
+await pruefe('Waechter: Notion-Sync kann die Pauschale nicht mehr ueberschreiben', async () => {
+  await db.exec(`update fahrer set basis_miete = 999, mietmodell = 'fix', prozent_satz = 0, prozent_schwelle = 0, name = 'F12 Fahrer neu' where id = 1`);
+  assert.deepEqual(await fz(1), { mietmodell: 'f12', b: 600, s: 10, w: 1200 });
+  assert.equal((await eins(`select name from fahrer where id = 1`)).name, 'F12 Fahrer neu');
+});
+
+await pruefe('Waechter: neuer Fahrer aus Notion -> einmalige Uebernahme, danach gilt HYDRAlink', async () => {
+  await db.exec(`insert into fahrer values (8, 'Neu', true, 108, 'f12', 480, 10, 1200)`);
+  const e = await eins(`select art, betrag::float b, quelle, von, gilt_ab from pauschalen where notion_fahrer_id = 108`);
+  assert.deepEqual(e, { art: 'f12', b: 480, quelle: 'neuanlage', von: 'Automatik (neu aus Notion)', gilt_ab: '2026-W44' });
+  await db.exec(`update fahrer set basis_miete = 700 where id = 8`);
+  assert.equal((await fz(8)).b, 480);
+  await db.exec(`insert into fahrer values (9, 'Neu inaktiv', false, 109, 'f12', 480, 10, 1200)`);
+  assert.equal((await eins(`select count(*)::int n from pauschalen where notion_fahrer_id = 109`)).n, 0);
+});
+
+await pruefe('Freigabe schiebt die Stichwoche: Befristung beginnt und endet von selbst', async () => {
+  await db.exec(`insert into abrechnung_freigaben (woche) values ('2026-W44')`);
+  assert.equal((await eins(`select pauschale_stichwoche() w`)).w, '2026-W45');
+  assert.deepEqual(await fz(1), { mietmodell: 'fix', b: 300, s: 0, w: 0 });
+  await db.exec(`insert into abrechnung_freigaben (woche) values ('2026-W45'), ('2026-W46'), ('2026-W47')`);
+  assert.equal((await fz(1)).b, 300);
+  await db.exec(`insert into abrechnung_freigaben (woche) values ('2026-W48')`);
+  assert.deepEqual(await fz(1), { mietmodell: 'f12', b: 600, s: 10, w: 1200 });
+  assert.equal((await eins(`select count(*)::int n from pauschalen_abweichung`)).n, 0);
 });
 
 console.log(`\n${ok} Pruefungen bestanden`);

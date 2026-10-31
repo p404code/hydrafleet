@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hydralink-v62';
+const CACHE_NAME = 'hydralink-v63';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
@@ -8,6 +8,7 @@ const PRECACHE_URLS = [
   '/fahrer/',
   '/fahrer/manifest.json',
   '/bank-logik.js',
+  '/pauschalen-logik.js',
   '/icon-192x192.png',
   '/icon-512x512.png',
   '/apple-touch-icon.png',

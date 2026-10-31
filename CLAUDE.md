@@ -335,7 +335,7 @@ zählt nicht mehr.
   **`pauschalen_nach_freigabe`** (Stichwoche rückt → Befristungen beginnen/enden von selbst).
 - `pauschalen_abweichung` muss leer sein (Sicherheitsnetz). `pauschalen_uebernehmen()` hängt für Abweichungen eine Übernahme-Zeile an.
 - Grenze: wird eine **schon freigegebene Woche neu hochgeladen/gerechnet**, zählt die Pauschale der Stichwoche (wie früher der aktuelle Notion-Stand).
-- **Schwelle 0 bleibt 0** in Bot (`berechnung-v16.js`, Zeile 268), `prozent_nach_regel`, `api_abrechnung`, Dashboard-Neurechnen.
+- **Schwelle 0 bleibt 0** in Bot (`berechnung-v16.js`, Zeile 268, live seit 01.11.2026), `prozent_nach_regel`, `api_abrechnung`, Dashboard-Neurechnen.
   Nie wieder `|| 1200` / `nullif(…, 0)`.
 - Dashboard: Präfix **`pau`** (nicht `ps` – das ist Post), Logik `pauschalen-logik.js` (gleiche Regeln wie SQL), Schalter `PAU_AKTIV`.
 - Tests: `PGLITE=<dir> node scripts/test-pauschalen.mjs` (18), `node --test scripts/test-pauschalen-logik.mjs`,
@@ -429,6 +429,14 @@ aktiviert ist — aktuell zwei.
 - All German UI labels
 
 ### Known Pitfalls
+- **Server `taxi` (Hetzner CX23, 4 GB):** hing am 31.10.2026 (Speicher voll, Thrashing). Auslöser **Portainer**
+  (bläht `dockerd` auf GB auf) → Portainer gestoppt, `restart=no`. Seit 01.11. **4 GB Swap** (`/swapfile`, swappiness 10).
+  Ports 5678 (n8n) und 9000 sind von außen offen – Firewall noch offen.
+- **n8n 2.1.4 + SQLite: `n8n import:workflow` hängt** („Timeout waiting for lock SqliteWriteConnectionMutex“), auch bei
+  gestopptem n8n. Jeder `n8n`-CLI-Aufruf startet eine volle Instanz (~300 MB). Workflows im Editor ändern; im Notfall
+  (so am 01.11. für die Bot-Zeile v16): n8n stoppen, `database.sqlite` sichern, `workflow_entity.nodes` **und**
+  `workflow_history.nodes` der `activeVersionId` als Text ändern, n8n starten. Sicherungen: `/root/n8n-database-*.sqlite`,
+  Export aller Workflows in `n8n_data/_data/sicherung-2026-11-01/`.
 - **Ein Fahrer hat pro Bolt-Firma eine eigene Driver-UUID.** Deshalb gibt es kein
   `fahrer.bolt_driver_uuid`, sondern `bolt_drivers.fahrer_id` (viele Konten → ein Fahrer).
   Gleiches Muster bei `uber_drivers.fahrer_id`.

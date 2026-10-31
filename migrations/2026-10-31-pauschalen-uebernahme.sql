@@ -126,5 +126,8 @@ end $$;
 revoke all on function public.pauschalen_uebernehmen() from public, anon, authenticated;
 revoke all on function public.pauschale_stichwoche() from public, anon;
 revoke all on function public.pauschale_fuer(integer, text) from public, anon;
+-- ausdruecklich (live ohnehin per Supabase-Standard): die Ansicht pauschalen_abweichung braucht es fuers Buero,
+-- Fahrer sehen dank security invoker + RLS nichts
+grant execute on function public.pauschale_fuer(integer, text) to authenticated;
 
 select public.pauschalen_uebernehmen() as uebernommen;

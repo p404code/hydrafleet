@@ -926,6 +926,8 @@
             #fzTable th:nth-child(3), #fzTable td:nth-child(3) { width: 190px; }
             #fzTable th:nth-child(6), #fzTable td:nth-child(6) { width: 104px; }
             #fzTable th:nth-child(7), #fzTable td:nth-child(7) { width: 140px; }
+            #fzTable th:nth-child(8), #fzTable td:nth-child(8) { width: 120px; }
+            #fzTable td:nth-child(8) .zeile-sub { display: block; font-size: 11px; color: var(--text-mut); margin-top: 2px; }
         }
         .fz-bild { flex: none; width: 60px; height: 30px; border-radius: 6px; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
         .fz-bild img { width: 100%; height: 100%; object-fit: contain; display: block; }
@@ -978,6 +980,16 @@
         .fz-bank-form input { width: 100%; box-sizing: border-box; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 7px 12px; font-size: 13px; color: var(--text); font-family: inherit; }
         .fz-bank-fehler { color: var(--err); font-size: 11.5px; }
         .fz-bank-verlauf { font-size: 11.5px; color: var(--text-mut); display: grid; gap: 3px; margin-top: 6px; }
+        .pau-form { display: grid; gap: 6px; }
+        .pau-form label { font-size: 11px; color: var(--text-mut); margin-top: 4px; }
+        .pau-form input, .pau-form select { width: 100%; box-sizing: border-box; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 7px 12px; font-size: 13px; color: var(--text); font-family: inherit; }
+        .pau-arten { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+        .pau-arten .chip { justify-content: center; }
+        .pau-zwei { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .pau-vorschau { font-size: 12px; color: var(--text); }
+        .pau-vorschau span { color: var(--text-mut); }
+        .pau-verlauf { font-size: 11.5px; color: var(--text-mut); display: grid; gap: 6px; margin-top: 10px; }
+        .pau-verlauf b { color: var(--text); font-weight: 600; }
         .fz-ueberw { display: grid; gap: 2px; font-size: 12px; margin-top: 4px; }
         .fz-ueberw div { display: grid; grid-template-columns: 78px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; }
         .fz-ueberw button { font: inherit; font-size: 10.5px; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--border); background: none; color: var(--text-mut); cursor: pointer; }
@@ -1478,8 +1490,9 @@
                         <th data-fzsort="modell">Modell</th>
                         <th data-fzsort="app_rang">App-Status</th>
                         <th>Bank</th>
+                        <th>Pauschale</th>
                     </tr></thead>
-                    <tbody id="fzBody"><tr><td colspan="7" class="empty">Lade ...</td></tr></tbody>
+                    <tbody id="fzBody"><tr><td colspan="8" class="empty">Lade ...</td></tr></tbody>
                 </table>
                 <section class="pk-karte" id="pkKarte">
                     <div class="pk-kopf">
@@ -1871,6 +1884,7 @@
         </div>
     </div>
     <script src="/bank-logik.js"></script>
+    <script src="/pauschalen-logik.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <!-- html2canvas loaded lazily on first share -->
     <script>
@@ -3326,6 +3340,10 @@
         /* Alles Rechnen passiert in der View public.fahrer_uebersicht.
            Hier wird nur gefiltert, sortiert und angezeigt. */
         let FZ_MIETE = {};   // fahrer.id -> {basis_miete, prozent_satz, prozent_schwelle}
+        // Pauschalen-Verlauf je Notion-Nr. (Tabelle pauschalen), Stichwoche = naechste abzurechnende Woche. Praefix pau (ps = Post)
+        let PAU = {}, PAU_DA = false, PAU_STICH = null, pauForm = null, pauWerte = null;
+        // Erst beim Scharfschalten (migrations/2026-10-31-pauschalen-scharf.sql) auf true – vorher bleibt alles wie bisher
+        const PAU_AKTIV = false;
         let FZ_BANK = {}, FZ_BANK_DA = false, FB_OFFEN = [], FB_NOTION = [], fzBankForm = null, fzBankVerlauf = {};
         let FZ = [], fzFilter = 'alle', fzSearch = '', fzSort = 'name', fzDir = 1, fzSel = null, fzLoaded = false;
 
@@ -3358,6 +3376,17 @@
             });
             ['fzBody', 'fzPanel'].forEach(function (id) {
                 document.getElementById(id).addEventListener('click', fzAppKlick);
+                // Pauschalen-Formular: Eingaben aendern nur die Vorschau (Fokus bleibt), "gilt ab" baut die bis-Liste neu
+                const pauEingabe = function (e) {
+                    const box = e.target.closest('[data-pauform]');
+                    if (!box || !pauWerte) return;
+                    pauWerteLesen(box);
+                    if (e.type === 'change' && e.target.dataset.pau === 'ab') { renderFahrer(); return; }
+                    const f = FZ.find(function (x) { return x.notion_fahrer_id === pauForm; });
+                    if (f) box.querySelector('[data-pauvorschau]').innerHTML = pauVorschauHtml(f, pauWerte);
+                };
+                document.getElementById(id).addEventListener('input', pauEingabe);
+                document.getElementById(id).addEventListener('change', pauEingabe);
             });
             document.getElementById('pkListe').addEventListener('click', pkKlick);
             document.getElementById('rbKarte').addEventListener('click', rbKlick);
@@ -3398,7 +3427,7 @@
         async function ladeFahrer() {
             const sb = getSupabase();
             const still = function (q) { return q.then(function (r) { return r; }, function (e) { return { error: e }; }); };
-            const [res, ohne, mit, miete, bilder, bank, fbOffen, notion, rbOffen, rbStand] = await Promise.all([
+            const [res, ohne, mit, miete, bilder, bank, fbOffen, notion, rbOffen, rbStand, pausch, stich] = await Promise.all([
                 sb.from('fahrer_uebersicht').select('*'),
                 sb.from('plattform_konten').select('*').is('fahrer_id', null),
                 sb.from('plattform_konten').select('*').not('fahrer_id', 'is', null),
@@ -3408,8 +3437,10 @@
                 still(sb.from('formular_iban_offen').select('*').order('erstellt_am')),
                 still(sb.from('notion_fahrer').select('notion_fahrer_id,name,telefon').not('notion_fahrer_id', 'is', null)),
                 still(sb.from('revolut_buchungen_offen').select('*').order('summe', { ascending: false })),
-                still(sb.from('revolut_abruf').select('*'))
-            ]).catch(function (e) { return Array(10).fill({ error: e }); });
+                still(sb.from('revolut_abruf').select('*')),
+                still(sb.from('pauschalen').select('*').order('am')),
+                still(sb.rpc('pauschale_stichwoche'))
+            ]).catch(function (e) { return Array(12).fill({ error: e }); });
             RB_DA = !rbOffen.error;
             RB_OFFEN = rbOffen.error ? [] : (rbOffen.data || []);
             RB_STAND = rbStand.error ? null : ((rbStand.data || [])[0] || null);
@@ -3421,6 +3452,8 @@
             FB_NOTION = notion.error ? [] : (notion.data || []);
             FZ_MIETE = {};
             if (!miete.error) (miete.data || []).forEach(function (m) { FZ_MIETE[m.id] = m; });
+            PAU = {}; PAU_DA = PAU_AKTIV && !pausch.error && !stich.error && !!stich.data; PAU_STICH = PAU_DA ? stich.data : null;
+            if (PAU_DA) (pausch.data || []).forEach(function (x) { (PAU[x.notion_fahrer_id] = PAU[x.notion_fahrer_id] || []).push(x); });
             if (!bilder.error) (bilder.data || []).forEach(function (b) { FP_UBER[b.kennzeichen_key] = b; });
             if (res.error) {
                 document.getElementById('fzBody').innerHTML =
@@ -3566,7 +3599,7 @@
             });
 
             const body = document.getElementById('fzBody');
-            if (!rows.length) { body.innerHTML = '<tr><td colspan="' + (isMobile() ? 3 : 7) + '" class="empty">Kein Fahrer gefunden.</td></tr>'; return; }
+            if (!rows.length) { body.innerHTML = '<tr><td colspan="' + (isMobile() ? 3 : 8) + '" class="empty">Kein Fahrer gefunden.</td></tr>'; return; }
 
             const mobil = isMobile();
             body.innerHTML = rows.map(function (f) {
@@ -3599,6 +3632,7 @@
                     '<td>' + esc(f.modell || '-') + '</td>' +
                     '<td>' + appZelle + '</td>' +
                     '<td>' + fzBankZelle(f) + '</td>' +
+                    '<td>' + fzPauschaleZelle(f) + '</td>' +
                 '</tr>';
             }).join('');
 
@@ -3699,6 +3733,83 @@
                     '<button class="btn-ghost" data-fbweg="' + x.id + '">Verwerfen</button></div></div>';
             }).join('');
         }
+        /* === PAUSCHALE je Fahrer (Tabelle pauschalen, Spec 2026-10-31-pauschalen-design.md) ===
+           Es gilt der zuletzt gespeicherte Eintrag, der die Woche abdeckt (wie pauschale_fuer). Gespeichert wird nur
+           ueber pauschale_setzen; frueheste Woche = PAU_STICH (naechste abzurechnende Woche). */
+        function pauEintraege(f) { return f.notion_fahrer_id == null ? [] : (PAU[f.notion_fahrer_id] || []); }
+        function pauJetzt(f) { return PAU_DA ? PauschalenLogik.gilt(pauEintraege(f), PAU_STICH) : null; }
+        function pauBefristet(f) { return pauEintraege(f).some(function (e) { return e.gilt_bis && e.gilt_bis >= PAU_STICH; }); }
+        function fzPauschaleZelle(f) {
+            if (!PAU_DA) {  // vor dem Scharfschalten: der Notion-Stand aus fahrer
+                const m = FZ_MIETE[f.fahrer_id];
+                return m && m.basis_miete != null ? '<span class="num">' + esc((f.mietmodell || '–') + ' · ' + PauschalenLogik.eur(m.basis_miete)) + '</span>'
+                    : '<span style="color:var(--text-mut)">–</span>';
+            }
+            const g = pauJetzt(f);
+            if (!g) return '<span style="color:var(--warn)">fehlt</span>';
+            return '<span class="num">' + esc(PauschalenLogik.kurz(g, true)) + '</span>' +
+                (pauBefristet(f) ? '<span class="zeile-sub">befristet</span>' : '');
+        }
+        function pauZeitraum(x) {
+            const L = PauschalenLogik, e = x.eintrag;
+            return e && e.gilt_bis && e.gilt_bis >= x.ab ? L.kw(x.ab, PAU_STICH) + '–' + L.kw(e.gilt_bis, PAU_STICH) : 'ab ' + L.kw(x.ab, PAU_STICH);
+        }
+        function pauVorschauHtml(f, w) {
+            const L = PauschalenLogik;
+            const fehler = L.formFehler(w, PAU_STICH);
+            if (fehler) return '<div class="fz-bank-fehler">' + esc(fehler) + '</div>';
+            const neu = L.eintragAus(w), alt = L.gilt(pauEintraege(f), w.ab);
+            const danach = w.bis ? L.gilt(pauEintraege(f), L.wochePlus(w.bis, 1)) : null;
+            const name = esc(String(f.name || '').split(' ')[0]);
+            return '<div class="pau-vorschau">' + (w.bis ? L.kw(w.ab, PAU_STICH) + '–' + L.kw(w.bis, PAU_STICH) : 'Ab ' + L.kw(w.ab, PAU_STICH)) +
+                ' zahlt ' + name + ' <b>' + esc(L.kurz(neu)) + '</b>' + (alt ? ' statt ' + esc(L.kurz(alt)) : '') + '.' +
+                (danach ? ' Danach wieder ' + esc(L.kurz(danach)) + '.' : '') +
+                '<br><span>Bei 1.500 € Umsatz: ' + fmt(L.abzug(neu, 1500)) + (alt ? ' statt ' + fmt(L.abzug(alt, 1500)) : '') + '</span></div>';
+        }
+        function fzPauschaleHtml(f) {
+            if (!PAU_DA || f.notion_fahrer_id == null) return '';
+            const L = PauschalenLogik, nr = f.notion_fahrer_id, liste = pauEintraege(f), g = pauJetzt(f);
+            let html = '<div class="detail-sec">Pauschale</div>' +
+                fzKv('Gilt für ' + L.kw(PAU_STICH), g ? '<span class="num">' + esc(L.kurz(g)) + '</span>' : '<span style="color:var(--warn)">fehlt</span>', 'strong');
+            L.ausblick(liste, PAU_STICH, 3).forEach(function (x) {
+                html += fzKv(pauZeitraum(x), '<span class="num">' + esc(L.kurz(x.eintrag)) + '</span>');
+            });
+            if (pauForm === nr) {
+                const w = pauWerte;
+                const wochen = L.wochenAb(PAU_STICH, 30);
+                const opt = function (v, t, an) { return '<option value="' + v + '"' + (an ? ' selected' : '') + '>' + t + '</option>'; };
+                html += '<div class="pau-form" data-pauform="' + nr + '">' +
+                    '<div class="pau-arten">' + ['fix', 'f11', 'f12', 'eigene'].map(function (a) {
+                        return '<button type="button" class="chip' + (w.art === a ? ' active' : '') + '" data-pauart="' + a + '">' + a + '</button>'; }).join('') + '</div>' +
+                    '<label>Pauschale je Woche (€)</label><input data-pau="betrag" inputmode="decimal" value="' + esc(String(w.betrag)) + '">' +
+                    (w.art === 'eigene' ? '<div class="pau-zwei"><div><label>Prozent</label><input data-pau="satz" inputmode="decimal" value="' + esc(String(w.satz)) + '"></div>' +
+                        '<div><label>ab Umsatz (€), 0 = alles</label><input data-pau="schwelle" inputmode="decimal" value="' + esc(String(w.schwelle)) + '"></div></div>' : '') +
+                    '<div class="pau-zwei"><div><label>gilt ab</label><select data-pau="ab">' + wochen.map(function (x) {
+                            return opt(x, L.kw(x, PAU_STICH) + (x === PAU_STICH ? ' · nächste' : ''), x === w.ab); }).join('') + '</select></div>' +
+                        '<div><label>bis</label><select data-pau="bis">' + opt('', 'unbefristet', !w.bis) + wochen.filter(function (x) { return x >= w.ab; }).map(function (x) {
+                            return opt(x, L.kw(x, PAU_STICH), x === w.bis); }).join('') + '</select></div></div>' +
+                    '<label>Grund (optional)</label><input data-pau="grund" maxlength="200" value="' + esc(w.grund || '') + '">' +
+                    '<div data-pauvorschau="1">' + pauVorschauHtml(f, w) + '</div>' +
+                    '<div class="detail-acts"><button class="btn-primary ok" data-pausave="' + nr + '">Speichern</button>' +
+                    '<button class="btn-ghost" data-pauzu="1">Abbrechen</button></div></div>';
+            } else {
+                html += '<div class="detail-acts"><button class="btn-ghost" data-pauauf="' + nr + '">Pauschale ändern</button></div>';
+            }
+            if (liste.length) {
+                const neu = liste.slice().sort(function (a, b) { return String(b.am).localeCompare(String(a.am)) || (b.id - a.id); });
+                html += '<div class="pau-verlauf">' + neu.map(function (e, i) {
+                    const vorher = neu[i + 1];
+                    return '<div>' + esc(fzZeit(e.am)) + ' · <b>' + esc(e.von) + '</b><br>' +
+                        (vorher ? esc(L.kurz(vorher)) + ' → ' : '') + esc(L.kurz(e)) + ' · ab ' + L.kw(e.gilt_ab, PAU_STICH) +
+                        (e.gilt_bis ? ' bis ' + L.kw(e.gilt_bis, PAU_STICH) : '') + (e.grund ? ' · ' + esc(e.grund) : '') + '</div>';
+                }).join('') + '</div>';
+            }
+            return html;
+        }
+        function pauWerteLesen(box) {
+            box.querySelectorAll('[data-pau]').forEach(function (el) { pauWerte[el.dataset.pau] = el.value; });
+            if (pauWerte.bis && pauWerte.bis < pauWerte.ab) pauWerte.bis = '';
+        }
         function fzDetailHtml(f) {
             const p = fzProbleme(f);
             const m = FZ_MIETE[f.fahrer_id] || null;
@@ -3713,8 +3824,10 @@
                 '<div class="sub">Fahrer-ID ' + (f.notion_fahrer_id == null ? '-' : f.notion_fahrer_id) +
                     ' &middot; ' + esc(f.telefon || 'keine Nummer') + '</div>' +
                 fpBild(fzAuto(f), true) +
-                '<div class="pay">' + (pauschale == null ? '-' : fmt(pauschale)) + '</div>' +
-                '<div class="sub">Pauschale · Modell ' + modellText + '</div>' +
+                (pauJetzt(f) ? '<div class="pay">' + fmt(pauJetzt(f).betrag) + '</div>' +
+                    '<div class="sub">Pauschale ' + PauschalenLogik.kw(PAU_STICH) + ' · ' + esc(PauschalenLogik.regel(pauJetzt(f))) + '</div>'
+                : '<div class="pay">' + (pauschale == null ? '-' : fmt(pauschale)) + '</div>' +
+                    '<div class="sub">Pauschale · Modell ' + modellText + '</div>') +
                 (p.length ? '<div class="detail-sec">Probleme</div><ul class="prob-list">' +
                     p.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
                 '<div class="detail-sec">Fahrzeug</div>' +
@@ -3727,10 +3840,10 @@
                 kv('Bewertung', f.bolt_bewertung == null ? '-' : parseFloat(f.bolt_bewertung).toFixed(2)) +
                 kv('Fahrten 30 Tage', fmtInt(f.fahrten_30t || 0)) +
                 '<div class="detail-sec">Abrechnung</div>' +
-                kv('Pauschale', pauschale == null ? '-' : fmt(pauschale), 'strong') +
-                kv('Mietmodell', modellText) +
+                (PAU_DA ? '' : kv('Pauschale', pauschale == null ? '-' : fmt(pauschale), 'strong') + kv('Mietmodell', modellText)) +
                 kv('Letzte Woche', esc(f.letzte_woche || '-')) +
                 kv('Auszahlung', f.letzte_auszahlung == null ? '-' : fmt(f.letzte_auszahlung)) +
+                fzPauschaleHtml(f) +
                 fzLohnHtml(f) +
                 fzAppHtml(f) +
                 fzBankHtml(f) +
@@ -3868,6 +3981,36 @@
             }
         }
         async function fzAppKlick(e) {
+            const pAuf = e.target.closest('[data-pauauf]');
+            if (pAuf) {
+                const nr = parseInt(pAuf.dataset.pauauf, 10);
+                const f = FZ.find(function (x) { return x.notion_fahrer_id === nr; });
+                const g = f ? pauJetzt(f) : null;
+                pauForm = nr;
+                pauWerte = { art: g ? g.art : 'f12', betrag: g ? String(parseFloat(g.betrag)) : '',
+                    satz: g && g.prozent_satz != null ? String(parseFloat(g.prozent_satz)) : '10',
+                    schwelle: g && g.prozent_schwelle != null ? String(parseFloat(g.prozent_schwelle)) : '1200',
+                    ab: PAU_STICH, bis: '', grund: '' };
+                renderFahrer(); return;
+            }
+            if (e.target.closest('[data-pauzu]')) { pauForm = null; renderFahrer(); return; }
+            const pArt = e.target.closest('[data-pauart]');
+            if (pArt) { pauWerteLesen(pArt.closest('[data-pauform]')); pauWerte.art = pArt.dataset.pauart; renderFahrer(); return; }
+            const pSave = e.target.closest('[data-pausave]');
+            if (pSave) {
+                const box = pSave.closest('[data-pauform]'); pauWerteLesen(box);
+                const fehler = PauschalenLogik.formFehler(pauWerte, PAU_STICH);
+                if (fehler) { box.querySelector('[data-pauvorschau]').innerHTML = '<div class="fz-bank-fehler">' + esc(fehler) + '</div>'; return; }
+                const n = PauschalenLogik.eintragAus(pauWerte);
+                pSave.disabled = true;
+                const { error } = await getSupabase().rpc('pauschale_setzen', { p_nr: pauForm, p_art: n.art, p_betrag: n.betrag,
+                    p_prozent_satz: n.prozent_satz == null ? null : n.prozent_satz, p_prozent_schwelle: n.prozent_schwelle == null ? null : n.prozent_schwelle,
+                    p_gilt_ab: n.gilt_ab, p_gilt_bis: n.gilt_bis, p_grund: n.grund });
+                if (error) { box.querySelector('[data-pauvorschau]').innerHTML = '<div class="fz-bank-fehler">' + esc(fgFehler(error)) + '</div>'; pSave.disabled = false; return; }
+                pauForm = null;
+                showReToast('Pauschale gespeichert', 'success');
+                await ladeFahrer(); return;
+            }
             const bAuf = e.target.closest('[data-fzbankauf]');
             if (bAuf) { fzBankForm = parseInt(bAuf.dataset.fzbankauf, 10); renderFahrer(); return; }
             if (e.target.closest('[data-fzbankzu]')) { fzBankForm = null; renderFahrer(); return; }

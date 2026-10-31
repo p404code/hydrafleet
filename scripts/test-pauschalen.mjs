@@ -26,7 +26,8 @@ create function auth.jwt() returns jsonb language sql stable as $$ select nullif
 create function public.is_app_user() returns boolean language sql stable as $$
   select coalesce((auth.jwt() -> 'app_metadata' ->> 'app_role') in ('admin','user'), false) $$;
 create table public.fahrer (id integer primary key, name text not null, aktiv boolean default true, notion_fahrer_id integer,
-  mietmodell text, basis_miete numeric, prozent_satz numeric, prozent_schwelle numeric);
+  mietmodell text, basis_miete numeric, prozent_satz numeric, prozent_schwelle numeric,
+  constraint fahrer_mietmodell_check check (mietmodell = any (array['fix', 'f11', 'f12'])));  -- wie live
 create table public.abrechnung_freigaben (woche text primary key, freigegeben_am timestamptz default now());
 create function public.protokoll_schreiben() returns trigger language plpgsql as $$ begin return null; end $$;
 insert into public.abrechnung_freigaben (woche) values ('2026-W42'), ('2026-W43');
@@ -118,6 +119,7 @@ await pruefe('RLS: Buero liest, Fahrer/anon nicht', async () => {
 
 // ---------- Schritt 1: Speichern ----------
 await db.exec(lies('../migrations/2026-10-31-pauschalen-setzen.sql'));
+await db.exec(lies('../migrations/2026-11-01-pauschalen-eigene-als-fix.sql'));
 const alsBuero = (name = 'Mohamed') => db.exec(`select set_config('request.jwt.claims', '${JSON.stringify({ app_metadata: { app_role: 'user', app_name: name } })}', false)`);
 const setzen = (nr, art, betrag, satz, schwelle, ab, bis, grund) => eins(
   `select * from pauschale_setzen($1, $2, $3, $4, $5, $6, $7, $8)`, [nr, art, betrag, satz ?? null, schwelle ?? null, ab ?? null, bis ?? null, grund ?? null]);
@@ -146,7 +148,8 @@ await pruefe('pauschale_setzen: spaeter gueltig -> fahrer bleibt bis dahin', asy
 await pruefe('pauschale_setzen: eigene Regel, % vom ganzen Umsatz (Schwelle 0)', async () => {
   await alsBuero();
   await setzen(105, 'eigene', 0, 25, 0, null, null, 'Eigenes Auto');
-  assert.deepEqual(await fz(5), { mietmodell: 'eigene', b: 0, s: 25, w: 0 });
+  // fahrer_mietmodell_check erlaubt nur fix/f11/f12 -> eigene Regel = fix mit eigenem Satz (wie der Bot es kennt)
+  assert.deepEqual(await fz(5), { mietmodell: 'fix', b: 0, s: 25, w: 0 });
   const r = await eins(`select prozent_satz::float s, prozent_schwelle::float w from pauschalen where notion_fahrer_id = 105 order by id desc limit 1`);
   assert.deepEqual(r, { s: 25, w: 0 });
   assert.equal((await eins(`select count(*)::int n from pauschalen_abweichung`)).n, 0);
@@ -182,6 +185,11 @@ await pruefe('Waechter: Notion-Sync kann die Pauschale nicht mehr ueberschreiben
   await db.exec(`update fahrer set basis_miete = 999, mietmodell = 'fix', prozent_satz = 0, prozent_schwelle = 0, name = 'F12 Fahrer neu' where id = 1`);
   assert.deepEqual(await fz(1), { mietmodell: 'f12', b: 600, s: 10, w: 1200 });
   assert.equal((await eins(`select name from fahrer where id = 1`)).name, 'F12 Fahrer neu');
+});
+
+await pruefe('Waechter: Notion-Sync bei eigener Regel scheitert nicht an der Pruefregel', async () => {
+  await db.exec(`update fahrer set basis_miete = 230, mietmodell = 'fix', prozent_satz = 0, prozent_schwelle = 0 where id = 5`);
+  assert.deepEqual(await fz(5), { mietmodell: 'fix', b: 0, s: 25, w: 0 });
 });
 
 await pruefe('Waechter: neuer Fahrer aus Notion -> einmalige Uebernahme, danach gilt HYDRAlink', async () => {

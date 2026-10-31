@@ -333,6 +333,8 @@ zählt nicht mehr.
   unverändert `fahrer`. Dafür: Trigger **`fahrer_pauschale_waechter`** (überschreibt, was der n8n-Notion-Sync schickt; neuer/reaktivierter
   Fahrer ohne Eintrag → einmalige Übernahme `neuanlage`), `pauschalen_anwenden()` nach `pauschale_setzen` und per Trigger
   **`pauschalen_nach_freigabe`** (Stichwoche rückt → Befristungen beginnen/enden von selbst).
+- **Eigene Regel steht in `fahrer` als `mietmodell = 'fix'` mit `prozent_satz > 0`** (`fahrer_mietmodell_check` erlaubt nur
+  fix/f11/f12; Bot & Co. rechnen „fix + Satz“ über ihren dritten Zweig). Nie `'eigene'` nach `fahrer` schreiben.
 - `pauschalen_abweichung` muss leer sein (Sicherheitsnetz). `pauschalen_uebernehmen()` hängt für Abweichungen eine Übernahme-Zeile an.
 - Grenze: wird eine **schon freigegebene Woche neu hochgeladen/gerechnet**, zählt die Pauschale der Stichwoche (wie früher der aktuelle Notion-Stand).
 - **Schwelle 0 bleibt 0** in Bot (`berechnung-v16.js`, Zeile 268, live seit 01.11.2026), `prozent_nach_regel`, `api_abrechnung`, Dashboard-Neurechnen.

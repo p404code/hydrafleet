@@ -98,7 +98,7 @@ Umsetzen in die `fahrer`-Spalten:
 | fix | `fix` | betrag | 0 | 0 |
 | f11 | `f11` | betrag | 10 | 1100 |
 | f12 | `f12` | betrag | 10 | 1200 |
-| eigene | `eigene` | betrag | satz | schwelle |
+| eigene | `fix` (fahrer_mietmodell_check erlaubt nur fix/f11/f12; „fix + Satz > 0“ ist die eigene Regel des alten Systems, Korrektur 01.11.) | betrag | satz | schwelle |
 
 ### Stichwoche: `pauschale_stichwoche()`
 

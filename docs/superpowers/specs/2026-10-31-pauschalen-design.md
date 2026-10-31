@@ -201,7 +201,12 @@ Reihenfolge (31.10. mit dem Betreiber festgelegt: zuerst die Übernahme):
 1. Migration für `pauschale_setzen`, `pauschalen_anwenden`, Protokoll-Trigger (noch ohne Wächter), einspielen nach
    Freigabe im Gespräch, nicht Montag früh.
 2. Dashboard (Fahrer-Detail, Liste, Hinweis-Karte) auf `plattform-anbindung`. Push nach `main` macht der Betreiber.
-3. Bot-Zeile + SQL/Dashboard-Geschwister, nach Nachrechnung und OK.
+3. Bot-Zeile + SQL/Dashboard-Geschwister (31.10. vorbereitet): `migrations/2026-10-31-pauschalen-schwelle-null.sql`
+   (`prozent_nach_regel`, `api_abrechnung` – live in einer zurückgerollten Transaktion geprüft: 218 Zeilen ab KW40
+   unverändert), Dashboard-Neurechnen. Nachgerechnet KW42+KW43 (110 Zeilen): alte = neue Regel. Bot: im n8n-Workflow
+   „AbrechnungsBot v1“, Knoten „Berechnung“, Zeile 268 `prozent_schwelle: parseFloat(f.prozent_schwelle) || 1200`
+   → `prozent_schwelle: Number.isFinite(parseFloat(f.prozent_schwelle)) ? parseFloat(f.prozent_schwelle) : 1200`
+   (Fassung `.n8n-backup/berechnung-v16.js`, lokal). Der Betreiber ändert das im n8n-Editor, weil der Workflow im n8n-MCP nicht freigegeben ist.
 4. **Scharfschalten** in einem Zug: `pauschalen_uebernehmen()`, Wächter auf `fahrer` + Trigger auf
    `abrechnung_freigaben` aktivieren. Der Betreiber benennt das Notion-Feld um und informiert das Team
    („Pauschalen nur noch im Dashboard“).

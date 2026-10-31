@@ -3234,7 +3234,7 @@
                     let prozentAbzug = 0;
                     if (mietmodell === 'f11') { prozentAbzug = brutto > 1100 ? (brutto - 1100) * 0.10 : 0; }
                     else if (mietmodell === 'f12') { prozentAbzug = brutto > 1200 ? (brutto - 1200) * 0.10 : 0; }
-                    else if (fahrer.prozent_satz > 0) { const schwelle = fahrer.prozent_schwelle || 1200; prozentAbzug = brutto > schwelle ? (brutto - schwelle) * (fahrer.prozent_satz / 100) : 0; }
+                    else if (fahrer.prozent_satz > 0) { const schwelle = fahrer.prozent_schwelle != null && fahrer.prozent_schwelle !== '' ? parseFloat(fahrer.prozent_schwelle) : 1200; prozentAbzug = brutto > schwelle ? (brutto - schwelle) * (fahrer.prozent_satz / 100) : 0; }
                     const abzugGesamt = miete + prozentAbzug;
                     const auszahlung = wirBekommen - abzugGesamt;
                     const { error: settleError } = await client.from('settlements').update({ mietmodell: mietmodell, miete: miete, prozent_abzug: prozentAbzug, abzug_gesamt: abzugGesamt, auszahlung: auszahlung, telefon: fahrer.telefon || '', status: 'berechnet' }).eq('fahrer_name', m.csvName).eq('woche', week);
@@ -3815,7 +3815,7 @@
             const m = FZ_MIETE[f.fahrer_id] || null;
             const pauschale = m && m.basis_miete != null ? parseFloat(m.basis_miete) : null;
             const satz = m ? parseFloat(m.prozent_satz) || 0 : 0;
-            const modellText = esc(f.mietmodell || '-') + (satz ? ' · ' + satz + ' % ab ' + fmt(m.prozent_schwelle || 1200) : '');
+            const modellText = esc(f.mietmodell || '-') + (satz ? ' · ' + satz + ' % ab ' + fmt(m.prozent_schwelle != null ? m.prozent_schwelle : 1200) : '');
             function kv(k, v, cls) {
                 return '<div class="detail-kv' + (cls ? ' ' + cls : '') + '"><span>' + k + '</span><span>' + v + '</span></div>';
             }

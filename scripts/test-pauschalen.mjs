@@ -110,6 +110,8 @@ await pruefe('RLS: Buero liest, Fahrer/anon nicht', async () => {
   };
   assert.ok(await als({ app_metadata: { app_role: 'user' } }) > 0);
   assert.equal(await als({ app_metadata: { app_role: 'fahrer' } }), 0);
+  await db.exec(`set role authenticated; select set_config('request.jwt.claims', '{"app_metadata":{"app_role":"fahrer"}}', false)`);
+  try { assert.equal((await eins(`select (pauschale_fuer(101, '2026-W44')).betrag b`)).b, null); } finally { await db.exec(`reset role`); }
   await assert.rejects(als({}, 'anon'));
 });
 

@@ -35,7 +35,7 @@ create table if not exists public.pauschalen (
 create index if not exists pauschalen_nr on public.pauschalen (fahrer_nr, gilt_ab);
 
 -- Verlauf ist unveränderlich (wie fahrer_bank_verlauf / kassabuch). Zurücknehmen = neue Zeile.
-create or replace function public.pauschalen_gesperrt() returns trigger language plpgsql as $$
+create or replace function public.pauschalen_gesperrt() returns trigger language plpgsql set search_path = public as $$
 begin
   raise exception 'Der Pauschalen-Verlauf wird nicht geändert oder gelöscht' using errcode = '42501';
 end $$;
@@ -68,8 +68,10 @@ $$;
 
 -- ---------- Welche Zeile gilt ----------
 -- Von allen Einträgen, die die Woche abdecken, gilt der zuletzt gespeicherte.
+-- security invoker: die RLS von pauschalen greift (Fahrer sehen nichts) – als definer war sie für jeden
+-- angemeldeten Benutzer per /rpc aufrufbar (am 31.10. live nachgezogen, Migration pauschalen_rechte_fix).
 create or replace function public.pauschale_fuer(p_fahrer_nr integer, p_woche text)
-returns public.pauschalen language sql stable security definer set search_path = public as $$
+returns public.pauschalen language sql stable security invoker set search_path = public as $$
   select p.* from public.pauschalen p
    where p.fahrer_nr = p_fahrer_nr and p.gilt_ab <= p_woche and (p.gilt_bis is null or p.gilt_bis >= p_woche)
    order by p.am desc, p.id desc limit 1

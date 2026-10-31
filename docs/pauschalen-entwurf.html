@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pauschalen – Entwurf</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg:#FBFBFC; --surface:#FFFFFF; --surface-2:#F1F3F5; --surface-3:#E6E8EB;
+    --border:#E6E8EB; --border-strong:#CFD4DA;
+    --text:#101418; --text-mut:#6B7280; --text-dim:#B0B6BF;
+    --accent:#0B6B4F; --accent-ink:#FFFFFF; --accent-faint:rgba(11,107,79,.08);
+    --warn:#B45309; --err:#B42318; --info:#1D4ED8;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Inter","Segoe UI",system-ui,sans-serif;
+  }
+  [data-theme="dark"] {
+    --bg:#0F1115; --surface:#15181D; --surface-2:#1A1E24; --surface-3:#20252C;
+    --border:#23272F; --border-strong:#323843;
+    --text:#EDEEF0; --text-mut:#989FA7; --text-dim:#5F666E;
+    --accent:#3ECF8E; --accent-ink:#062D1C; --accent-faint:rgba(62,207,142,.08);
+    --warn:#E5B454; --err:#F0555D; --info:#7AA2F7;
+  }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.4; -webkit-font-smoothing: antialiased; }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .entwurf { background: var(--warn); color: #fff; text-align: center; font-size: 12px; font-weight: 600; padding: 6px 16px; }
+  .header { height: 46px; display: flex; align-items: center; gap: 18px; padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .header h1 { font-size: 14px; font-weight: 800; letter-spacing: -.3px; }
+  .header h1 span { font-weight: 400; color: var(--text-mut); }
+  .nav { display: flex; gap: 2px; }
+  .nav a { padding: 6px 10px; border-radius: 7px; color: var(--text-mut); text-decoration: none; font-size: 12.5px; font-weight: 500; }
+  .nav a.on { background: var(--surface-2); color: var(--text); }
+  .header button { margin-left: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 5px 10px; font-size: 12px; color: var(--text-mut); cursor: pointer; font-family: inherit; }
+  .wrap { display: flex; align-items: flex-start; max-width: 1320px; margin: 0 auto; }
+  .main { flex: 1; min-width: 0; padding: 16px 20px; }
+  .toolbar { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .chip { height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: 11.5px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; white-space: nowrap; }
+  .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .chip .cnt { opacity: .7; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-mut); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--surface-2); }
+  tbody tr.sel { background: var(--accent-faint); }
+  .kz { display: inline-block; font-family: var(--mono); font-size: 11.5px; border: 1px solid var(--border-strong); border-radius: 4px; padding: 1px 5px; background: var(--surface); }
+  .badge { color: var(--text-mut); font-size: 12px; }
+  .r { text-align: right; }
+  .mut { color: var(--text-mut); }
+  .side { width: 360px; flex: none; position: sticky; top: 0; border-left: 1px solid var(--border); background: var(--surface); padding: 16px 18px; min-height: calc(100vh - 80px); }
+  .side h4 { font-size: 15px; font-weight: 700; }
+  .sub { color: var(--text-mut); font-size: 12px; margin-top: 2px; }
+  .sec { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-mut); margin: 16px 0 6px; }
+  .pay { font-size: 20px; font-weight: 700; margin-top: 2px; }
+  .pay small { font-size: 13px; font-weight: 600; color: var(--text-mut); letter-spacing: 0; }
+  .regel { font-size: 12.5px; margin-top: 2px; }
+  .kv { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+  .kv span:first-child { color: var(--text-mut); }
+  .acts { display: flex; gap: 6px; margin-top: 12px; }
+  .btn { flex: 1; text-align: center; padding: 8px 10px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid transparent; font-family: inherit; }
+  .btn.ok { background: var(--accent); color: var(--accent-ink); }
+  .btn.ghost { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .form { margin-top: 8px; padding: 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-2); }
+  .form label { display: block; font-size: 11px; color: var(--text-mut); font-weight: 600; margin: 10px 0 4px; }
+  .form label:first-child { margin-top: 0; }
+  .arten { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .arten button { height: 34px; border-radius: 7px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .arten button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .reihe { display: flex; gap: 6px; }
+  .reihe > div { flex: 1; min-width: 0; }
+  input, select, textarea { width: 100%; height: 34px; border-radius: 7px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); padding: 0 9px; font-family: inherit; font-size: 13px; }
+  textarea { height: 54px; padding: 7px 9px; resize: vertical; }
+  .eur { position: relative; }
+  .eur input { padding-right: 24px; }
+  .eur::after { content: attr(data-e); position: absolute; right: 9px; top: 8px; color: var(--text-mut); font-size: 12px; }
+  .klein { font-size: 11px; color: var(--text-mut); margin-top: 4px; }
+  .fehler { color: var(--err); font-size: 12px; margin-top: 8px; }
+  .vorschau { margin-top: 10px; font-size: 12.5px; }
+  .vorschau b { font-weight: 700; }
+  .verlauf { margin-top: 2px; }
+  .vz { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .vz:last-child { border-bottom: none; }
+  .vz .kopf { color: var(--text-mut); font-size: 11px; }
+  .vz .kopf b { color: var(--text); font-weight: 600; }
+  .vz .was { margin-top: 2px; }
+  .vz .grund { color: var(--text-mut); margin-top: 1px; font-style: italic; }
+  .vz.grau { opacity: .6; }
+  .notiz { max-width: 1320px; margin: 0 auto; padding: 0 20px 40px; color: var(--text-mut); font-size: 12px; }
+  .notiz li { margin: 3px 0 3px 16px; }
+  @media (max-width: 860px) {
+    .wrap { flex-direction: column; }
+    .side { width: 100%; border-left: none; border-top: 1px solid var(--border); position: static; min-height: 0; }
+    .main { padding: 12px 16px; width: 100%; }
+    .nav { display: none; }
+    .hide-m { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="entwurf">ENTWURF – nur Ansicht mit Beispieldaten, nichts wird gespeichert</div>
+<div class="header">
+  <h1>HYDRA<span>link</span></h1>
+  <nav class="nav"><a>Abrechnung</a><a class="on">Fahrer</a><a>Rechnungen</a><a>Experimentell</a></nav>
+  <button id="thema">Hell / Dunkel</button>
+</div>
+
+<div class="wrap">
+  <div class="main">
+    <div class="toolbar">
+      <button class="chip active">Alle <span class="cnt">68</span></button>
+      <button class="chip">Befristet <span class="cnt">2</span></button>
+      <button class="chip">Eigene Regel <span class="cnt">2</span></button>
+      <button class="chip">Bankdaten fehlen <span class="cnt">5</span></button>
+    </div>
+    <table>
+      <thead><tr><th>Fahrer</th><th class="hide-m">Auto</th><th>Pauschale</th><th class="hide-m">Zuletzt geändert</th></tr></thead>
+      <tbody id="liste"></tbody>
+    </table>
+  </div>
+  <aside class="side" id="detail"></aside>
+</div>
+
+<div class="notiz">
+  <p><b>Was hier gezeigt wird:</b> Fahrer → App mit neuer Spalte „Pauschale“ und dem Block „Pauschale“ im Fahrer-Detail.
+  Stichwoche (nächste abzurechnende Woche) im Beispiel: <b>KW44</b> – frühere Wochen sind schon freigegeben und nicht wählbar.</p>
+  <ul>
+    <li>Fahrer anklicken → rechts das Detail. „Pauschale ändern“ öffnet das Formular, „Speichern“ hängt eine Zeile an den Verlauf.</li>
+    <li>Ausprobieren: Art „eigene Regel“ mit 0 € Schwelle (= vom ganzen Umsatz), oder ein Enddatum „bis KW“ für eine befristete Pauschale.</li>
+  </ul>
+</div>
+
+<script>
+const STICH = '2026-W44';
+const WOCHEN = [];
+for (let w = 44; w <= 53; w++) WOCHEN.push('2026-W' + w);
+for (let w = 1; w <= 12; w++) WOCHEN.push('2027-W' + String(w).padStart(2, '0'));
+const kw = function (w) { return 'KW' + w.slice(-2) + (w.startsWith('2027') ? '/27' : ''); };
+const eur = function (x) { return (Math.round(x * 100) / 100).toLocaleString('de-AT', { minimumFractionDigits: x % 1 ? 2 : 0, maximumFractionDigits: 2 }) + ' €'; };
+
+// Beispieldaten (erfunden)
+const FAHRER = [
+  { nr: 286, name: 'Ali Demir', kz: 'W-204TX', verlauf: [
+    { am: '31.10.2026 09:00', von: 'Übernahme aus Notion', quelle: 'uebernahme', art: 'f12', betrag: 550, ab: '2026-W44' } ] },
+  { nr: 163, name: 'Stefan Novak', kz: 'W-204TX', verlauf: [
+    { am: '31.10.2026 09:00', von: 'Übernahme aus Notion', quelle: 'uebernahme', art: 'fix', betrag: 450, ab: '2026-W44' },
+    { am: '31.10.2026 10:12', von: 'Mohamed', quelle: 'hand', art: 'f12', betrag: 500, ab: '2026-W46', grund: '' } ] },
+  { nr: 214, name: 'Kemal Yıldız', kz: 'W-4181TX', verlauf: [
+    { am: '31.10.2026 09:00', von: 'Übernahme aus Notion', quelle: 'uebernahme', art: 'f12', betrag: 500, ab: '2026-W44' },
+    { am: '31.10.2026 11:15', von: 'Boyko', quelle: 'hand', art: 'fix', betrag: 300, ab: '2026-W45', bis: '2026-W48', grund: 'Einstieg nach Unfall, 4 Wochen reduziert' } ] },
+  { nr: 92, name: 'Petra Huber', kz: 'W-5625TX', verlauf: [
+    { am: '31.10.2026 09:00', von: 'Übernahme aus Notion', quelle: 'uebernahme', art: 'fix', betrag: 230, ab: '2026-W44' },
+    { am: '31.10.2026 11:40', von: 'Mohamed', quelle: 'hand', art: 'eigene', betrag: 0, satz: 25, schwelle: 0, ab: '2026-W44', grund: 'Eigenes Auto – 25 % vom ganzen Umsatz' } ] },
+  { nr: 57, name: 'Marko Petrović', kz: 'W-7208TX', verlauf: [
+    { am: '31.10.2026 09:00', von: 'Übernahme aus Notion', quelle: 'uebernahme', art: 'f11', betrag: 500, ab: '2026-W44' },
+    { am: '31.10.2026 12:02', von: 'Stefan', quelle: 'hand', art: 'eigene', betrag: 400, satz: 15, schwelle: 1000, ab: '2026-W45', grund: 'Sondervereinbarung Nachtschicht' } ] },
+  { nr: 311, name: 'Ivan Georgiev', kz: 'W-9237TX', verlauf: [
+    { am: '31.10.2026 09:00', von: 'Übernahme aus Notion', quelle: 'uebernahme', art: 'f12', betrag: 500, ab: '2026-W44' } ] },
+];
+// Reihenfolge = Speicherreihenfolge (neuester zuletzt)
+function gilt(f, woche) {
+  let t = null;
+  f.verlauf.forEach(function (e) { if (e.ab <= woche && (!e.bis || e.bis >= woche)) t = e; });
+  return t;
+}
+function kurz(e) {
+  if (!e) return '–';
+  if (e.art === 'eigene') return eur(e.betrag) + ' + ' + e.satz + ' %' + (e.schwelle ? ' über ' + eur(e.schwelle) : ' vom Umsatz');
+  return e.art + ' · ' + eur(e.betrag);
+}
+function regel(e) {
+  if (e.art === 'fix') return e.betrag ? 'fix – nur Pauschale' : 'fix – keine Pauschale';
+  if (e.art === 'f11') return 'f11 – plus 10 % über 1.100 € Umsatz';
+  if (e.art === 'f12') return 'f12 – plus 10 % über 1.200 € Umsatz';
+  return 'eigene Regel – plus ' + e.satz + ' % ' + (e.schwelle ? 'über ' + eur(e.schwelle) + ' Umsatz' : 'vom ganzen Umsatz');
+}
+function abzug(e, umsatz) {
+  const s = e.art === 'f11' ? [10, 1100] : e.art === 'f12' ? [10, 1200] : e.art === 'eigene' ? [e.satz, e.schwelle] : [0, 0];
+  return e.betrag + (s[0] ? Math.max(umsatz - s[1], 0) * s[0] / 100 : 0);
+}
+// naechste Aenderung nach der Stichwoche (Befristung beginnt/endet, spaetere Werte)
+function ausblick(f) {
+  const jetzt = gilt(f, STICH), out = [];
+  let vor = jetzt;
+  for (const w of WOCHEN.slice(1)) {
+    const g = gilt(f, w);
+    if (g !== vor) { out.push({ ab: w, e: g }); vor = g; }
+    if (out.length >= 2) break;
+  }
+  return out;
+}
+
+let SEL = 214, FORM = false, NEU = null;
+const st = { art: 'f12', betrag: '500', satz: '10', schwelle: '1200', ab: STICH, bis: '', grund: '' };
+
+function renderListe() {
+  document.getElementById('liste').innerHTML = FAHRER.map(function (f) {
+    const g = gilt(f, STICH), a = ausblick(f), letzte = f.verlauf[f.verlauf.length - 1];
+    const befr = f.verlauf.some(function (e) { return e.bis && e.bis >= STICH; });
+    return '<tr data-nr="' + f.nr + '" class="' + (f.nr === SEL ? 'sel' : '') + '">' +
+      '<td><b>' + f.name + '</b><div class="sub">Nr. ' + f.nr + '</div></td>' +
+      '<td class="hide-m"><span class="kz">' + f.kz + '</span></td>' +
+      '<td><span class="num">' + kurz(g) + '</span> ' +
+        (befr ? '<span class="badge">· befristet</span>' : '') +
+        (a.length && !befr ? '<div class="sub">ab ' + kw(a[0].ab) + ': ' + kurz(a[0].e) + '</div>' : '') + '</td>' +
+      '<td class="hide-m mut">' + (letzte.quelle === 'uebernahme' ? 'Übernahme' : letzte.am.slice(0, 6) + ' · ' + letzte.von) + '</td></tr>';
+  }).join('');
+}
+
+function arten() {
+  return ['fix', 'f11', 'f12', 'eigene'].map(function (a) {
+    return '<button data-art="' + a + '" class="' + (st.art === a ? 'on' : '') + '">' + (a === 'eigene' ? 'eigene' : a) + '</button>';
+  }).join('');
+}
+function formEintrag() {
+  const e = { art: st.art, betrag: parseFloat(String(st.betrag).replace(',', '.')), ab: st.ab, bis: st.bis || null, grund: st.grund.trim() };
+  if (st.art === 'eigene') { e.satz = parseFloat(String(st.satz).replace(',', '.')); e.schwelle = parseFloat(String(st.schwelle).replace(',', '.')); }
+  return e;
+}
+function formFehler(e) {
+  if (!(e.betrag >= 0)) return 'Betrag fehlt (0 ist erlaubt).';
+  if (e.art === 'eigene' && !(e.satz > 0 && e.satz <= 100)) return 'Prozentsatz zwischen 0 und 100 angeben.';
+  if (e.art === 'eigene' && !(e.schwelle >= 0)) return 'Schwelle angeben (0 € = vom ganzen Umsatz).';
+  if (e.bis && e.bis < e.ab) return '„bis“ liegt vor „gilt ab“.';
+  return '';
+}
+
+function renderDetail() {
+  const f = FAHRER.find(function (x) { return x.nr === SEL; });
+  const g = gilt(f, STICH), a = ausblick(f);
+  let h = '<h4>' + f.name + '</h4><div class="sub">Fahrer-ID ' + f.nr + ' · <span class="kz">' + f.kz + '</span></div>';
+  h += '<div class="sec">Pauschale · gilt für ' + kw(STICH) + '</div>';
+  h += '<div class="pay num">' + eur(g.betrag) + ' <small>/ Woche</small></div>';
+  h += '<div class="regel">' + regel(g) + '</div>';
+  if (a.length) {
+    h += '<div class="sec">Geplant</div>' + a.map(function (x) {
+      const e = x.e, bis = e && e.bis ? '–' + kw(e.bis) : '';
+      return '<div class="kv"><span>' + (bis ? kw(x.ab) + bis : 'ab ' + kw(x.ab)) + '</span><span class="num">' + kurz(e) + '</span></div>';
+    }).join('');
+  }
+  if (!FORM) {
+    h += '<div class="acts"><button class="btn ghost" id="auf">Pauschale ändern</button></div>';
+  } else {
+    const e = formEintrag(), fehler = formFehler(e);
+    h += '<div class="form">' +
+      '<label>Art</label><div class="arten">' + arten() + '</div>' +
+      '<label>Pauschale je Woche</label><div class="eur" data-e="€"><input id="betrag" inputmode="decimal" value="' + st.betrag + '"></div>' +
+      (st.art === 'eigene' ? '<div class="reihe"><div><label>Prozent</label><div class="eur" data-e="%"><input id="satz" inputmode="decimal" value="' + st.satz + '"></div></div>' +
+        '<div><label>ab Umsatz</label><div class="eur" data-e="€"><input id="schwelle" inputmode="decimal" value="' + st.schwelle + '"></div></div></div>' +
+        '<div class="klein">0 € = Prozent vom ganzen Umsatz</div>' :
+        st.art === 'fix' ? '' : '<div class="klein">' + (st.art === 'f11' ? '+ 10 % über 1.100 € Umsatz' : '+ 10 % über 1.200 € Umsatz') + ' (fest)</div>') +
+      '<div class="reihe"><div><label>gilt ab</label><select id="ab">' + WOCHEN.map(function (w) {
+          return '<option value="' + w + '"' + (w === st.ab ? ' selected' : '') + '>' + kw(w) + (w === STICH ? ' · nächste' : '') + '</option>'; }).join('') + '</select></div>' +
+        '<div><label>bis (optional)</label><select id="bis"><option value="">unbefristet</option>' + WOCHEN.filter(function (w) { return w >= st.ab; }).map(function (w) {
+          return '<option value="' + w + '"' + (w === st.bis ? ' selected' : '') + '>' + kw(w) + '</option>'; }).join('') + '</select></div></div>' +
+      '<div class="klein">Frühere Wochen sind schon freigegeben – dort bitte Zu-/Abschlag in der Abrechnung.</div>' +
+      '<label>Grund (optional)</label>' +
+      '<textarea id="grund" placeholder="z. B. Einstieg, eigenes Auto, Sondervereinbarung">' + st.grund + '</textarea>';
+    if (!fehler) {
+      const nach = e.bis ? gilt({ verlauf: f.verlauf }, WOCHEN[WOCHEN.indexOf(e.bis) + 1]) : null;
+      h += '<div class="vorschau">Ab <b>' + kw(e.ab) + (e.bis ? '–' + kw(e.bis) : '') + '</b> zahlt ' + f.name.split(' ')[0] + ' <b>' + kurz(e) + '</b>' +
+        ' statt ' + kurz(gilt(f, e.ab)) + '.' + (nach ? '<br>Danach wieder ' + kurz(nach) + '.' : '') +
+        '<br><span class="mut">Beispiel 1.500 € Umsatz: ' + eur(abzug(e, 1500)) + ' statt ' + eur(abzug(gilt(f, e.ab), 1500)) + '</span></div>';
+    }
+    h += (fehler ? '<div class="fehler">' + fehler + '</div>' : '') +
+      '<div class="acts"><button class="btn ok" id="speichern"' + (fehler ? ' disabled' : '') + '>Speichern</button><button class="btn ghost" id="zu">Abbrechen</button></div></div>';
+  }
+  h += '<div class="sec">Verlauf</div><div class="verlauf">' + f.verlauf.slice().reverse().map(function (e, i, arr) {
+    const vorher = f.verlauf[f.verlauf.length - 2 - i];
+    return '<div class="vz' + (e.quelle === 'uebernahme' ? ' grau' : '') + (e === NEU ? ' neu' : '') + '">' +
+      '<div class="kopf">' + e.am + ' · <b>' + e.von + '</b></div>' +
+      '<div class="was num">' + (vorher ? kurz(vorher) + ' → ' : '') + kurz(e) + ' · ab ' + kw(e.ab) + (e.bis ? ' bis ' + kw(e.bis) : '') + '</div>' +
+      (e.grund ? '<div class="grund">' + e.grund + '</div>' : '') + '</div>';
+  }).join('') + '</div>';
+  h += '<div class="sec">Bankdaten</div><div class="sub">… wie bisher …</div>';
+  document.getElementById('detail').innerHTML = h;
+}
+function render() { renderListe(); renderDetail(); }
+
+document.addEventListener('click', function (ev) {
+  const tr = ev.target.closest('tr[data-nr]');
+  if (tr) { SEL = +tr.dataset.nr; FORM = false; NEU = null; render(); return; }
+  const t = ev.target;
+  if (t.id === 'auf') {
+    const g = gilt(FAHRER.find(function (x) { return x.nr === SEL; }), STICH);
+    Object.assign(st, { art: g.art, betrag: String(g.betrag), satz: String(g.satz || 10), schwelle: String(g.schwelle != null ? g.schwelle : 1200), ab: STICH, bis: '', grund: '' });
+    FORM = true; renderDetail();
+  } else if (t.id === 'zu') { FORM = false; renderDetail(); }
+  else if (t.dataset.art) { st.art = t.dataset.art; renderDetail(); }
+  else if (t.id === 'speichern') {
+    const f = FAHRER.find(function (x) { return x.nr === SEL; });
+    const e = formEintrag(), d = new Date();
+    e.am = d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' });
+    e.von = 'Du'; e.quelle = 'hand';
+    f.verlauf.push(e); NEU = e; FORM = false; render();
+  } else if (t.id === 'thema') {
+    const r = document.documentElement;
+    r.dataset.theme === 'dark' ? r.removeAttribute('data-theme') : r.dataset.theme = 'dark';
+  }
+});
+document.addEventListener('input', function (ev) {
+  const id = ev.target.id;
+  if (['betrag', 'satz', 'schwelle', 'grund'].includes(id)) {
+    st[id] = ev.target.value;
+    const pos = ev.target.selectionStart;
+    renderDetail();
+    const n = document.getElementById(id); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {}
+  }
+});
+document.addEventListener('change', function (ev) {
+  const id = ev.target.id;
+  if (id === 'ab' || id === 'bis') { st[id] = ev.target.value; if (st.bis && st.bis < st.ab) st.bis = ''; renderDetail(); }
+});
+render();
+</script>
+</body>
+</html>

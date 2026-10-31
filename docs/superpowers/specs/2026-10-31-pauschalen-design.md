@@ -72,7 +72,7 @@ automatische Abrechnung ohne Umbau mit dem richtigen Wert.
 | `prozent_schwelle` numeric | nur `eigene`: ≥ 0, **0 = vom ganzen Umsatz** |
 | `gilt_ab` text | ISO-Woche `JJJJ-Wnn` |
 | `gilt_bis` text null | ISO-Woche, inklusive. Leer = unbefristet |
-| `grund` text | Pflicht bei `eigene`, bei Betrag 0 und bei befristeten Einträgen, sonst optional (max. 200) |
+| `grund` text | optional (max. 200) – Entscheidung Betreiber 31.10.: nie Pflicht |
 | `quelle` text | `hand` · `uebernahme` (Start) · `neuanlage` (neuer Fahrer aus Notion) |
 | `von` text | Büro-Name aus dem JWT (`app_metadata.app_name`), sonst „Automatik“. Nie ein Parameter. |
 | `am` timestamptz default now() | |
@@ -110,7 +110,7 @@ Montag früh vor der Freigabe von KW43 ist das KW43, nach der automatischen Frei
 - **`pauschale_setzen(p_fahrer_nr, p_art, p_betrag, p_prozent_satz, p_prozent_schwelle, p_gilt_ab, p_gilt_bis, p_grund)`**
   (security definer, nur Büro-Rolle admin/user):
   prüft die Regeln (Fahrer existiert; `gilt_ab ≥ Stichwoche` = nur offene Wochen; `gilt_bis ≥ gilt_ab`;
-  Felder je Art; Grund-Pflicht), hängt die Zeile an und setzt danach die `fahrer`-Spalten neu
+  Felder je Art), hängt die Zeile an und setzt danach die `fahrer`-Spalten neu
   (`pauschalen_anwenden(nr)`). Gibt die gültige Pauschale der Stichwoche zurück.
 - **`pauschalen_anwenden(p_fahrer_nr default null)`**: schreibt `pauschale_fuer(nr, Stichwoche)` in alle `fahrer`-Zeilen
   dieser Nr. (bzw. aller Fahrer), nur wo sich etwas ändert. Nicht direkt aufrufbar.
@@ -149,7 +149,7 @@ Vorher prüfen: gibt es eine `notion_fahrer_id` mit mehreren aktiven `fahrer`-Ze
   - nur bei „eigene Regel“: **%** und **ab Umsatz €**, Hinweis „0 € = vom ganzen Umsatz“
   - **gilt ab**: Auswahl ab der Stichwoche (frühere Wochen gibt es nicht zur Auswahl), Standard ist die Stichwoche
   - **bis** (optional, „unbefristet“ voreingestellt)
-  - **Grund** (Pflicht bei eigene, bei 0 € und bei befristeten Einträgen)
+  - **Grund** (optional)
   - Vorschau vor dem Speichern: „Ab KW44 zahlt Ali f12 500 € statt fix 450 €.“
 - **Verlauf** darunter, neueste zuerst: „10.10. 14:32 · Mohamed · fix 450 € → f12 500 € · ab KW42 · Grund …“,
   Übernahme-Zeilen grau („Übernahme aus Notion, 31.10.“).
@@ -192,9 +192,17 @@ Schwelle 0 muss 0 bleiben:
 
 ## Ausrollen
 
-1. Migration `2026-10-3x-pauschalen.sql` (Tabelle, Funktionen, Trigger, Ansicht, Protokoll, Übernahme), einspielen nach
+Reihenfolge (31.10. mit dem Betreiber festgelegt: zuerst die Übernahme):
+0. **Übernahme** (`migrations/2026-10-31-pauschalen-uebernahme.sql`): Tabelle `pauschalen` mit Sperre und RLS,
+   `pauschale_stichwoche()`, `pauschale_fuer()`, `pauschalen_uebernehmen()`, Ansicht `pauschalen_abweichung`, und die
+   Startzeilen. **Wirkt noch nicht auf die Abrechnung**, denn niemand liest daraus, und der Wächter fehlt noch.
+   Bis der Wächter aktiv ist, fließen Notion-Änderungen weiter nach `fahrer`. `pauschalen_uebernehmen()` hängt
+   für solche Fahrer eine neue Übernahme-Zeile an. Das läuft direkt vor dem Scharfschalten noch einmal, damit nichts verloren geht.
+1. Migration für `pauschale_setzen`, `pauschalen_anwenden`, Protokoll-Trigger (noch ohne Wächter), einspielen nach
    Freigabe im Gespräch, nicht Montag früh.
 2. Dashboard (Fahrer-Detail, Liste, Hinweis-Karte) auf `plattform-anbindung`. Push nach `main` macht der Betreiber.
 3. Bot-Zeile + SQL/Dashboard-Geschwister, nach Nachrechnung und OK.
-4. Betreiber: Notion-Feld umbenennen, Team informieren („Pauschalen nur noch im Dashboard“).
+4. **Scharfschalten** in einem Zug: `pauschalen_uebernehmen()`, Wächter auf `fahrer` + Trigger auf
+   `abrechnung_freigaben` aktivieren. Der Betreiber benennt das Notion-Feld um und informiert das Team
+   („Pauschalen nur noch im Dashboard“).
 5. CLAUDE.md: Grundsatz „Notion bleibt Stammdaten“ anpassen (Pauschale jetzt HYDRAlink), neuer Abschnitt „Pauschalen“.

@@ -3013,7 +3013,8 @@
             };
             const a = st.abrechnung, z = st.zeilen || 0, m = st.mypos, fr = st.freigabe;
             let mypos;
-            if (parseFloat(st.mypos_csv) > 0 && !(a && a.ergebnis === 'geschrieben')) mypos = tag('ok', 'myPOS ✓ aus CSV');
+            // Ohne Kontoauszug (m) kann myPOS-Umsatz in settlements nur aus dem CSV-Upload stammen – auch nach dem Automatik-Lauf (KW43)
+            if (!m && parseFloat(st.mypos_csv) > 0) mypos = tag('ok', 'myPOS ✓ aus CSV · ' + fmt(st.mypos_csv));
             else if (m) mypos = tag(m.ohne_fahrer ? 'warn' : 'ok', 'myPOS-Auszug ✓ ' + fmt(m.summe) + (m.letzte_buchung ? ' bis ' + esc(uhr(m.letzte_buchung)) : '') + (m.ohne_fahrer ? ' · ' + m.ohne_fahrer + ' Terminal(s) ohne Fahrer' : ''),
                 m.ohne_fahrer + ' myPOS-Terminal(s) ohne Fahrer');
             else mypos = tag('warn', 'myPOS fehlt – Auszug schicken oder CSV hochladen', 'myPOS fehlt');

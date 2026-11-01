@@ -2865,7 +2865,14 @@
         async function ladeAuszahlung(w) {
             if (!w) return;
             if (AZ.woche !== w) UW_SEL.clear();
-            const res = await getSupabase().rpc('auszahlung_status', { p_woche: w }).then(function (r) { return r; }, function (e) { return { error: e }; });
+            const holen = function () { return getSupabase().rpc('auszahlung_status', { p_woche: w }).then(function (r) { return r; }, function (e) { return { error: e }; }); };
+            let res = await holen();
+            // Verbindung kurz weg (Handy wechselt Netz, Firefox „NetworkError“, kam nie bei Supabase an): einmal nach 2 s nochmal
+            if (res.error && /network|failed to fetch|load failed/i.test(String(res.error.message || res.error))) {
+                await new Promise(function (r) { setTimeout(r, 2000); });
+                if (w !== week) return;
+                res = await holen();
+            }
             if (w !== week) return;
             AZ = { woche: w, rows: res.error ? [] : (res.data || []), byRow: {}, fehler: res.error ? fgFehler(res.error) : null };
             azStatusLaden();
@@ -3078,7 +3085,7 @@
             const ids = Object.keys(sichtbar), nSel = ids.filter(function (k) { return sichtbar[k]; }).length;
             alle.disabled = !ids.length; alle.checked = ids.length > 0 && nSel === ids.length; alle.indeterminate = nSel > 0 && nSel < ids.length;
             el.classList.toggle('hidden', !rows.length && !(AZ.fehler && AZ.woche === week));
-            if (!rows.length) { el.classList.remove('wahl'); txt.innerHTML = AZ.fehler && AZ.woche === week ? '<span class="uw-l-s neg">Auszahlung nicht verfügbar: ' + esc(AZ.fehler) + '</span>' : ''; go.disabled = true; go.textContent = 'Überweisen'; return; }
+            if (!rows.length) { el.classList.remove('wahl'); txt.innerHTML = AZ.fehler && AZ.woche === week ? '<span class="uw-l-s neg">Auszahlung nicht verfügbar' + (/network|failed to fetch|load failed/i.test(AZ.fehler) ? ' – keine Verbindung, Seite neu laden' : ': ' + esc(AZ.fehler)) + '</span>' : ''; go.disabled = true; go.textContent = 'Überweisen'; return; }
             const fr = !!freigabeVon(week), sel = rows.filter(function (r) { return UW_SEL.has(r.notion_fahrer_id); }), selSumme = sum(sel, function (r) { return r.offen; });
             const k = AZ_KONTO.woche === week ? AZ_KONTO.wert : null;
             let konto = '';

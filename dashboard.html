@@ -1070,14 +1070,22 @@
         .mp-zeile.fertig { color: var(--text-mut); }
         @media (max-width: 768px) { .mp-karte { margin: 8px 12px 0; } .mp-zeile { grid-template-columns: 1fr auto; } .mp-zeile select { grid-column: 1 / -1; } }
         .az-status { padding: 8px 20px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-mut); }
-        .az-kopf { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: none; padding: 0; font: inherit; font-size: 12.5px; color: var(--text); cursor: pointer; text-align: left; }
+        .az-zeile { display: flex; align-items: center; gap: 10px; }
+        .az-knopf:empty { display: none; }
+        .az-mehr { margin-top: 8px; }
+        .az-mehr .abgleich { margin: 8px 0 0; }
+        .az-fg { margin-top: 8px; font-size: 12px; color: var(--text-mut); }
+        .az-fg:empty { display: none; }
+        .az-fg .fg-link { margin-left: 6px; }
+        .az-kopf { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; flex: 1; min-width: 0; background: none; border: none; padding: 0; font: inherit; font-size: 12.5px; color: var(--text); cursor: pointer; text-align: left; }
         .az-kopf .az-punkt { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--text-dim); }
         .az-kopf.ok .az-punkt { background: var(--accent); }
         .az-kopf.err .az-punkt { background: var(--err); }
-        .az-kopf.err .az-was { color: var(--err); font-weight: 600; }
-        .az-kopf.ok .az-was { color: var(--accent); }
+        .az-kopf .az-was { color: var(--text-mut); }
+        .az-kopf .az-was .neg { color: var(--err); font-weight: 600; }
         .az-kopf .az-pfeil { margin-left: auto; color: var(--text-mut); font-size: 11px; }
-        .az-teile { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 8px; }
+        .az-teile { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+        .az-teile:empty { display: none; }
         .az-status .uw-b { height: 22px; font-weight: 500; }
         .az-status .uw-b b { font-weight: 700; }
         .az-status a { color: var(--accent); cursor: pointer; text-decoration: underline; margin-left: 4px; }
@@ -1212,7 +1220,6 @@
                     </div>
                     <div class="hero-big"><b id="statAuszahlung">--</b><small>Auszahlungen (tatsächlich)</small></div>
                 </div>
-                <div class="freigabe" id="freigabeBox"></div>
                 <div class="kpi">
                     <div class="kpi-item"><small>Unterm Strich</small><b class="ok" id="statUntermStrich" title="Auszahlungen minus Zu kassieren">--</b></div>
                     <div class="kpi-item"><small>Zu kassieren</small><b class="err" id="statKassieren">--</b></div>
@@ -1224,7 +1231,15 @@
                     </div>
                 </div>
             </div>
-            <div class="az-status" id="azStatus" hidden></div>
+            <!-- Eine Zeile je Woche: Freigabe, automatische Abrechnung, Abgleich (Betreiber 01.11.: gehört zusammen). Details aufklappbar. -->
+            <div class="az-status" id="azBlock">
+                <div class="az-zeile"><button type="button" class="az-kopf" id="azKopf" data-azauf="1"></button><span class="az-knopf" id="freigabeBox"></span></div>
+                <div class="az-mehr" id="azMehr" hidden>
+                    <div class="az-teile" id="azStatus"></div>
+                    <div class="az-fg" id="fgMehr"></div>
+                    <div class="abgleich" id="abgleichBox"></div>
+                </div>
+            </div>
             <div class="toolbar">
                 <input type="text" class="search" id="searchInput" placeholder="Fahrer suchen">
                 <button class="chip active" id="allFilter">Alle</button>
@@ -1262,7 +1277,6 @@
                 <span><strong id="aliasBannerCount">0</strong> Fahrer ohne Zuordnung in dieser Woche</span>
                 <button class="btn" onclick="openAliasModal()">Jetzt zuordnen →</button>
             </div>
-            <div class="abgleich" id="abgleichBox"></div>
             <section class="mp-karte" id="mpKarte" hidden></section>
             <div class="alias-banner" id="postenBanner">
                 <span id="postenBannerText"></span>
@@ -2269,8 +2283,8 @@
             document.getElementById('bpMenueBtn').addEventListener('click', bpDialog);
             document.getElementById('uwAlle').addEventListener('change', uwAlleToggle);
             document.getElementById('mpKarte').addEventListener('click', mpKlick);
-            document.getElementById('azStatus').addEventListener('click', function (e) {
-                if (e.target.closest('[data-azauf]')) { AZ_STATUS_AUF = !AZ_STATUS_AUF; renderAzStatus(); return; }
+            document.getElementById('azBlock').addEventListener('click', function (e) {
+                if (e.target.closest('[data-azauf]')) { AZ_STATUS_AUF = !AZ_STATUS_AUF; renderAzKopf(); return; }
                 const a = e.target.closest('[data-azstw]'); if (!a) return;
                 const w = a.dataset.azstw; if (WEEKS.indexOf(w) < 0) return;
                 week = w; document.getElementById('weekFilter').value = w; render(); ladeAuszahlung(w);
@@ -2475,11 +2489,13 @@
         // Kurzzeile ueber der Tabelle: Ergebnis der API-Abrechnung fuer die Woche,
         // Klick springt in den Reiter. Liefert die Namen (wie in settlements) fuer
         // die ≠-Marke. Fehlt eine Plattform in der Woche: kein Vergleich, keine Marken.
+        let ABG_KURZ = '';
         function renderAbgleich(w) {
             const box = document.getElementById('abgleichBox');
             const marken = new Map();
             const rows = ABGLEICH.filter(function(r) { return r.woche === w; });
             const vorne = API_ZEILE ? '<span class="t">' + API_ZEILE + '</span> \u00B7 ' : '';
+            ABG_KURZ = '';
             if (!rows.length) {
                 box.innerHTML = vorne ? '<div class="abgleich-link" style="cursor:default">' + vorne.replace(/ \u00B7 $/, '') + '</div>' : '';
                 box.style.display = vorne ? 'block' : 'none';
@@ -2501,7 +2517,7 @@
                     (r.alt_fahrer_name || '').split(' / ').forEach(function(n) { if (n) marken.set(n, r); });
                 });
                 const teile = ['<b>' + ok + '</b> stimmen'];
-                if (ab.length) teile.push('<b>' + ab.length + '</b> ' + (ab.length === 1 ? 'weicht' : 'weichen') + ' ab');
+                if (ab.length) { teile.push('<b>' + ab.length + '</b> ' + (ab.length === 1 ? 'weicht' : 'weichen') + ' ab'); ABG_KURZ = ab.length + ' ' + (ab.length === 1 ? 'weicht' : 'weichen') + ' ab'; }
                 if (ohne) teile.push('<b>' + ohne + '</b> ohne Fahrer');
                 text = teile.join(' \u00B7 ');
             }
@@ -2535,34 +2551,34 @@
             const z = function(n) { return String(n).padStart(2, '0'); };
             return z(d.getDate()) + '.' + z(d.getMonth() + 1) + '. ' + z(d.getHours()) + ':' + z(d.getMinutes());
         }
+        // Teil der Wochenzeile (renderAzKopf): FG = Kurztext + Stufe; Knopf „freigeben“ rechts in der Zeile, „zurücknehmen“ in den Details
+        let FG = null;
         function renderFreigabe(w) {
-            const box = document.getElementById('freigabeBox');
-            if (!FREIGABEN_OK || !w) { box.innerHTML = ''; return; }
+            const box = document.getElementById('freigabeBox'), mehr = document.getElementById('fgMehr');
+            box.innerHTML = ''; mehr.innerHTML = ''; FG = null;
+            if (!FREIGABEN_OK || !w) { renderAzKopf(); return; }
             const fr = freigabeVon(w);
             const live = freigabeLive(w);
             const dis = freigabeLaeuft ? ' disabled' : '';
-            // Untergrenze wie in woche_freigeben(): vor KW37 nie freigeben
-            if (!fr && !/^\d{4}-W\d{2}k?$/.test(w)) { box.innerHTML = ''; return; }
-            if (!fr && w < '2026-W37') {
-                box.innerHTML = '<span class="fg-pill">Für Fahrer nicht sichtbar <span>· vor KW37 keine Freigabe</span></span>';
-                return;
-            }
             if (!fr) {
-                box.innerHTML = '<span class="fg-pill">Für Fahrer nicht sichtbar</span>'
-                    + (live.anzahl ? '<button class="btn fg-go" data-fg="freigeben"' + dis + '>Für Fahrer freigeben</button>'
-                                   : '<span class="fg-pill"><span>keine berechneten Zeilen</span></span>');
-                return;
+                // Untergrenze wie in woche_freigeben(): vor KW37 nie freigeben
+                if (!/^\d{4}-W\d{2}k?$/.test(w) || w < '2026-W37') FG = { text: 'für Fahrer nicht sichtbar', stufe: 'offen' };
+                else if (!live.anzahl) FG = { text: 'keine berechneten Zeilen', stufe: 'offen' };
+                else {
+                    FG = { text: 'für Fahrer nicht sichtbar', stufe: 'offen' };
+                    box.innerHTML = '<button class="btn fg-go" data-fg="freigeben"' + dis + '>Für Fahrer freigeben</button>';
+                }
+                renderAzKopf(); return;
             }
             const geaendert = live.anzahl !== (parseInt(fr.anzahl, 10) || 0) || Math.abs(live.summe - (parseFloat(fr.summe) || 0)) >= 0.01;
-            if (geaendert) {
-                box.innerHTML = '<span class="fg-pill geaendert" title="Freigegeben ' + esc(fgDatum(fr.freigegeben_am)) + ' von ' + esc(fr.freigegeben_von || '') + '">Seit Freigabe geändert '
-                    + '<span class="num">' + fr.anzahl + ' Fahrer · ' + fmt(fr.summe) + ' → ' + live.anzahl + ' Fahrer · ' + fmt(live.summe) + '</span></span>'
-                    + '<button class="btn fg-go" data-fg="freigeben"' + dis + '>Erneut freigeben</button>'
-                    + '<button class="fg-link" data-fg="zuruecknehmen"' + dis + '>zurücknehmen</button>';
-                return;
-            }
-            box.innerHTML = '<span class="fg-pill ok">Fahrer sehen diese Woche <span>· seit ' + esc(fgDatum(fr.freigegeben_am)) + ' · ' + esc(fr.freigegeben_von || '') + '</span></span>'
+            mehr.innerHTML = 'Freigegeben ' + esc(fgDatum(fr.freigegeben_am)) + ' von ' + esc(fr.freigegeben_von || '')
+                + (geaendert ? ' · damals ' + fr.anzahl + ' Fahrer · ' + fmt(fr.summe) + ', jetzt ' + live.anzahl + ' Fahrer · ' + fmt(live.summe) : '')
                 + '<button class="fg-link" data-fg="zuruecknehmen"' + dis + '>zurücknehmen</button>';
+            if (geaendert) {
+                FG = { text: 'seit Freigabe geändert', stufe: 'err' };
+                box.innerHTML = '<button class="btn fg-go" data-fg="freigeben"' + dis + '>Erneut freigeben</button>';
+            } else FG = { text: 'Fahrer sehen sie seit ' + fgDatum(fr.freigegeben_am), stufe: 'ok' };
+            renderAzKopf();
         }
         function freigabeDialogText(w) {
             const rows = SETTLEMENTS.filter(function(s) { return s.woche === w && s.status === 'berechnet' && s.fahrer_name && s.fahrer_name.indexOf('__') !== 0; });
@@ -2612,7 +2628,7 @@
                 freigabeLaeuft = false; fillWeekFilter(); renderFreigabe(week);
             }
         }
-        document.getElementById('freigabeBox').addEventListener('click', function(e) {
+        document.getElementById('azBlock').addEventListener('click', function(e) {
             const b = e.target.closest('[data-fg]');
             if (!b || b.disabled || !week) return;
             if (b.dataset.fg === 'freigeben') woche_freigeben_ui(week);
@@ -2994,16 +3010,16 @@
             AZ_STATUS = res && !res.error ? res.data : null;
             renderAzStatus();
         }
-        // Zugeklappt eine Zeile: gruen = alles da, rot = etwas fehlt (Betreiber 01.11.), grau = Lauf noch geplant. Klick klappt auf.
-        let AZ_STATUS_AUF = false;
+        // Wochenzeile (Betreiber 01.11.): zugeklappt EINE Zeile – Punkt grün = alles da, rot = etwas fehlt/seit Freigabe geändert,
+        // grau = Lauf geplant/nicht freigegeben. Klick klappt Bolt/Uber/myPOS/Abrechnung, Freigabe und Abgleich auf.
+        let AZ_STATUS_AUF = false, AZ_TEILE = [];
         function renderAzStatus() {
             const el = document.getElementById('azStatus'), st = AZ_STATUS;
-            el.hidden = !st;
-            if (!st) return;
+            AZ_TEILE = []; el.innerHTML = '';
+            // Die Statusteile gelten nur für die Woche des Automatik-Laufs (letzte abgeschlossene Woche)
+            if (!st || st.woche !== week) { renderAzKopf(); return; }
             const uhr = function (t) { return t ? new Date(t).toLocaleString('de-AT', { weekday: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Vienna' }) : ''; };
-            const teile = [];
-            const tag = function (cls, txt, kurz) { teile.push({ cls: cls, kurz: kurz }); return '<span class="uw-b ' + cls + '">' + txt + '</span>'; };
-            const kw = esc(String(st.woche).replace(/^\d{4}-W0?/, 'KW '));
+            const tag = function (cls, txt, kurz) { AZ_TEILE.push({ cls: cls, kurz: kurz }); return '<span class="uw-b ' + cls + '">' + txt + '</span>'; };
             const geplant = new Date(String(st.lauf_geplant).replace(' ', 'T') + ':00').getTime();
             const vorbei = Date.now() > geplant + 3 * 3600 * 1000;   // ab ca. 08:00 Wien gilt "noch nicht da" als Problem
             const sync = function (name, x, einheit) {
@@ -3011,7 +3027,7 @@
                 if (x.fehler) return tag('err', name + ': ' + esc(String(x.fehler).slice(0, 80)), name + ' Fehler');
                 return tag(vorbei ? 'err' : 'offen', name + (vorbei ? ' fehlt' : ' geplant Mo 04:1x'), name + ' fehlt');
             };
-            const a = st.abrechnung, z = st.zeilen || 0, m = st.mypos, fr = st.freigabe;
+            const a = st.abrechnung, z = st.zeilen || 0, m = st.mypos;
             let mypos;
             // Ohne Kontoauszug (m) kann myPOS-Umsatz in settlements nur aus dem CSV-Upload stammen – auch nach dem Automatik-Lauf (KW43)
             if (!m && parseFloat(st.mypos_csv) > 0) mypos = tag('ok', 'myPOS ✓ aus CSV · ' + fmt(st.mypos_csv));
@@ -3023,19 +3039,29 @@
             else if (z > 0) abr = tag('ok', 'Abrechnung ✓ aus CSV · ' + z + ' Zeilen');
             else if (a && a.ergebnis === 'unvollstaendig') abr = tag(vorbei ? 'err' : 'warn', 'Abrechnung wartet: ' + esc(a.hinweis || 'unvollständig'), 'Abrechnung wartet');
             else abr = tag(vorbei ? 'err' : 'offen', vorbei ? 'Abrechnung fehlt' : 'Abrechnung geplant Mo 05:00', 'Abrechnung fehlt');
-            const frei = fr ? tag('ok', 'Freigegeben ✓ ' + esc(uhr(fr.am)) + ' · ' + esc(fr.von) + ' – Fahrer sehen es')
-                            : tag(z > 0 ? 'warn' : 'offen', z > 0 ? 'Noch nicht freigegeben' : 'Freigabe folgt automatisch', 'nicht freigegeben');
-            const details = sync('Bolt', st.bolt, 'Fahrten') + sync('Uber', st.uber, 'Fahrer') + mypos + abr + frei
-                + (z > 0 && week !== st.woche ? '<a data-azstw="' + esc(st.woche) + '">' + kw + ' öffnen</a>' : '');
+            el.innerHTML = sync('Bolt', st.bolt, 'Fahrten') + sync('Uber', st.uber, 'Fahrer') + mypos + abr;
+            renderAzKopf();
+        }
+        function renderAzKopf() {
+            const kopf = document.getElementById('azKopf'), mehr = document.getElementById('azMehr');
+            if (!kopf || !week) return;
             // Vor dem Montagslauf ist ein fehlender myPOS-Auszug noch kein Problem -> grau; echte Fehler sind sofort rot
-            const offen = teile.some(function (t) { return t.cls === 'offen'; });
-            const fehlt = teile.filter(function (t) { return t.cls === 'err' || (t.cls === 'warn' && !offen); });
-            const stufe = fehlt.length ? 'err' : offen ? 'offen' : 'ok';
-            const was = fehlt.length ? fehlt.map(function (t) { return t.kurz; }).join(' · ') : offen ? 'läuft Mo 05:00' : 'alles da';
-            el.innerHTML = '<button type="button" class="az-kopf ' + stufe + '" data-azauf="1" aria-expanded="' + AZ_STATUS_AUF + '">' +
-                '<span class="az-punkt"></span><b>Automatische Abrechnung ' + kw + '</b><span class="az-was">· ' + esc(was) + '</span>' +
-                '<span class="az-pfeil">' + (AZ_STATUS_AUF ? 'zuklappen ▴' : 'Details ▾') + '</span></button>' +
-                (AZ_STATUS_AUF ? '<div class="az-teile">' + details + '</div>' : '');
+            const laeuft = AZ_TEILE.some(function (t) { return t.cls === 'offen'; });
+            const fehlt = AZ_TEILE.filter(function (t) { return t.cls === 'err' || (t.cls === 'warn' && !laeuft); }).map(function (t) { return t.kurz; });
+            if (FG && FG.stufe === 'err') fehlt.unshift(FG.text);
+            const stufe = fehlt.length ? 'err' : (laeuft || !FG || FG.stufe === 'offen') ? 'offen' : 'ok';
+            const teile = [];
+            if (FG && FG.stufe !== 'err') teile.push(esc(FG.text));
+            if (laeuft) teile.push('Abrechnung läuft Mo 05:00');
+            fehlt.forEach(function (t) { teile.push('<span class="neg">' + esc(t) + '</span>'); });
+            if (ABG_KURZ) teile.push(esc(ABG_KURZ));
+            const hatMehr = !!(document.getElementById('azStatus').innerHTML || document.getElementById('fgMehr').innerHTML || document.getElementById('abgleichBox').innerHTML);
+            kopf.className = 'az-kopf ' + stufe;
+            kopf.setAttribute('aria-expanded', String(AZ_STATUS_AUF));
+            kopf.innerHTML = '<span class="az-punkt"></span><b>' + esc(week.replace(/^\d{4}-W0?/, 'KW ')) + '</b>'
+                + (teile.length ? '<span class="az-was">· ' + teile.join(' · ') + '</span>' : '')
+                + (hatMehr ? '<span class="az-pfeil">' + (AZ_STATUS_AUF ? 'zuklappen ▴' : 'Details ▾') + '</span>' : '');
+            mehr.hidden = !(AZ_STATUS_AUF && hatMehr);
         }
         function renderUwLeiste(data) {
             const el = document.getElementById('uwLeiste'), txt = document.getElementById('uwLeisteText'), go = document.getElementById('uwGo'), alle = document.getElementById('uwAlle');
@@ -3195,6 +3221,7 @@
             if (noMatchCount > 0) { document.getElementById('aliasBannerCount').textContent = noMatchCount; }
             const ABW = renderAbgleich(week);
             renderFreigabe(week);
+            renderAzStatus();
             const tbody = document.getElementById('tableBody');
             const panel = document.getElementById('detailPanel');
             if (!data.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Keine Einträge</td></tr>'; panel.innerHTML = '<div class="placeholder">Keine Einträge</div>'; return; }

@@ -45,9 +45,11 @@ Fahrer-Detail aufräumen, Bolt-Abgleich.
 | `kennzeichen` text | Anzeigeform wie der n8n-Full-Sync sie schreibt (Klammerzusatz weg, Leerzeichen zusammengezogen) |
 | `quelle` | `hand` (HL) · `uebernahme` (Start) · `notion` (neuer Fahrer, der nur über Notion kam) |
 | `von`, `am` | Büro-Name aus dem JWT bzw. „Automatik“ |
-| `notion_ok_am` timestamptz | wann Notion bestätigt wurde (null = noch offen) |
 
-Je Fahrer gilt der **letzte Eintrag**. UPDATE/DELETE gesperrt (außer `notion_ok_am`), Protokoll-Bereich `zuordnungen`.
+Je Fahrer gilt der **letzte Eintrag**. UPDATE/DELETE gesperrt, Protokoll-Bereich `zuordnungen`.
+
+`fuhrpark_notion_offen(kennzeichen_key, seit)`: Autos, deren Notion-Feld „Fahrer aktuell“ noch nachgezogen werden muss
+(nur Autos, die in HL geändert wurden).
 
 ### `fuhrpark` (Notion-Spiegel) bekommt dazu
 `notion_page_id` (für das Zurückschreiben) und `notion_fahrer` (int[] – „Fahrer aktuell“ in Notion als Fahrer-IDs).
@@ -66,10 +68,11 @@ Je Fahrer gilt der **letzte Eintrag**. UPDATE/DELETE gesperrt (außer `notion_ok
    Kennzeichen, egal was der n8n-Full-Sync schickt. Hat er keine (Fahrer kam nur über Notion), wird der Notion-Wert einmal
    als `quelle = 'notion'` übernommen. So funktioniert Onboarding über Notion weiter.
 4. **Notion nachziehen:** Edge Function `fuhrpark-notion` (Büro-JWT, Notion-Token aus dem Vault) setzt bei den betroffenen
-   Autos „Fahrer aktuell“ und schreibt `notion_ok_am`. Das Dashboard ruft sie direkt nach dem Speichern auf.
+   Autos „Fahrer aktuell“ und streicht sie aus `fuhrpark_notion_offen`. Das Dashboard ruft sie direkt nach dem Speichern auf.
    Was offen bleibt (Notion nicht erreichbar), holt `notion-sync` beim nächsten 10-Minuten-Lauf nach. Liste mit
    „Notion noch nicht aktualisiert“ im Detail des Autos.
-5. **Start:** die heutigen `fahrer.kennzeichen` der aktiven Fahrer als `uebernahme` eintragen.
+5. **Start:** Zuordnung aus **Notion** („Fahrer aktuell“) als `uebernahme`, nur für Fahrer mit `fahrer`-Zeile. Fahrer ohne
+   Zeile (Pavel-Fall) erscheinen beim Auto als „in Notion, nicht übernommen“ mit Knopf „übernehmen“ (öffnet das Pauschalen-Formular).
 
 ## Grenzen
 - Ändert jemand nach dem Start „Fahrer aktuell“ direkt in Notion, gewinnt HL (Wächter). Das Team ordnet nur noch in HL zu.

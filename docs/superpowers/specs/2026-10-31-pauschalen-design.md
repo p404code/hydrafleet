@@ -208,6 +208,6 @@ Reihenfolge (31.10. mit dem Betreiber festgelegt: zuerst die Übernahme):
    → `prozent_schwelle: Number.isFinite(parseFloat(f.prozent_schwelle)) ? parseFloat(f.prozent_schwelle) : 1200`
    (Fassung `.n8n-backup/berechnung-v16.js`, lokal). Der Betreiber ändert das im n8n-Editor, weil der Workflow im n8n-MCP nicht freigegeben ist.
 4. **Scharfschalten** in einem Zug: `pauschalen_uebernehmen()`, Wächter auf `fahrer` + Trigger auf
-   `abrechnung_freigaben` aktivieren. Der Betreiber benennt das Notion-Feld um und informiert das Team
-   („Pauschalen nur noch im Dashboard“).
+   `abrechnung_freigaben` aktivieren. Team informieren („Pauschalen nur noch im Dashboard“). **Notion-Felder NICHT umbenennen/löschen** (n8n-Full-Sync liest sie
+   per Name und überspringt sonst alle Fahrer) – am 01.11. nur in den Notion-Ansichten ausgeblendet.
 5. CLAUDE.md: Grundsatz „Notion bleibt Stammdaten“ anpassen (Pauschale jetzt HYDRAlink), neuer Abschnitt „Pauschalen“.

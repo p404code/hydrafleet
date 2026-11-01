@@ -323,6 +323,10 @@ Migration `2026-10-18-abrechnung-api-automatisch.sql`.
 Spec `docs/superpowers/specs/2026-10-31-pauschalen-design.md`. Erster Schritt, Notion abzulösen: **die Pauschale gehört dem Fahrer
 und wird nur noch im Dashboard gepflegt** (Fahrer → App → Detail „Pauschale ändern“, alle Büro-Benutzer). Notion-Feld „Pauschale “
 zählt nicht mehr.
+  **Die Notion-Felder „Pauschale “ und „Pauschal Modell“ NICHT löschen oder umbenennen:** der n8n-Full-Sync (Knoten
+  „Merge All Data“) überspringt Fahrer ohne diese Werte und bricht bei 0 Fahrern ab – dann fehlen neue Fahrer/Autowechsel
+  und der CSV-Upload hängt. Seit 01.11. sind sie in den Notion-Ansichten nur ausgeblendet. Entfernen erst, wenn der
+  Full-Sync sie nicht mehr braucht.
 - Verlauf `pauschalen` (je `notion_fahrer_id`; UPDATE/DELETE/TRUNCATE gesperrt, Protokoll-Bereich `geld`): `art` fix · f11 · f12 · eigene
   (eigener `prozent_satz` ab `prozent_schwelle`, **Schwelle 0 = % vom ganzen Umsatz**), `betrag` (0 erlaubt), `gilt_ab`/`gilt_bis`
   (ISO-Woche, bis optional = befristet), `grund` (optional), `quelle` hand · uebernahme · neuanlage, `von` aus dem JWT.

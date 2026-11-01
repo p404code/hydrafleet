@@ -5062,7 +5062,7 @@
            Die View entschluesselt nichts. */
         let VB = [], vbGeladen = false;
 
-        const VB_TITEL = { bolt: 'Bolt', uber: 'Uber', notion: 'Notion', mypos: 'myPOS' };
+        const VB_TITEL = { bolt: 'Bolt', uber: 'Uber', notion: 'Notion', mypos: 'myPOS', revolut: 'Revolut' };
 
         function vbStufe(befund) {
             if (befund === 'Fehler' || befund === 'Zugang abgelaufen') return 'err';
@@ -5147,7 +5147,7 @@
 
                 let zugang;
                 if (v.tage_bis_ablauf == null) {
-                    zugang = v.anbieter === 'bolt' ? 'Token je Lauf' : 'unbefristet';
+                    zugang = v.anbieter === 'bolt' ? 'Token je Lauf' : v.anbieter === 'revolut' ? 'Token je Abruf' : 'unbefristet';
                 } else {
                     zugang = 'noch ' + v.tage_bis_ablauf + ' Tage';
                 }
@@ -5161,7 +5161,7 @@
                     kv('Letzter Lauf', vbZeit(v.letzter_lauf) +
                         '<small style="color:var(--text-dim)"> · ' + vbGenau(v.letzter_lauf) + '</small>') +
                     kv('Ergebnis', lauf) +
-                    kv('Läufe (7 Tage)', (v.laeufe_7t || 0) +
+                    kv('Läufe (7 Tage)', v.laeufe_7t == null ? '–' : v.laeufe_7t +
                         (v.fehler_7t ? ', davon <span class="neg">' + v.fehler_7t + ' Fehler</span>' : '')) +
                     kv('Zugang', zugang) +
                     (v.daten_bis ? kv('Daten bis', esc(v.daten_bis)) : '') +

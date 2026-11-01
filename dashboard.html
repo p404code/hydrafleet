@@ -257,7 +257,7 @@
         .btn { padding: 6px 10px; border-radius: 7px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; }
         .btn:hover { background: var(--surface-2); }
         .alias-banner { display: none; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 20px 0; padding: 8px 12px; border-radius: 8px; background: var(--status-warn-bg); color: var(--warn); font-size: 12.5px; }
-        .abgleich { display: none; margin: 10px 20px 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 12.5px; }
+        .abgleich { display: none; margin: 10px 20px 0; padding: 2px 0; font-size: 12.5px; }
         .abgleich h4 { margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-mut); }
         .abgleich .zeile { display: flex; align-items: baseline; gap: 8px; padding: 2px 0; }
         .abgleich .zeile .pl { min-width: 38px; color: var(--text-mut); }
@@ -1262,13 +1262,12 @@
                 <span><strong id="aliasBannerCount">0</strong> Fahrer ohne Zuordnung in dieser Woche</span>
                 <button class="btn" onclick="openAliasModal()">Jetzt zuordnen →</button>
             </div>
-            <div class="alias-banner" id="apiBanner"><span id="apiBannerText"></span></div>
+            <div class="abgleich" id="abgleichBox"></div>
             <section class="mp-karte" id="mpKarte" hidden></section>
             <div class="alias-banner" id="postenBanner">
                 <span id="postenBannerText"></span>
                 <button class="btn" onclick="postenNeuAnwenden()">Wieder einrechnen</button>
             </div>
-            <div class="abgleich" id="abgleichBox"></div>
             <div class="excluded-panel" id="excludedPanel">
                 <h3>Ausgeschlossene Fahrer</h3>
                 <div class="excluded-list" id="excludedList"></div>
@@ -2480,7 +2479,12 @@
             const box = document.getElementById('abgleichBox');
             const marken = new Map();
             const rows = ABGLEICH.filter(function(r) { return r.woche === w; });
-            if (!rows.length) { box.style.display = 'none'; return marken; }
+            const vorne = API_ZEILE ? '<span class="t">' + API_ZEILE + '</span> \u00B7 ' : '';
+            if (!rows.length) {
+                box.innerHTML = vorne ? '<div class="abgleich-link" style="cursor:default">' + vorne.replace(/ \u00B7 $/, '') + '</div>' : '';
+                box.style.display = vorne ? 'block' : 'none';
+                return marken;
+            }
             const fahrer = rows.filter(function(r) { return r.fahrer_id != null; });
             const ohne = rows.length - fahrer.length;
             const unvollst = fahrer.some(function(r) { return r.befund === 'unvollständig'; });
@@ -2502,7 +2506,7 @@
                 text = teile.join(' \u00B7 ');
             }
             box.innerHTML = '<button class="abgleich-link" type="button">'
-                + '<span class="t">API-Abrechnung ' + esc(w) + ':</span> ' + text
+                + vorne + (vorne ? 'Abgleich: ' : '<span class="t">API-Abrechnung ' + esc(w) + ':</span> ') + text
                 + ' <span class="pf">ansehen \u2192</span></button>';
             box.querySelector('button').onclick = function() { oeffneApi(w, unvollst ? 'alle' : 'ab'); };
             box.style.display = 'block';
@@ -2916,22 +2920,15 @@
             uwAufraeumen();
             render();
         }
-        // Automatische Abrechnung aus Bolt + Uber (abrechnung_api_schreiben): solange kein myPOS drin ist, deutlich warnen
+        // Automatische Abrechnung (abrechnung_api_schreiben): ein Satz vorne in der Zeile der API-Abrechnung (renderAbgleich).
+        // Betreiber 01.11.: dezent, zusammen mit dem Abgleich – myPOS fehlt steht in der Statuszeile, Terminals in der myPOS-Karte.
+        let API_ZEILE = '';
         function renderApiBanner(all) {
-            const el = document.getElementById('apiBanner');
             const a = AZ.woche === week ? AZ.api : null;
-            const mypos = all.reduce(function (t, s) { return t + (parseFloat(s.mypos_summe) || 0); }, 0);
+            API_ZEILE = '';
+            if (!a || a.ergebnis !== 'geschrieben') return;
             const mp = AZ.woche === week ? (AZ.mypos || []) : [];
-            const ohne = mp.filter(function (m) { return m.fahrer_id == null; });
-            const zeigen = !!a && a.ergebnis === 'geschrieben';
-            el.style.display = zeigen ? 'flex' : 'none';
-            if (!zeigen) return;
-            const kw = esc(week.replace(/^\d{4}-W0?/, 'KW '));
-            const quelle = mp.length ? 'Bolt + Uber + myPOS-Auszug' + (mp[0].letzte_buchung ? ' (bis ' + esc(fzZeit(mp[0].letzte_buchung)) + ')' : '') : 'Bolt + Uber';
-            document.getElementById('apiBannerText').innerHTML = '<span><strong>' + kw + ' wurde automatisch abgerechnet</strong> aus ' + quelle + ', ' + esc(fzZeit(a.zeit)) + '. '
-                + (mypos === 0 && !mp.length ? '<b>myPOS fehlt noch</b> – vor dem Freigeben die CSVs hochladen, sie überschreiben die Werte. ' : '')
-                + (ohne.length ? '<b>' + ohne.length + ' myPOS-Terminal(s) ohne Fahrer</b> (' + esc(ohne.map(function (m) { return m.terminal; }).join(', ')) + ', zusammen ' + fmt(ohne.reduce(function (t, m) { return t + (parseFloat(m.betrag) || 0); }, 0)) + ') – in Notion zuordnen. ' : '')
-                + (a.ohne_fahrer ? a.ohne_fahrer + ' Bolt-/Uber-Konto/Konten ohne Fahrer. ' : '') + '</span>';
+            API_ZEILE = 'Automatisch aus ' + (mp.length ? 'Bolt + Uber + myPOS' : 'Bolt + Uber') + ', ' + esc(fzZeit(a.zeit));
         }
         /* Nicht zugeordnete myPOS-Zahlungen (__MYPOS:<Terminal>__ vom AbrechnungsBot): einem Fahrer der Woche zuordnen.
            Die Datenbank rechnet Umsatz, Prozent und Auszahlung nach (mypos_zuordnen); rueckgaengig ueber mypos_zuordnung_zurueck. */

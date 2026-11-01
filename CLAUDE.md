@@ -348,6 +348,25 @@ zählt nicht mehr.
   `node scripts/test-pauschalen-ansicht.mjs <ordner>` (Dashboard mit Attrappe, Screenshots).
 - Der Knoten „Berechnung“ im AbrechnungsBot enthält den service_role-Key im Klartext (Z. 625) – nur lesend exportieren, nie ausgeben.
 
+## Autoliste – Fahrer↔Auto (seit 2026-11-01)
+
+Spec `docs/superpowers/specs/2026-11-01-autoliste-design.md`, Plan `docs/superpowers/plans/2026-11-01-autoliste.md`.
+**HYDRAlink entscheidet, wer welches Auto fährt** (Fahrer → Autos, ersetzt den Fuhrpark-Reiter). Notion bleibt die Liste
+für Fahrer und Autos (Onboarding-Webformular → Notion), „Fahrer aktuell“ wird aus HL zurückgeschrieben.
+- Verlauf `fahrer_auto` (nur anhängen, je `notion_fahrer_id` gilt die letzte Zeile, `kennzeichen_key` null = kein Auto),
+  `fahrer_auto_aktuell`, View `autoliste`. Schreiben nur über `auto_fahrer_setzen` (mit Pauschale; Pauschale muss in der
+  Stichwoche gelten) / `auto_fahrer_entfernen` (`aktiv` bleibt). Legt bei Bedarf die `fahrer`-Zeile an (Pavel-Fall).
+- **Wächter `fahrer_auto_waechter`** auf `fahrer`: Kennzeichen aus `fahrer_auto`, egal was der n8n-Full-Sync schickt.
+  Fahrer ohne Verlauf: Notion-Wert wird nur bei Neuanlage oder echtem Kennzeichenwechsel übernommen (`quelle notion`).
+- Notion zurück: `fuhrpark_notion_offen` (je Auto, `seit` gegen Rennen), Edge Function `fuhrpark-notion` (Dashboard direkt
+  nach dem Speichern) + `notion-sync` (10-Min-Lauf, holt Offenes nach). `fuhrpark_notion_soll` behält Notion-Fahrer, die
+  noch nicht übernommen sind. `notion-sync` füllt `fuhrpark.notion_page_id` / `notion_fahrer`.
+- Platzhalter „S—T—E—H—T“/„BIS“ (`notion_platzhalter`) werden ignoriert. Gleicher Name mit anderer Nr. = Fahrer in Notion
+  doppelt → Meldung (01.11.: Alaudi Debizov 36/192, Dschunid Saluev 239/253, Murad Izrailov 245/200 – in Notion klären).
+- Dashboard Präfix `au`, Logik `autoliste-logik.js`, Schalter `AU_AKTIV`, Formular `pauFormHtml` geteilt mit Fahrer-Detail.
+- Tests: `PGLITE=<dir> node scripts/test-autoliste.mjs` (20), `node --test scripts/test-autoliste-logik.mjs scripts/test-fuhrpark-logik.mjs`,
+  `node scripts/test-autoliste-ansicht.mjs <ordner>`.
+
 ## Nachrichten (seit 2026-10-26)
 
 Spec `docs/superpowers/specs/2026-10-22-fahrer-nachrichten-telegram-design.md`, Plan `docs/superpowers/plans/2026-10-26-fahrer-nachrichten-telegram.md`.

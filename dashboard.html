@@ -6512,7 +6512,7 @@
         /* Reiter-Gruppen: oben die Gruppe, daneben ihre Unterreiter */
         // Autoliste (Fahrer -> Autos) ersetzt den Fuhrpark-Reiter – erst beim Scharfschalten auf true
         // (migrations/2026-11-01-autoliste*.sql, Edge Function fuhrpark-notion).
-        const AU_AKTIV = false;
+        const AU_AKTIV = true;
         const GRUPPEN = {
             abrechnung: [['abrechnungen', 'Übersicht'], ['abrbot', 'Upload'], ['muessenzahlen', 'Kassieren'], ['lohn', 'Löhne']],   // Kassabuch vorerst ausgeblendet (Betreiber 19.10., wird neu gebaut) – Daten bleiben
             fahrer: AU_AKTIV ? [['fahrer', 'App'], ['autos', 'Autos'], ['post', 'Post']] : [['fahrer', 'App'], ['post', 'Post']],

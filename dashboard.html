@@ -1069,8 +1069,15 @@
         .mp-zeile select { height: 30px; min-width: 0; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-2); color: var(--text); font: inherit; font-size: 12.5px; padding: 0 8px; }
         .mp-zeile.fertig { color: var(--text-mut); }
         @media (max-width: 768px) { .mp-karte { margin: 8px 12px 0; } .mp-zeile { grid-template-columns: 1fr auto; } .mp-zeile select { grid-column: 1 / -1; } }
-        .az-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 20px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-mut); }
-        .az-status > b { color: var(--text); font-size: 12.5px; margin-right: 4px; }
+        .az-status { padding: 8px 20px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-mut); }
+        .az-kopf { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: none; padding: 0; font: inherit; font-size: 12.5px; color: var(--text); cursor: pointer; text-align: left; }
+        .az-kopf .az-punkt { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--text-dim); }
+        .az-kopf.ok .az-punkt { background: var(--accent); }
+        .az-kopf.err .az-punkt { background: var(--err); }
+        .az-kopf.err .az-was { color: var(--err); font-weight: 600; }
+        .az-kopf.ok .az-was { color: var(--accent); }
+        .az-kopf .az-pfeil { margin-left: auto; color: var(--text-mut); font-size: 11px; }
+        .az-teile { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 8px; }
         .az-status .uw-b { height: 22px; font-weight: 500; }
         .az-status .uw-b b { font-weight: 700; }
         .az-status a { color: var(--accent); cursor: pointer; text-decoration: underline; margin-left: 4px; }
@@ -2262,6 +2269,7 @@
             document.getElementById('uwAlle').addEventListener('change', uwAlleToggle);
             document.getElementById('mpKarte').addEventListener('click', mpKlick);
             document.getElementById('azStatus').addEventListener('click', function (e) {
+                if (e.target.closest('[data-azauf]')) { AZ_STATUS_AUF = !AZ_STATUS_AUF; renderAzStatus(); return; }
                 const a = e.target.closest('[data-azstw]'); if (!a) return;
                 const w = a.dataset.azstw; if (WEEKS.indexOf(w) < 0) return;
                 week = w; document.getElementById('weekFilter').value = w; render(); ladeAuszahlung(w);
@@ -2987,34 +2995,47 @@
             AZ_STATUS = res && !res.error ? res.data : null;
             renderAzStatus();
         }
+        // Zugeklappt eine Zeile: gruen = alles da, rot = etwas fehlt (Betreiber 01.11.), grau = Lauf noch geplant. Klick klappt auf.
+        let AZ_STATUS_AUF = false;
         function renderAzStatus() {
             const el = document.getElementById('azStatus'), st = AZ_STATUS;
             el.hidden = !st;
             if (!st) return;
             const uhr = function (t) { return t ? new Date(t).toLocaleString('de-AT', { weekday: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Vienna' }) : ''; };
-            const tag = function (cls, txt) { return '<span class="uw-b ' + cls + '">' + txt + '</span>'; };
+            const teile = [];
+            const tag = function (cls, txt, kurz) { teile.push({ cls: cls, kurz: kurz }); return '<span class="uw-b ' + cls + '">' + txt + '</span>'; };
             const kw = esc(String(st.woche).replace(/^\d{4}-W0?/, 'KW '));
             const geplant = new Date(String(st.lauf_geplant).replace(' ', 'T') + ':00').getTime();
             const vorbei = Date.now() > geplant + 3 * 3600 * 1000;   // ab ca. 08:00 Wien gilt "noch nicht da" als Problem
             const sync = function (name, x, einheit) {
                 if (x.zeilen > 0) return tag('ok', name + ' ✓ <b>' + x.zeilen + '</b> ' + einheit + (x.zuletzt ? ' · ' + esc(uhr(x.zuletzt)) : ''));
-                if (x.fehler) return tag('err', name + ': ' + esc(String(x.fehler).slice(0, 80)));
-                return tag(vorbei ? 'err' : 'offen', name + (vorbei ? ' fehlt' : ' geplant Mo 04:1x'));
+                if (x.fehler) return tag('err', name + ': ' + esc(String(x.fehler).slice(0, 80)), name + ' Fehler');
+                return tag(vorbei ? 'err' : 'offen', name + (vorbei ? ' fehlt' : ' geplant Mo 04:1x'), name + ' fehlt');
             };
             const a = st.abrechnung, z = st.zeilen || 0, m = st.mypos, fr = st.freigabe;
             let mypos;
             if (parseFloat(st.mypos_csv) > 0 && !(a && a.ergebnis === 'geschrieben')) mypos = tag('ok', 'myPOS ✓ aus CSV');
-            else if (m) mypos = tag(m.ohne_fahrer ? 'warn' : 'ok', 'myPOS-Auszug ✓ ' + fmt(m.summe) + (m.letzte_buchung ? ' bis ' + esc(uhr(m.letzte_buchung)) : '') + (m.ohne_fahrer ? ' · ' + m.ohne_fahrer + ' Terminal(s) ohne Fahrer' : ''));
-            else mypos = tag('warn', 'myPOS fehlt – Auszug schicken oder CSV hochladen');
+            else if (m) mypos = tag(m.ohne_fahrer ? 'warn' : 'ok', 'myPOS-Auszug ✓ ' + fmt(m.summe) + (m.letzte_buchung ? ' bis ' + esc(uhr(m.letzte_buchung)) : '') + (m.ohne_fahrer ? ' · ' + m.ohne_fahrer + ' Terminal(s) ohne Fahrer' : ''),
+                m.ohne_fahrer + ' myPOS-Terminal(s) ohne Fahrer');
+            else mypos = tag('warn', 'myPOS fehlt – Auszug schicken oder CSV hochladen', 'myPOS fehlt');
             let abr;
             if (a && a.ergebnis === 'geschrieben') abr = tag('ok', 'Abrechnung ✓ <b>' + (a.anzahl || 0) + '</b> Fahrer · ' + esc(uhr(a.zeit)));
             else if (z > 0) abr = tag('ok', 'Abrechnung ✓ aus CSV · ' + z + ' Zeilen');
-            else if (a && a.ergebnis === 'unvollstaendig') abr = tag(vorbei ? 'err' : 'warn', 'Abrechnung wartet: ' + esc(a.hinweis || 'unvollständig'));
-            else abr = tag(vorbei ? 'err' : 'offen', vorbei ? 'Abrechnung fehlt' : 'Abrechnung geplant Mo 05:00');
+            else if (a && a.ergebnis === 'unvollstaendig') abr = tag(vorbei ? 'err' : 'warn', 'Abrechnung wartet: ' + esc(a.hinweis || 'unvollständig'), 'Abrechnung wartet');
+            else abr = tag(vorbei ? 'err' : 'offen', vorbei ? 'Abrechnung fehlt' : 'Abrechnung geplant Mo 05:00', 'Abrechnung fehlt');
             const frei = fr ? tag('ok', 'Freigegeben ✓ ' + esc(uhr(fr.am)) + ' · ' + esc(fr.von) + ' – Fahrer sehen es')
-                            : tag(z > 0 ? 'warn' : 'offen', z > 0 ? 'Noch nicht freigegeben' : 'Freigabe folgt automatisch');
-            el.innerHTML = '<b>Automatische Abrechnung ' + kw + '</b>' + sync('Bolt', st.bolt, 'Fahrten') + sync('Uber', st.uber, 'Fahrer') + mypos + abr + frei
+                            : tag(z > 0 ? 'warn' : 'offen', z > 0 ? 'Noch nicht freigegeben' : 'Freigabe folgt automatisch', 'nicht freigegeben');
+            const details = sync('Bolt', st.bolt, 'Fahrten') + sync('Uber', st.uber, 'Fahrer') + mypos + abr + frei
                 + (z > 0 && week !== st.woche ? '<a data-azstw="' + esc(st.woche) + '">' + kw + ' öffnen</a>' : '');
+            // Vor dem Montagslauf ist ein fehlender myPOS-Auszug noch kein Problem -> grau; echte Fehler sind sofort rot
+            const offen = teile.some(function (t) { return t.cls === 'offen'; });
+            const fehlt = teile.filter(function (t) { return t.cls === 'err' || (t.cls === 'warn' && !offen); });
+            const stufe = fehlt.length ? 'err' : offen ? 'offen' : 'ok';
+            const was = fehlt.length ? fehlt.map(function (t) { return t.kurz; }).join(' · ') : offen ? 'läuft Mo 05:00' : 'alles da';
+            el.innerHTML = '<button type="button" class="az-kopf ' + stufe + '" data-azauf="1" aria-expanded="' + AZ_STATUS_AUF + '">' +
+                '<span class="az-punkt"></span><b>Automatische Abrechnung ' + kw + '</b><span class="az-was">· ' + esc(was) + '</span>' +
+                '<span class="az-pfeil">' + (AZ_STATUS_AUF ? 'zuklappen ▴' : 'Details ▾') + '</span></button>' +
+                (AZ_STATUS_AUF ? '<div class="az-teile">' + details + '</div>' : '');
         }
         function renderUwLeiste(data) {
             const el = document.getElementById('uwLeiste'), txt = document.getElementById('uwLeisteText'), go = document.getElementById('uwGo'), alle = document.getElementById('uwAlle');

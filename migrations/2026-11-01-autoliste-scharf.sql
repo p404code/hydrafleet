@@ -22,7 +22,10 @@ begin
     select * into v from public.fahrer_auto_aktuell where notion_fahrer_id = new.notion_fahrer_id;
     if v.id is not null then
       new.kennzeichen := v.kennzeichen;
-    elsif coalesce(new.aktiv, false) and public.kennzeichen_anzeige(new.kennzeichen) is not null then
+    -- Nur bei Neuanlage oder echtem Wechsel aus Notion übernehmen – sonst würden veraltete Kennzeichen von Fahrern,
+    -- die in Notion auf keinem Auto sitzen, bei jeder anderen Änderung (z. B. Pauschale) zum Verlauf (Probelauf 01.11.).
+    elsif coalesce(new.aktiv, false) and public.kennzeichen_anzeige(new.kennzeichen) is not null
+          and (tg_op = 'INSERT' or public.kennzeichen_anzeige(new.kennzeichen) is distinct from public.kennzeichen_anzeige(old.kennzeichen)) then
       v_kz := public.kennzeichen_anzeige(new.kennzeichen);
       -- Schlüssel des Autos aus dem Fuhrpark (Notion-Titel kann Zusätze wie „(neu)“ haben), sonst aus der Anzeigeform
       select fp.kennzeichen_key into v_key from public.fuhrpark fp

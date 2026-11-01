@@ -53,7 +53,7 @@ insert into public.fahrer (id, name, kennzeichen, aktiv, notion_fahrer_id, mietm
 select setval('fahrer_id_seq', 10);
 `);
 for (const m of ['2026-10-31-pauschalen-uebernahme', '2026-10-31-pauschalen-setzen', '2026-11-01-pauschalen-eigene-als-fix',
-  '2026-10-31-pauschalen-scharf', '2026-11-01-autoliste', '2026-11-01-autoliste-fix']) {
+  '2026-10-31-pauschalen-scharf', '2026-11-01-autoliste', '2026-11-01-autoliste-fix', '2026-11-01-autoliste-fix2']) {
   await db.exec(lies(`../migrations/${m}.sql`));
 }
 
@@ -169,6 +169,19 @@ await pruefe('Review #3: Rueckschreiben behaelt Notion-Fahrer, die noch nicht ue
   assert.deepEqual([...s.page_ids].sort(), ['p101', 'p106']);
 });
 
+await pruefe('Probelauf live: Platzhalter STEHT/BIS erscheinen nicht als "nicht uebernommen"', async () => {
+  await db.exec(`insert into notion_fahrer (notion_page_id, notion_fahrer_id, name) values ('p201', 201, 'S—T—E—H—T'), ('p202', 202, 'BIS')`);
+  await db.exec(`update fuhrpark set notion_fahrer = array[101, 106, 201, 202] where kennzeichen_key = 'W1TX'`);
+  const nu = (await eins(`select notion_nicht_uebernommen nu from autoliste where kennzeichen_key = 'W1TX'`)).nu;
+  assert.deepEqual(nu.map((x) => x.nr), [106]);
+});
+
+await pruefe('Probelauf live: gleicher Name mit anderer Fahrer-Nr. (doppelt in Notion) -> klare Meldung', async () => {
+  await alsBuero();
+  await db.exec(`insert into notion_fahrer (notion_page_id, notion_fahrer_id, name) values ('p136', 136, 'Ali Demir')`);
+  await assert.rejects(eins(`select auto_fahrer_setzen('W1TX', 136, 'f12', 500)`), /schon einen Fahrer „Ali Demir“ \(Nr\. 101\)/);
+});
+
 // ---------- Scharfschalten: Waechter fuers Kennzeichen ----------
 await alsBuero();
 await db.exec(lies('../migrations/2026-11-01-autoliste-scharf.sql'));
@@ -196,6 +209,18 @@ await pruefe('Onboarding nur ueber Notion: einmalige Uebernahme als quelle notio
   assert.equal((await eins(`select kennzeichen from fahrer where notion_fahrer_id = 105`)).kennzeichen, 'W 1TX');
   await db.exec(`update fahrer set kennzeichen = 'W-2TX' where notion_fahrer_id = 105`);
   assert.equal((await eins(`select kennzeichen from fahrer where notion_fahrer_id = 105`)).kennzeichen, 'W 1TX');
+});
+
+await pruefe('Waechter: Update ohne Kennzeichenwechsel legt keinen Verlauf an (veraltete Kennzeichen bleiben still)', async () => {
+  await db.exec(`insert into notion_fahrer (notion_page_id, notion_fahrer_id, name) values ('p108', 108, 'Alt Fahrer')`);
+  await db.exec(`alter table fahrer disable trigger fahrer_auto_waechter`);
+  await db.exec(`insert into fahrer (name, kennzeichen, mietmodell, basis_miete, prozent_satz, prozent_schwelle, aktiv, notion_fahrer_id)
+                 values ('Alt Fahrer', 'W-2TX', 'fix', 100, 0, 0, true, 108)`);
+  await db.exec(`alter table fahrer enable trigger fahrer_auto_waechter`);
+  await db.exec(`update fahrer set basis_miete = 120 where notion_fahrer_id = 108`);
+  assert.equal((await eins(`select count(*)::int n from fahrer_auto where notion_fahrer_id = 108`)).n, 0);
+  await db.exec(`update fahrer set kennzeichen = 'W-1TX' where notion_fahrer_id = 108`);
+  assert.deepEqual(await eins(`select kennzeichen_key k, quelle from fahrer_auto_aktuell where notion_fahrer_id = 108`), { k: 'W1TX', quelle: 'notion' });
 });
 
 await pruefe('Setzen nach dem Scharfschalten bleibt stimmig', async () => {

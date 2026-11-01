@@ -31,12 +31,14 @@
   }
 
   // alle = notion_fahrer-Zeilen; sitzt = { nr: Kennzeichen } fuer Fahrer, die schon auf einem Auto sitzen
+  // Notion-Platzhalter („S—T—E—H—T“, „BIS“) wie im n8n-Full-Sync und notion_platzhalter() in der Datenbank
+  function istPlatzhalter(name) { const b = String(name || '').replace(/[^A-Za-zÀ-ſ]/g, '').toUpperCase(); return b === 'STEHT' || b === 'BIS'; }
   function sucheFahrer(alle, text, sitzt) {
     const t = norm(text), ziffern = String(text || '').replace(/\D/g, '');
     if (!t) return [];
     const treffer = [];
     for (const f of alle) {
-      if (!f.name) continue;
+      if (!f.name || istPlatzhalter(f.name)) continue;
       const nrTreffer = ziffern && String(f.notion_fahrer_id) === ziffern;
       const telTreffer = ziffern.length >= 4 && String(f.telefon || '').replace(/\D/g, '').indexOf(ziffern) >= 0;
       if (nrTreffer || telTreffer || norm(f.name).indexOf(t) >= 0) {
@@ -47,6 +49,6 @@
     return treffer;
   }
 
-  const api = { norm, sortiere, filtere, sucheFahrer };
+  const api = { norm, sortiere, filtere, sucheFahrer, istPlatzhalter };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.AutolisteLogik = api;
 })(typeof window !== 'undefined' ? window : globalThis);

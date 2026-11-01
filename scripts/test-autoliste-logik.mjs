@@ -29,6 +29,8 @@ const ALLE = [
   { notion_fahrer_id: 103, name: 'Pavel Paunov', telefon: '0660 1234' },
   { notion_fahrer_id: 213, name: 'Ali Özdemir', telefon: null },
   { notion_fahrer_id: 7, name: null, telefon: null },
+  { notion_fahrer_id: 101, name: 'S—T—E—H—T', telefon: null },
+  { notion_fahrer_id: 232, name: 'BIS', telefon: null },
 ];
 
 test('sucheFahrer: Name (Umlaute), Nr., Telefon; "sitzt auf"; leer = nichts', () => {
@@ -39,5 +41,7 @@ test('sucheFahrer: Name (Umlaute), Nr., Telefon; "sitzt auf"; leer = nichts', ()
   assert.deepEqual(L.sucheFahrer(ALLE, '103', sitzt).map((x) => x.nr), [103]);
   assert.deepEqual(L.sucheFahrer(ALLE, '1234', sitzt).map((x) => x.nr), [103]);
   assert.deepEqual(L.sucheFahrer(ALLE, '', sitzt), []);
+  assert.deepEqual(L.sucheFahrer(ALLE, 'steht', sitzt), []);
+  assert.deepEqual(L.sucheFahrer(ALLE, 'bis', sitzt), []);
   assert.deepEqual(L.sucheFahrer(ALLE, 'a', sitzt).length <= 20, true);
 });

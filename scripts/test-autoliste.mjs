@@ -125,4 +125,39 @@ await pruefe('fuhrpark_ersetzen nimmt Notion-Seite und Fahrer aktuell mit', asyn
     { notion_page_id: 'pg1', notion_fahrer: [101, 104] });
 });
 
+// ---------- Scharfschalten: Waechter fuers Kennzeichen ----------
+await alsBuero();
+await db.exec(lies('../migrations/2026-11-01-autoliste-scharf.sql'));
+
+await pruefe('Full-Sync-Upsert kann das Kennzeichen nicht zurueckdrehen', async () => {
+  await db.exec(`insert into fahrer (name, kennzeichen, mietmodell, basis_miete, prozent_satz, prozent_schwelle, aktiv)
+                 values ('Pavel Paunov', 'W-9TX', 'fix', 1, 0, 0, true)
+                 on conflict (name) do update set kennzeichen = excluded.kennzeichen, mietmodell = excluded.mietmodell,
+                   basis_miete = excluded.basis_miete, prozent_satz = excluded.prozent_satz, prozent_schwelle = excluded.prozent_schwelle`);
+  assert.deepEqual(await eins(`select kennzeichen, mietmodell, basis_miete::float b from fahrer where notion_fahrer_id = 103`),
+    { kennzeichen: 'W-2TX', mietmodell: 'f12', b: 550 });
+});
+
+await pruefe('Entfernter Fahrer bleibt ohne Auto, auch wenn Notion ihn noch fuehrt', async () => {
+  await db.exec(`update fahrer set kennzeichen = 'W-2TX' where notion_fahrer_id = 102`);
+  assert.equal((await eins(`select kennzeichen from fahrer where notion_fahrer_id = 102`)).kennzeichen, null);
+});
+
+await pruefe('Onboarding nur ueber Notion: einmalige Uebernahme als quelle notion', async () => {
+  await db.exec(`insert into notion_fahrer (notion_page_id, notion_fahrer_id, name) values ('p105', 105, 'Neu Fahrer')`);
+  await db.exec(`insert into fahrer (name, kennzeichen, mietmodell, basis_miete, prozent_satz, prozent_schwelle, aktiv, notion_fahrer_id)
+                 values ('Neu Fahrer', 'W 1TX (neu)', 'f12', 500, 10, 1200, true, 105)`);
+  assert.deepEqual(await eins(`select kennzeichen_key k, kennzeichen, quelle from fahrer_auto_aktuell where notion_fahrer_id = 105`),
+    { k: 'W1TX', kennzeichen: 'W 1TX', quelle: 'notion' });
+  assert.equal((await eins(`select kennzeichen from fahrer where notion_fahrer_id = 105`)).kennzeichen, 'W 1TX');
+  await db.exec(`update fahrer set kennzeichen = 'W-2TX' where notion_fahrer_id = 105`);
+  assert.equal((await eins(`select kennzeichen from fahrer where notion_fahrer_id = 105`)).kennzeichen, 'W 1TX');
+});
+
+await pruefe('Setzen nach dem Scharfschalten bleibt stimmig', async () => {
+  await alsBuero();
+  await eins(`select auto_fahrer_setzen('W1TX', 102)`);
+  assert.equal((await eins(`select kennzeichen from fahrer where notion_fahrer_id = 102`)).kennzeichen, 'W-1TX');
+});
+
 console.log(`\n${ok} Pruefungen bestanden`);

@@ -4106,16 +4106,6 @@
                 '<div class="detail-sec">Fahrzeug</div>' +
                 kv('Kennzeichen', kzHtml(f.kennzeichen)) +
                 kv('Modell', esc([f.marke, f.modell].filter(Boolean).join(' ') || '-')) +
-                kv('Baujahr', f.baujahr == null ? '-' : f.baujahr) +
-                kv('Farbe', esc(f.farbe || '-')) +
-                '<div class="detail-sec">Bolt</div>' +
-                kv('Konten', (f.bolt_konten || 0) + ' (' + (f.bolt_konten_aktiv || 0) + ' aktiv)') +
-                kv('Bewertung', f.bolt_bewertung == null ? '-' : parseFloat(f.bolt_bewertung).toFixed(2)) +
-                kv('Fahrten 30 Tage', fmtInt(f.fahrten_30t || 0)) +
-                '<div class="detail-sec">Abrechnung</div>' +
-                (PAU_DA ? '' : kv('Pauschale', pauschale == null ? '-' : fmt(pauschale), 'strong') + kv('Mietmodell', modellText)) +
-                kv('Letzte Woche', esc(f.letzte_woche || '-')) +
-                kv('Auszahlung', f.letzte_auszahlung == null ? '-' : fmt(f.letzte_auszahlung)) +
                 fzPauschaleHtml(f) +
                 fzLohnHtml(f) +
                 fzAppHtml(f) +

@@ -12,6 +12,8 @@
 // getrennt. /v1/databases/{id}/query ist abgekuendigt, richtig ist
 // /v1/data_sources/{id}/query. Deshalb stehen unten Datenquellen-IDs.
 
+import { fahrerIdsAusRelation, notionNachziehen, ohneStriche } from "../_shared/fuhrpark-logik.ts";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const NOTION       = "https://api.notion.com/v1";
@@ -159,6 +161,11 @@ Deno.serve(async (req) => {
     if (!token) throw new Error("Kein 'token' im Vault-Eintrag");
     const jetzt = new Date().toISOString();
 
+    // Fahrer zuerst: „Fahrer aktuell“ im Fuhrpark verweist auf Fahrer-Seiten -> Nr. (Autoliste)
+    const fa = await alleSeiten(token, DS_FAHRER);
+    const nrJePageId = new Map<string, number>();
+    for (const s of fa) { const nr = nummer(s, "Fahrer ID"); if (nr != null) nrJePageId.set(ohneStriche(s.id), nr); }
+
     // --- Fuhrpark ---
     const fp = await alleSeiten(token, DS_FUHRPARK);
     const fpZeilen = fp.map((s) => {
@@ -180,6 +187,8 @@ Deno.serve(async (req) => {
         taxameter: mehrfach(s, "Taxameter"),
         bolt_werbung: haken(s, "BOLT WERBUNG"),
         dashcam: haken(s, "Dashcam"),
+        notion_page_id: s.id,
+        notion_fahrer: fahrerIdsAusRelation(s, nrJePageId),
       };
     }).filter(Boolean) as any[];
 
@@ -192,7 +201,6 @@ Deno.serve(async (req) => {
     }
 
     // --- Fahrer ---
-    const fa = await alleSeiten(token, DS_FAHRER);
     const faZeilen = fa.map((s) => ({
       notion_page_id: s.id,
       notion_fahrer_id: nummer(s, "Fahrer ID"),
@@ -212,6 +220,21 @@ Deno.serve(async (req) => {
     // --- Zuordnungen nachziehen (ruehrt nie an bestehende Werte) ---
     const zuordnung = nurTest ? null : await rpc("notion_zuordnung_aktualisieren");
 
+    // --- Autoliste: in HYDRAlink geänderte Autos nach Notion zurückschreiben (was fuhrpark-notion nicht geschafft hat) ---
+    let notion_nachgezogen: unknown = null;
+    if (!nurTest) {
+      notion_nachgezogen = await notionNachziehen(null, {
+        soll: (keys) => rpc("fuhrpark_notion_soll", { p_keys: keys }),
+        patch: async (pageId, b) => {
+          const r = await fetch(`${NOTION}/pages/${pageId}`, { method: "PATCH",
+            headers: { Authorization: `Bearer ${token}`, "Notion-Version": NOTION_VER, "Content-Type": "application/json" },
+            body: JSON.stringify(b) });
+          return { ok: r.ok, status: r.status, text: r.ok ? "" : await r.text() };
+        },
+        erledigt: async (key) => { await rpc("fuhrpark_notion_erledigt", { p_key: key }); },
+      }).catch((e) => ({ fehler: String(e).slice(0, 300) }));
+    }
+
     await db(`sync_runs?id=eq.${lauf.id}`, { method: "PATCH", body: JSON.stringify({
       ende: new Date().toISOString(), anzahl: fpZeilen.length + faZeilen.length,
       status: "ok", fehler: nurTest ? "nur Verbindungstest" : null }) });
@@ -222,7 +245,7 @@ Deno.serve(async (req) => {
       test: nurTest,
       fuhrpark_gelesen: fpZeilen.length, fuhrpark_geschrieben: fpGeschrieben,
       fahrer_gelesen: faZeilen.length,
-      zuordnung,
+      zuordnung, notion_nachgezogen,
     }, null, 2), { headers: { "Content-Type": "application/json" } });
   } catch (e) {
     const ungueltig = e instanceof ZugangUngueltig;

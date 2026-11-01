@@ -125,6 +125,18 @@ await pruefe('fuhrpark_ersetzen nimmt Notion-Seite und Fahrer aktuell mit', asyn
     { notion_page_id: 'pg1', notion_fahrer: [101, 104] });
 });
 
+await pruefe('Notion-Soll je offenem Auto und erledigt', async () => {
+  await db.exec(`update notion_fahrer set notion_page_id = notion_page_id`);
+  const soll = await q(`select kennzeichen_key k, notion_page_id, page_ids from fuhrpark_notion_soll(null) order by k`);
+  // offen sind W1TX (Ali weg) und W2TX (Pavel, Ali, Bea weg); auf W2TX sitzen jetzt Ali, Pavel, Doppel
+  assert.deepEqual(soll.map((x) => x.k), ['W1TX', 'W2TX']);
+  assert.deepEqual(soll[0].page_ids, []);
+  assert.deepEqual([...soll[1].page_ids].sort(), ['p101', 'p103', 'p104']);
+  assert.deepEqual((await q(`select kennzeichen_key k from fuhrpark_notion_soll(array['W2TX'])`)).map((x) => x.k), ['W2TX']);
+  await db.exec(`select fuhrpark_notion_erledigt('W1TX')`);
+  assert.deepEqual((await q(`select kennzeichen_key k from fuhrpark_notion_offen`)).map((x) => x.k), ['W2TX']);
+});
+
 // ---------- Scharfschalten: Waechter fuers Kennzeichen ----------
 await alsBuero();
 await db.exec(lies('../migrations/2026-11-01-autoliste-scharf.sql'));

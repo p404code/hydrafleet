@@ -265,6 +265,28 @@ select fp.kennzeichen_key, fp.kennzeichen, fp.modell, fp.firma,
 from public.fuhrpark fp
 where coalesce(fp.firma, '') <> 'Abgemeldet';
 
+-- ---------- Notion: Soll-Zustand je offenem Auto (für fuhrpark-notion und notion-sync) ----------
+-- page_ids = Notion-Seiten der Fahrer, die laut HYDRAlink gerade auf diesem Auto sitzen (leer = Feld leeren)
+create or replace function public.fuhrpark_notion_soll(p_keys text[] default null)
+returns table (kennzeichen_key text, notion_page_id text, page_ids text[])
+language sql stable security definer set search_path = public as $$
+  select o.kennzeichen_key, fp.notion_page_id,
+         coalesce((select array_agg(nf.notion_page_id order by nf.notion_page_id)
+                     from public.fahrer_auto_aktuell a
+                     join lateral (select n.notion_page_id from public.notion_fahrer n where n.notion_fahrer_id = a.notion_fahrer_id
+                                    order by n.aktualisiert_am desc limit 1) nf on true
+                    where a.kennzeichen_key = o.kennzeichen_key), '{}')
+    from public.fuhrpark_notion_offen o
+    left join public.fuhrpark fp on fp.kennzeichen_key = o.kennzeichen_key
+   where p_keys is null or o.kennzeichen_key = any (p_keys)
+   order by o.kennzeichen_key
+$$;
+create or replace function public.fuhrpark_notion_erledigt(p_key text) returns void
+language sql security definer set search_path = public as $$
+  delete from public.fuhrpark_notion_offen where kennzeichen_key = p_key
+$$;
+revoke all on function public.fuhrpark_notion_soll(text[]), public.fuhrpark_notion_erledigt(text) from public, anon, authenticated;
+
 -- ---------- Rechte ----------
 revoke all on function public.auto_fahrer_setzen(text, integer, text, numeric, numeric, numeric, text, text, text) from public, anon;
 grant execute on function public.auto_fahrer_setzen(text, integer, text, numeric, numeric, numeric, text, text, text) to authenticated;

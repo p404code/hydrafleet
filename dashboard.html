@@ -921,13 +921,13 @@
         .fz-zeile .kz, .fz-zeile .fz-main { flex: none; }
         .fz-zeile .fz-bild { flex: 0 1 60px; min-width: 0; }
         @media (min-width: 769px) {
-            #fzTable th:nth-child(1), #fzTable td:nth-child(1) { width: 24%; }
-            #fzTable th:nth-child(2), #fzTable td:nth-child(2) { width: 76px; }
-            #fzTable th:nth-child(3), #fzTable td:nth-child(3) { width: 190px; }
-            #fzTable th:nth-child(6), #fzTable td:nth-child(6) { width: 104px; }
-            #fzTable th:nth-child(7), #fzTable td:nth-child(7) { width: 140px; }
-            #fzTable th:nth-child(8), #fzTable td:nth-child(8) { width: 120px; }
-            #fzTable td:nth-child(8) .zeile-sub { display: block; font-size: 11px; color: var(--text-mut); margin-top: 2px; }
+            #fzTable th:nth-child(1), #fzTable td:nth-child(1) { width: 30%; }
+            #fzTable th:nth-child(2), #fzTable td:nth-child(2) { width: 190px; }
+            #fzTable th:nth-child(4), #fzTable td:nth-child(4) { width: 56px; text-align: center; }
+            #fzTable th:nth-child(5), #fzTable td:nth-child(5) { width: 56px; text-align: center; }
+            #fzTable th:nth-child(6), #fzTable td:nth-child(6) { width: 130px; }
+            #fzTable td:nth-child(6) .zeile-sub { display: block; font-size: 11px; color: var(--text-mut); margin-top: 2px; }
+            #fzTable td:nth-child(4) .dot, #fzTable td:nth-child(5) .dot { margin-right: 0; width: 9px; height: 9px; }
         }
         .fz-bild { flex: none; width: 60px; height: 30px; border-radius: 6px; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
         .fz-bild img { width: 100%; height: 100%; object-fit: contain; display: block; }
@@ -1507,15 +1507,13 @@
                 <table class="data-table" id="fzTable">
                     <thead><tr>
                         <th data-fzsort="name">Name</th>
-                        <th data-fzsort="notion_fahrer_id">Fahrer-ID</th>
                         <th data-fzsort="kennzeichen">Kennzeichen</th>
-                        <th data-fzsort="marke">Marke</th>
                         <th data-fzsort="modell">Modell</th>
-                        <th data-fzsort="app_rang">App-Status</th>
+                        <th data-fzsort="app_rang">App</th>
                         <th>Bank</th>
                         <th>Pauschale</th>
                     </tr></thead>
-                    <tbody id="fzBody"><tr><td colspan="8" class="empty">Lade ...</td></tr></tbody>
+                    <tbody id="fzBody"><tr><td colspan="6" class="empty">Lade ...</td></tr></tbody>
                 </table>
                 <section class="pk-karte" id="pkKarte">
                     <div class="pk-kopf">
@@ -3647,13 +3645,13 @@
             });
 
             const body = document.getElementById('fzBody');
-            if (!rows.length) { body.innerHTML = '<tr><td colspan="' + (isMobile() ? 3 : 8) + '" class="empty">Kein Fahrer gefunden.</td></tr>'; return; }
+            if (!rows.length) { body.innerHTML = '<tr><td colspan="' + (isMobile() ? 3 : 6) + '" class="empty">Kein Fahrer gefunden.</td></tr>'; return; }
 
             const mobil = isMobile();
             body.innerHTML = rows.map(function (f) {
                 const p = fzProbleme(f);
                 const app = fzAppStatus(f);
-                const appZelle = '<span class="dot ' + app.dot + '"></span>' + esc(app.text);
+                const appZelle = '<span class="dot ' + app.dot + '" title="App: ' + esc(app.text) + '"></span>';
                 const sel = fzSel === f.fahrer_id;
                 const punkt = '<span class="prob-dot' + (p.length ? '' : ' leer') + '"></span>';
                 const klick = ' onclick="selectFahrer(' + f.fahrer_id + ')"';
@@ -3673,10 +3671,8 @@
 
                 return '<tr' + (sel ? ' class="selected"' : '') + klick + '>' +
                     '<td><span class="fz-main"><b>' + punkt + esc(f.name) + '</b>' +
-                        '<small>' + esc(f.telefon || '-') + '</small></span></td>' +
-                    '<td class="fz-id">' + (f.notion_fahrer_id == null ? '-' : f.notion_fahrer_id) + '</td>' +
+                        '<small>' + (f.notion_fahrer_id == null ? '' : 'Nr. ' + f.notion_fahrer_id + ' · ') + esc(f.telefon || '-') + '</small></span></td>' +
                     '<td><span class="fz-zeile rechts">' + fpBild(fzAuto(f)) + kzHtml(f.kennzeichen) + '</span></td>' +
-                    '<td>' + esc(f.marke || '-') + '</td>' +
                     '<td>' + esc(f.modell || '-') + '</td>' +
                     '<td>' + appZelle + '</td>' +
                     '<td>' + fzBankZelle(f) + '</td>' +
@@ -3706,10 +3702,11 @@
         function fzBankZelle(f) {
             if (!FZ_BANK_DA) return '–';
             const b = fzBank(f);
-            if (!b) return '<span class="dot aus"></span>fehlt';
+            // Nur Farbe (Betreiber 01.11.): grau fehlt, grün geprüft, gelb ungeprüft oder IBAN neu – Text als Hinweis beim Zeigen
+            if (!b) return '<span class="dot aus" title="Bankdaten fehlen"></span>';
             const neu = fzIbanNeu(b);
-            return '<span class="dot' + (b.geprueft ? '' : ' warn') + '"></span>' + (b.geprueft ? 'geprüft' : 'ungeprüft') +
-                (neu ? ' <span style="color:var(--warn)" title="IBAN geändert am ' + esc(fzZeit(b.iban_geaendert_am)) + '">· IBAN neu</span>' : '');
+            const text = (b.geprueft ? 'Bankdaten geprüft' : 'Bankdaten ungeprüft') + (neu ? ' · IBAN neu seit ' + fzZeit(b.iban_geaendert_am) : '');
+            return '<span class="dot' + (b.geprueft && !neu ? '' : ' warn') + '" title="' + esc(text) + '"></span>';
         }
         // Echter IBAN-Wechsel (nicht die Ersteintragung) in den letzten 14 Tagen - Schutz gegen fremde IBAN
         function fzIbanNeu(b) { return !!(b && b.iban_geaendert_am && Date.now() - new Date(b.iban_geaendert_am).getTime() < 14 * 864e5); }

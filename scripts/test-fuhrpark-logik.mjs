@@ -24,12 +24,12 @@ function attrappe(antworten) {
     erledigt, gepatcht,
     deps: {
       soll: async (keys) => [
-        { kennzeichen_key: 'W1TX', notion_page_id: 'pg1', page_ids: ['p101'] },
-        { kennzeichen_key: 'W2TX', notion_page_id: 'pg2', page_ids: [] },
-        { kennzeichen_key: 'W9TX', notion_page_id: null, page_ids: [] },
+        { kennzeichen_key: 'W1TX', notion_page_id: 'pg1', page_ids: ['p101'], seit: 's1' },
+        { kennzeichen_key: 'W2TX', notion_page_id: 'pg2', page_ids: [], seit: 's2' },
+        { kennzeichen_key: 'W9TX', notion_page_id: null, page_ids: [], seit: 's9' },
       ].filter((z) => !keys || keys.includes(z.kennzeichen_key)),
       patch: async (page, body) => { gepatcht.push([page, body]); return antworten[page] ?? { ok: true, status: 200, text: '' }; },
-      erledigt: async (key) => { erledigt.push(key); },
+      erledigt: async (key, seit) => { erledigt.push([key, seit]); },
     },
   };
 }
@@ -40,7 +40,7 @@ test('Nachziehen: Erfolg streicht aus offen, Notion-Fehler laesst offen, ohne Se
   assert.deepEqual(r.ok, ['W1TX']);
   assert.deepEqual(r.fehler.map((f) => f.key), ['W2TX', 'W9TX']);
   assert.match(r.fehler[0].text, /502/);
-  assert.deepEqual(a.erledigt, ['W1TX']);
+  assert.deepEqual(a.erledigt, [['W1TX', 's1']]);   // mit seit: neuere Vormerkung bleibt (Review #2)
   assert.deepEqual(a.gepatcht.map((g) => g[0]), ['pg1', 'pg2']);
 });
 

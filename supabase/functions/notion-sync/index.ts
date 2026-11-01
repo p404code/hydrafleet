@@ -7,6 +7,8 @@
 // public.fahrer bleibt UNBERUEHRT - die fuellt weiterhin der bestehende
 // n8n-Workflow. Einzige Ausnahme: fahrer.notion_fahrer_id wird gesetzt, wo sie
 // noch leer ist, und zwar durch die RPC notion_zuordnung_aktualisieren().
+// Seit 01.11.2026 (Autoliste) schreibt er zusätzlich „Fahrer aktuell“ nach Notion zurück – nur für Autos,
+// die in HYDRAlink geändert wurden und noch in fuhrpark_notion_offen stehen.
 //
 // API-Hinweis: seit Notion-Version 2025-09-03 sind Datenbanken und Datenquellen
 // getrennt. /v1/databases/{id}/query ist abgekuendigt, richtig ist
@@ -231,7 +233,7 @@ Deno.serve(async (req) => {
             body: JSON.stringify(b) });
           return { ok: r.ok, status: r.status, text: r.ok ? "" : await r.text() };
         },
-        erledigt: async (key) => { await rpc("fuhrpark_notion_erledigt", { p_key: key }); },
+        erledigt: async (key, seit) => { await rpc("fuhrpark_notion_erledigt", { p_key: key, p_seit: seit }); },
       }).catch((e) => ({ fehler: String(e).slice(0, 300) }));
     }
 

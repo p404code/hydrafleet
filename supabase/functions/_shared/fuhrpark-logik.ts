@@ -18,11 +18,12 @@ export function fahrerIdsAusRelation(seite: any, nrJePageId: Map<string, number>
 export const relationBody = (pageIds: string[]) =>
   ({ properties: { "Fahrer aktuell": { relation: pageIds.map((id) => ({ id })) } } });
 
-type Soll = { kennzeichen_key: string; notion_page_id: string | null; page_ids: string[] | null };
+type Soll = { kennzeichen_key: string; notion_page_id: string | null; page_ids: string[] | null; seit: string };
 type Deps = {
   soll: (keys: string[] | null) => Promise<Soll[]>;
   patch: (pageId: string, body: unknown) => Promise<{ ok: boolean; status: number; text: string }>;
-  erledigt: (key: string) => Promise<void>;
+  // seit = Zeitpunkt der Vormerkung; nur streichen, wenn er sich seitdem nicht geändert hat (sonst neuere Änderung offen)
+  erledigt: (key: string, seit: string) => Promise<void>;
 };
 
 // Setzt in Notion „Fahrer aktuell“ der offenen Autos. Erfolg -> aus fuhrpark_notion_offen streichen,
@@ -34,7 +35,7 @@ export async function notionNachziehen(keys: string[] | null, deps: Deps) {
     if (!z.notion_page_id) { fehler.push({ key: z.kennzeichen_key, text: "keine Notion-Seite bekannt" }); continue; }
     try {
       const r = await deps.patch(z.notion_page_id, relationBody(z.page_ids ?? []));
-      if (r.ok) { await deps.erledigt(z.kennzeichen_key); ok.push(z.kennzeichen_key); }
+      if (r.ok) { await deps.erledigt(z.kennzeichen_key, z.seit); ok.push(z.kennzeichen_key); }
       else fehler.push({ key: z.kennzeichen_key, text: `Notion ${r.status}: ${String(r.text).slice(0, 200)}` });
     } catch (e) {
       fehler.push({ key: z.kennzeichen_key, text: String(e).slice(0, 200) });

@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
         });
         return { ok: r.ok, status: r.status, text: r.ok ? "" : await r.text() };
       },
-      erledigt: async (key) => { await rpc("fuhrpark_notion_erledigt", { p_key: key }); },
+      erledigt: async (key, seit) => { await rpc("fuhrpark_notion_erledigt", { p_key: key, p_seit: seit }); },
     });
     return antwort(ergebnis);
   } catch (e) {

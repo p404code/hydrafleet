@@ -53,7 +53,7 @@ insert into public.fahrer (id, name, kennzeichen, aktiv, notion_fahrer_id, mietm
 select setval('fahrer_id_seq', 10);
 `);
 for (const m of ['2026-10-31-pauschalen-uebernahme', '2026-10-31-pauschalen-setzen', '2026-11-01-pauschalen-eigene-als-fix',
-  '2026-10-31-pauschalen-scharf', '2026-11-01-autoliste']) {
+  '2026-10-31-pauschalen-scharf', '2026-11-01-autoliste', '2026-11-01-autoliste-fix']) {
   await db.exec(lies(`../migrations/${m}.sql`));
 }
 
@@ -133,8 +133,40 @@ await pruefe('Notion-Soll je offenem Auto und erledigt', async () => {
   assert.deepEqual(soll[0].page_ids, []);
   assert.deepEqual([...soll[1].page_ids].sort(), ['p101', 'p103', 'p104']);
   assert.deepEqual((await q(`select kennzeichen_key k from fuhrpark_notion_soll(array['W2TX'])`)).map((x) => x.k), ['W2TX']);
-  await db.exec(`select fuhrpark_notion_erledigt('W1TX')`);
+  await db.exec(`select fuhrpark_notion_erledigt('W1TX', (select seit from fuhrpark_notion_offen where kennzeichen_key = 'W1TX'))`);
   assert.deepEqual((await q(`select kennzeichen_key k from fuhrpark_notion_offen`)).map((x) => x.k), ['W2TX']);
+});
+
+// ---------- Fix-Pass nach dem Review ----------
+
+await pruefe('Review #1: kuenftiges "gilt ab" ohne Pauschale in der Stichwoche wird abgelehnt (kein 0-€-neuanlage)', async () => {
+  await alsBuero();
+  await db.exec(`insert into notion_fahrer (notion_page_id, notion_fahrer_id, name) values ('p107', 107, 'Zukunft Fahrer')`);
+  await assert.rejects(eins(`select auto_fahrer_setzen('W1TX', 107, 'f12', 550, null, null, '2026-W45')`), /ab 2026-W44/);
+  assert.equal((await eins(`select count(*)::int n from fahrer where notion_fahrer_id = 107`)).n, 0);
+  assert.equal((await eins(`select count(*)::int n from pauschalen where notion_fahrer_id = 107`)).n, 0);
+  // wer schon eine Pauschale hat, darf eine kuenftige Aenderung setzen
+  await eins(`select auto_fahrer_setzen('W1TX', 101, 'f12', 600, null, null, '2026-W46')`);
+  assert.equal((await eins(`select basis_miete::float b from fahrer where notion_fahrer_id = 101`)).b, 500);
+});
+
+await pruefe('Review #2: erledigt streicht nicht, wenn das Auto inzwischen neu vorgemerkt wurde', async () => {
+  const vorher = await eins(`select seit from fuhrpark_notion_soll(array['W1TX'])`);
+  await db.exec(`select pg_sleep(0.01)`);
+  await eins(`select auto_fahrer_setzen('W1TX', 101)`);   // neue Aenderung, gleiche Kennzeichen
+  await db.exec(`select fuhrpark_notion_erledigt('W1TX', '${new Date(vorher.seit).toISOString()}')`);
+  assert.equal((await eins(`select count(*)::int n from fuhrpark_notion_offen where kennzeichen_key = 'W1TX'`)).n, 1);
+  const jetzt = await eins(`select seit from fuhrpark_notion_soll(array['W1TX'])`);
+  await db.exec(`select fuhrpark_notion_erledigt('W1TX', '${new Date(jetzt.seit).toISOString()}')`);
+  assert.equal((await eins(`select count(*)::int n from fuhrpark_notion_offen where kennzeichen_key = 'W1TX'`)).n, 0);
+});
+
+await pruefe('Review #3: Rueckschreiben behaelt Notion-Fahrer, die noch nicht uebernommen sind', async () => {
+  await db.exec(`insert into notion_fahrer (notion_page_id, notion_fahrer_id, name) values ('p106', 106, 'Noch Nicht')`);
+  await db.exec(`update fuhrpark set notion_fahrer = array[101, 106] where kennzeichen_key = 'W1TX'`);
+  await eins(`select auto_fahrer_setzen('W1TX', 101)`);
+  const s = await eins(`select page_ids from fuhrpark_notion_soll(array['W1TX'])`);
+  assert.deepEqual([...s.page_ids].sort(), ['p101', 'p106']);
 });
 
 // ---------- Scharfschalten: Waechter fuers Kennzeichen ----------

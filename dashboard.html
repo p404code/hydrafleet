@@ -1092,7 +1092,9 @@
         .az-menue-liste .btn, .az-menue-liste .chip { justify-content: flex-start; width: 100%; }
         .az-menue-liste hr { border: 0; border-top: 1px solid var(--border); margin: 2px 0; }
         @media (max-width: 768px) {
-            .uw-leiste { position: fixed; top: auto; left: 0; right: 0; bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom)); z-index: 55; padding: 8px 12px; border-top: 1px solid var(--border); border-bottom: 0; box-shadow: 0 -6px 18px rgba(0,0,0,.08); }
+            /* Handy: normal in der Seite; nur mit Auswahl unten angeheftet (unten gibt es keine Tab-Leiste mehr, Burger-Menü) */
+            .uw-leiste { position: static; padding: 8px 12px; }
+            .uw-leiste.wahl { position: fixed; top: auto; left: 0; right: 0; bottom: 0; z-index: 55; padding-bottom: calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); border-bottom: 0; box-shadow: 0 -6px 18px rgba(0,0,0,.08); }
             .uw-l-txt { flex-direction: column; align-items: flex-start; gap: 1px; }
             .uw-l-h { font-size: 12.5px; }
             .uw-l-s { font-size: 11px; max-width: 100%; }
@@ -3052,7 +3054,7 @@
             const ids = Object.keys(sichtbar), nSel = ids.filter(function (k) { return sichtbar[k]; }).length;
             alle.disabled = !ids.length; alle.checked = ids.length > 0 && nSel === ids.length; alle.indeterminate = nSel > 0 && nSel < ids.length;
             el.classList.toggle('hidden', !rows.length && !(AZ.fehler && AZ.woche === week));
-            if (!rows.length) { txt.innerHTML = AZ.fehler && AZ.woche === week ? '<span class="uw-l-s neg">Auszahlung nicht verfügbar: ' + esc(AZ.fehler) + '</span>' : ''; go.disabled = true; go.textContent = 'Überweisen'; return; }
+            if (!rows.length) { el.classList.remove('wahl'); txt.innerHTML = AZ.fehler && AZ.woche === week ? '<span class="uw-l-s neg">Auszahlung nicht verfügbar: ' + esc(AZ.fehler) + '</span>' : ''; go.disabled = true; go.textContent = 'Überweisen'; return; }
             const fr = !!freigabeVon(week), sel = rows.filter(function (r) { return UW_SEL.has(r.notion_fahrer_id); }), selSumme = sum(sel, function (r) { return r.offen; });
             const k = AZ_KONTO.woche === week ? AZ_KONTO.wert : null;
             let konto = '';
@@ -3064,6 +3066,7 @@
             const neben = [ibanText, lauf.length ? lauf.length + ' im Entwurf' : '', ok.length + ' überwiesen', fr ? konto : 'Erst die Woche freigeben'].filter(Boolean).join(' · ');
             txt.innerHTML = '<b class="uw-l-h">' + haupt + '</b><span class="uw-l-s">' + neben + '</span>';
             go.disabled = !fr || !sel.length;
+            el.classList.toggle('wahl', sel.length > 0);
             go.title = fr ? 'Revolut-Entwurf für die angehakten Fahrer anlegen' : 'Erst die Woche freigeben';
             go.textContent = 'Überweisen' + (sel.length ? ' · ' + sel.length : '');
             const bp = document.getElementById('bpBtn'), ungeprueft = rows.filter(function (r) { return r.iban_ende && !r.geprueft && parseFloat(r.betrag) > 0; }).length;

@@ -990,6 +990,29 @@
         .pau-vorschau span { color: var(--text-mut); }
         .pau-verlauf { font-size: 11.5px; color: var(--text-mut); display: grid; gap: 6px; margin-top: 10px; }
         .pau-verlauf b { color: var(--text); font-weight: 600; }
+        /* Autoliste (Fahrer -> Autos), Praefix au */
+        #auTable th, #auTable td { text-align: left; vertical-align: top; }
+        #auTable td:nth-child(2), #auTable td:nth-child(3) { font-family: var(--sans); color: var(--text); }
+        @media (max-width: 768px) {
+            #auTable thead { display: none; }
+            #auTable td { padding-left: 4px; padding-right: 4px; white-space: normal; }
+            #auTable td:first-child { padding-left: 12px; width: 34%; }
+            #auTable td:nth-child(2) { width: 38%; }
+            #auTable td:last-child { padding-right: 12px; width: 28%; }
+            #auTable .au-zeile { white-space: normal; }
+        }
+        #auTable .zeile-sub { display: block; font-size: 11px; color: var(--text-mut); margin-top: 2px; }
+        #auTable .au-zeile { display: block; white-space: nowrap; }
+        @media (min-width: 769px) {
+            #auTable th:nth-child(1), #auTable td:nth-child(1) { width: 170px; }
+            #auTable th:nth-child(2), #auTable td:nth-child(2) { width: 22%; }
+            #auTable th:nth-child(4), #auTable td:nth-child(4) { width: 170px; }
+        }
+        .au-treffer { display: grid; gap: 4px; margin-top: 6px; }
+        .au-treffer button { text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 7px 10px; font: inherit; font-size: 12.5px; color: var(--text); cursor: pointer; }
+        .au-treffer button:hover { background: var(--surface-2); }
+        .au-treffer small { color: var(--text-mut); }
+        .au-weg { background: none; border: none; color: var(--text-mut); font: inherit; font-size: 11.5px; cursor: pointer; text-decoration: underline; padding: 0 0 0 8px; }
         .fz-ueberw { display: grid; gap: 2px; font-size: 12px; margin-top: 4px; }
         .fz-ueberw div { display: grid; grid-template-columns: 78px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; }
         .fz-ueberw button { font: inherit; font-size: 10.5px; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--border); background: none; color: var(--text-mut); cursor: pointer; }
@@ -1634,6 +1657,29 @@
         </table>
     </div>
 
+    <div class="tab-content" id="contentAutos">
+        <div class="hero">
+            <div class="hero-top">
+                <div class="week-pick"><span style="font-size:18px;font-weight:700">Autos</span></div>
+                <div class="hero-big"><b id="auCountBig">--</b><small>angezeigt</small></div>
+            </div>
+        </div>
+        <div class="toolbar">
+            <input type="text" class="search" id="auSearch" placeholder="Kennzeichen, Modell, Fahrer">
+            <button class="chip active" data-auchip="alle">Alle <span class="cnt" id="auCntAlle"></span></button>
+            <button class="chip" data-auchip="frei">Frei <span class="cnt" id="auCntFrei"></span></button>
+            <button class="chip" data-auchip="belegt">Belegt <span class="cnt" id="auCntBelegt"></span></button>
+        </div>
+        <div class="split">
+            <div class="split-main">
+                <table class="data-table" id="auTable">
+                    <thead><tr><th>Kennzeichen</th><th>Modell</th><th>Fahrer</th><th>Pauschale</th></tr></thead>
+                    <tbody id="auBody"><tr><td colspan="4" class="empty">Lade ...</td></tr></tbody>
+                </table>
+            </div>
+            <div class="side-panel" id="auPanel"><div class="placeholder">Auto auswählen</div></div>
+        </div>
+    </div>
     <div class="tab-content" id="contentFuhrpark">
         <div class="hero">
             <div class="hero-top">
@@ -1684,6 +1730,7 @@
             <button onclick="switchTab('lohn')" data-menue="lohn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M7 12h.01M17 12h.01"/></svg>Löhne</button>
             <div class="menue-gruppe">Fahrer</div>
             <button onclick="switchTab('fahrer')" data-menue="fahrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg>Fahrer/App</button>
+            <button onclick="switchTab('autos')" data-menue="autos" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 17h-2v-6l2-5h9l4 5h3a1 1 0 011 1v5h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>Autos</button>
             <button onclick="switchTab('post')" data-menue="post"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Post</button>
             <div class="menue-gruppe">Rechnungen</div>
             <button onclick="switchTab('rechnungen')" data-menue="rechnungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Rechnungen</button>
@@ -1885,6 +1932,7 @@
     </div>
     <script src="/bank-logik.js"></script>
     <script src="/pauschalen-logik.js"></script>
+    <script src="/autoliste-logik.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <!-- html2canvas loaded lazily on first share -->
     <script>
@@ -3766,19 +3814,12 @@
                 (danach ? ' Danach wieder ' + esc(L.kurz(danach)) + '.' : '') +
                 '<br><span>Bei 1.500 € Umsatz: ' + fmt(L.abzug(neu, 1500)) + (alt ? ' statt ' + fmt(L.abzug(alt, 1500)) : '') + '</span></div>';
         }
-        function fzPauschaleHtml(f) {
-            if (!PAU_DA || f.notion_fahrer_id == null) return '';
-            const L = PauschalenLogik, nr = f.notion_fahrer_id, liste = pauEintraege(f), g = pauJetzt(f);
-            let html = '<div class="detail-sec">Pauschale</div>' +
-                fzKv('Gilt für ' + L.kw(PAU_STICH), g ? '<span class="num">' + esc(L.kurz(g)) + '</span>' : '<span style="color:var(--warn)">fehlt</span>', 'strong');
-            L.ausblick(liste, PAU_STICH, 3).forEach(function (x) {
-                html += fzKv(pauZeitraum(x), '<span class="num">' + esc(L.kurz(x.eintrag)) + '</span>');
-            });
-            if (pauForm === nr) {
-                const w = pauWerte;
-                const wochen = L.wochenAb(PAU_STICH, 30);
-                const opt = function (v, t, an) { return '<option value="' + v + '"' + (an ? ' selected' : '') + '>' + t + '</option>'; };
-                html += '<div class="pau-form" data-pauform="' + nr + '">' +
+        // Pauschalen-Formular (Fahrer-Detail und Autoliste). speichernAttr: welcher Klick-Handler speichert.
+        function pauFormHtml(f, w, speichernAttr) {
+            const L = PauschalenLogik, nr = f.notion_fahrer_id;
+            const wochen = L.wochenAb(PAU_STICH, 30);
+            const opt = function (v, t, an) { return '<option value="' + v + '"' + (an ? ' selected' : '') + '>' + t + '</option>'; };
+            return '<div class="pau-form" data-pauform="' + nr + '">' +
                     '<div class="pau-arten">' + ['fix', 'f11', 'f12', 'eigene'].map(function (a) {
                         return '<button type="button" class="chip' + (w.art === a ? ' active' : '') + '" data-pauart="' + a + '">' + a + '</button>'; }).join('') + '</div>' +
                     '<label>Pauschale je Woche (€)</label><input data-pau="betrag" inputmode="decimal" value="' + esc(String(w.betrag)) + '">' +
@@ -3790,8 +3831,19 @@
                             return opt(x, L.kw(x, PAU_STICH), x === w.bis); }).join('') + '</select></div></div>' +
                     '<label>Grund (optional)</label><input data-pau="grund" maxlength="200" value="' + esc(w.grund || '') + '">' +
                     '<div data-pauvorschau="1">' + pauVorschauHtml(f, w) + '</div>' +
-                    '<div class="detail-acts"><button class="btn-primary ok" data-pausave="' + nr + '">Speichern</button>' +
+                    '<div class="detail-acts"><button class="btn-primary ok" ' + speichernAttr + '="' + nr + '">Speichern</button>' +
                     '<button class="btn-ghost" data-pauzu="1">Abbrechen</button></div></div>';
+        }
+        function fzPauschaleHtml(f) {
+            if (!PAU_DA || f.notion_fahrer_id == null) return '';
+            const L = PauschalenLogik, nr = f.notion_fahrer_id, liste = pauEintraege(f), g = pauJetzt(f);
+            let html = '<div class="detail-sec">Pauschale</div>' +
+                fzKv('Gilt für ' + L.kw(PAU_STICH), g ? '<span class="num">' + esc(L.kurz(g)) + '</span>' : '<span style="color:var(--warn)">fehlt</span>', 'strong');
+            L.ausblick(liste, PAU_STICH, 3).forEach(function (x) {
+                html += fzKv(pauZeitraum(x), '<span class="num">' + esc(L.kurz(x.eintrag)) + '</span>');
+            });
+            if (pauForm === nr) {
+                html += pauFormHtml(f, pauWerte, 'data-pausave');
             } else {
                 html += '<div class="detail-acts"><button class="btn-ghost" data-pauauf="' + nr + '">Pauschale ändern</button></div>';
             }
@@ -3809,6 +3861,227 @@
         function pauWerteLesen(box) {
             box.querySelectorAll('[data-pau]').forEach(function (el) { pauWerte[el.dataset.pau] = el.value; });
             if (pauWerte.bis && pauWerte.bis < pauWerte.ab) pauWerte.bis = '';
+        }
+        /* === AUTOLISTE (Fahrer -> Autos), Spec 2026-11-01-autoliste-design.md ===
+           Daten: View autoliste, notion_fahrer (alle Fahrer zur Auswahl), fahrer_auto (Verlauf), pauschalen.
+           Schreiben nur ueber auto_fahrer_setzen / auto_fahrer_entfernen, danach fuhrpark-notion (Notion nachziehen). */
+        let AU = [], AU_NF = [], AU_VERLAUF = [], auSel = null, auChip = 'alle', auText = '', auInit = false;
+        let auNeu = false, auSuche = '', auFahrer = null, auBusy = false;
+        async function initAutos() {
+            if (!auInit) {
+                auInit = true;
+                document.getElementById('auSearch').addEventListener('input', function (e) { auText = e.target.value; renderAutos(); });
+                document.querySelectorAll('[data-auchip]').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        document.querySelectorAll('[data-auchip]').forEach(function (x) { x.classList.remove('active'); });
+                        b.classList.add('active'); auChip = b.dataset.auchip; renderAutos();
+                    });
+                });
+                ['auBody', 'auPanel'].forEach(function (id) {
+                    const el = document.getElementById(id);
+                    el.addEventListener('click', auKlick);
+                    el.addEventListener('input', auEingabe);
+                    el.addEventListener('change', auEingabe);
+                });
+            }
+            await ladeAutos();
+        }
+        async function ladeAutos() {
+            const sb = getSupabase();
+            const still = function (q) { return q.then(function (r) { return r; }, function (e) { return { error: e }; }); };
+            const [liste, nf, verlauf, pausch, stich] = await Promise.all([
+                still(sb.from('autoliste').select('*')),
+                still(sb.from('notion_fahrer').select('notion_fahrer_id,name,telefon').not('notion_fahrer_id', 'is', null).order('name')),
+                still(sb.from('fahrer_auto').select('*').order('am')),
+                still(sb.from('pauschalen').select('*').order('am')),
+                still(sb.rpc('pauschale_stichwoche'))
+            ]);
+            if (liste.error) {
+                document.getElementById('auBody').innerHTML = '<tr><td colspan="4" class="empty">Fehler beim Laden: ' + esc(liste.error.message || String(liste.error)) + '</td></tr>';
+                return;
+            }
+            AU = liste.data || [];
+            AU_NF = nf.error ? [] : (nf.data || []);
+            AU_VERLAUF = verlauf.error ? [] : (verlauf.data || []);
+            if (!pausch.error && !stich.error && stich.data) {
+                PAU = {}; PAU_STICH = stich.data; PAU_DA = PAU_AKTIV;
+                (pausch.data || []).forEach(function (x) { (PAU[x.notion_fahrer_id] = PAU[x.notion_fahrer_id] || []).push(x); });
+            }
+            renderAutos();
+        }
+        function auSitzt() {
+            const m = {};
+            AU.forEach(function (a) { (a.fahrer || []).forEach(function (f) { m[f.nr] = a.kennzeichen; }); });
+            return m;
+        }
+        function auWaehlen(key) {
+            auSel = (auSel === key && isMobile()) ? null : key;
+            auNeu = false; auSuche = ''; auFahrer = null;
+            renderAutos();
+        }
+        function auPauschaleText(f) { return f.art ? PauschalenLogik.kurz(f, true) : 'Pauschale fehlt'; }
+        function renderAutos() {
+            const L = AutolisteLogik;
+            const alle = L.sortiere(AU);
+            const rows = L.filtere(alle, auText, auChip);
+            document.getElementById('auCntAlle').textContent = AU.length;
+            document.getElementById('auCntFrei').textContent = AU.filter(function (a) { return !(a.fahrer || []).length; }).length;
+            document.getElementById('auCntBelegt').textContent = AU.filter(function (a) { return (a.fahrer || []).length; }).length;
+            document.getElementById('auCountBig').textContent = rows.length;
+            const body = document.getElementById('auBody');
+            const mobil = isMobile();
+            if (!rows.length) { body.innerHTML = '<tr><td colspan="' + (mobil ? 3 : 4) + '" class="empty">Kein Auto gefunden.</td></tr>'; }
+            else body.innerHTML = rows.map(function (a) {
+                const sel = auSel === a.kennzeichen_key;
+                const fahrer = (a.fahrer || []).map(function (f) { return '<span class="au-zeile">' + esc(f.name || ('Nr. ' + f.nr)) + '</span>'; }).join('') ||
+                    '<span class="au-zeile" style="color:var(--text-mut)">frei</span>';
+                const nu = (a.notion_nicht_uebernommen || []).map(function (f) { return '<span class="zeile-sub">Notion: ' + esc(f.name) + ' (nicht übernommen)</span>'; }).join('');
+                const pausch = (a.fahrer || []).map(function (f) { return '<span class="au-zeile num">' + esc(auPauschaleText(f)) + '</span>'; }).join('');
+                const kz = kzHtml(a.kennzeichen) + (a.notion_offen ? '<span class="zeile-sub">Notion offen</span>' : '');
+                const tr = '<tr data-au="' + esc(a.kennzeichen_key) + '"' + (sel ? ' class="selected"' : '') + ' onclick="auWaehlen(\'' + esc(a.kennzeichen_key) + '\')">';
+                if (mobil) return tr + '<td>' + kz + '<span class="zeile-sub">' + esc(a.modell || '') + '</span></td><td>' + fahrer + nu + '</td><td>' + pausch + '</td></tr>' +
+                    (sel ? '<tr class="detail-row"><td colspan="3">' + auDetailHtml(a) + '</td></tr>' : '');
+                return tr + '<td>' + kz + '</td><td>' + esc(a.modell || '–') + '</td><td>' + fahrer + nu + '</td><td>' + pausch + '</td></tr>';
+            }).join('');
+            const a = AU.find(function (x) { return x.kennzeichen_key === auSel; });
+            document.getElementById('auPanel').innerHTML = mobil ? '' : (a ? auDetailHtml(a) : '<div class="placeholder">Auto auswählen</div>');
+        }
+        function auName(nr) {
+            const f = AU_NF.find(function (x) { return x.notion_fahrer_id === nr; });
+            return f && f.name ? f.name.trim() : 'Nr. ' + nr;
+        }
+        // Verlauf eines Autos: eingesetzt / übernommen, und wer es verlassen hat (entfernt oder gewechselt)
+        function auVerlauf(key) {
+            const proNr = {}, ev = [];
+            AU_VERLAUF.forEach(function (r) { (proNr[r.notion_fahrer_id] = proNr[r.notion_fahrer_id] || []).push(r); });
+            Object.keys(proNr).forEach(function (nr) {
+                const z = proNr[nr];
+                z.forEach(function (r, i) {
+                    const vor = z[i - 1];
+                    if (r.kennzeichen_key === key) ev.push({ am: r.am, von: r.von, text: auName(+nr) + (r.quelle === 'hand' ? ' eingesetzt' : ' übernommen (' + (r.quelle === 'notion' ? 'Notion' : 'Start') + ')') });
+                    else if (vor && vor.kennzeichen_key === key) ev.push({ am: r.am, von: r.von, text: auName(+nr) + (r.kennzeichen ? ' auf ' + r.kennzeichen + ' gewechselt' : ' entfernt') });
+                });
+            });
+            return ev.sort(function (a, b) { return String(b.am).localeCompare(String(a.am)); }).slice(0, 10);
+        }
+        function auDetailHtml(a) {
+            const L = PauschalenLogik;
+            let h = '<div class="detail"><h4>' + kzHtml(a.kennzeichen) + '</h4><div class="sub">' + esc(a.modell || '') + '</div>';
+            h += '<div class="detail-sec">Fahrer</div>';
+            h += (a.fahrer || []).length ? a.fahrer.map(function (f) {
+                return fzKv(esc(f.name || ('Nr. ' + f.nr)), '<span class="num">' + esc(auPauschaleText(f)) + '</span><button class="au-weg" data-auweg="' + f.nr + '">entfernen</button>');
+            }).join('') : '<div class="sub">frei</div>';
+            if ((a.notion_nicht_uebernommen || []).length) {
+                h += '<div class="detail-sec">In Notion, nicht übernommen</div>' + a.notion_nicht_uebernommen.map(function (f) {
+                    return fzKv(esc(f.name), '<button class="au-weg" data-auwahl="' + f.nr + '">übernehmen</button>');
+                }).join('');
+            }
+            if (a.notion_offen) h += '<div class="sub" style="margin-top:6px">Notion noch nicht aktualisiert – wird automatisch nachgeholt.</div>';
+            if (auFahrer) {
+                h += '<div class="detail-sec">' + esc(auFahrer.name) + ' einsetzen</div>' +
+                    (auFahrer.sitzt ? '<div class="sub">sitzt auf ' + esc(auFahrer.sitzt) + ' – wird dort entfernt</div>' : '') +
+                    pauFormHtml(auFahrer, pauWerte, 'data-ausave');
+            } else if (auNeu) {
+                h += '<div class="detail-sec">Fahrer hinzufügen</div><div class="pau-form"><input data-ausuche="1" placeholder="Name, Fahrer-ID oder Telefon" value="' + esc(auSuche) + '">' +
+                    '<div class="au-treffer" data-autreffer="1">' + auTrefferHtml() + '</div>' +
+                    '<div class="detail-acts"><button class="btn-ghost" data-auzu="1">Abbrechen</button></div></div>';
+            } else {
+                h += '<div class="detail-acts"><button class="btn-ghost" data-auneu="1">Fahrer hinzufügen</button></div>';
+            }
+            const v = auVerlauf(a.kennzeichen_key);
+            if (v.length) h += '<div class="detail-sec">Verlauf</div><div class="pau-verlauf">' + v.map(function (e) {
+                return '<div>' + esc(fzZeit(e.am)) + ' · <b>' + esc(e.von) + '</b><br>' + esc(e.text) + '</div>';
+            }).join('') + '</div>';
+            return h + '</div>';
+        }
+        function auTrefferHtml() {
+            const t = AutolisteLogik.sucheFahrer(AU_NF, auSuche, auSitzt());
+            if (!auSuche.trim()) return '<div class="sub">Tippen, um alle Fahrer aus Notion zu durchsuchen.</div>';
+            if (!t.length) return '<div class="sub">Kein Fahrer gefunden.</div>';
+            return t.map(function (f) {
+                return '<button type="button" data-auwahl="' + f.nr + '">' + esc(f.name) + ' <small>· Nr. ' + f.nr +
+                    (f.sitzt ? ' · sitzt auf ' + esc(f.sitzt) : '') + '</small></button>';
+            }).join('');
+        }
+        function auFahrerWaehlen(nr) {
+            const g = PauschalenLogik.gilt(PAU[nr] || [], PAU_STICH);
+            auFahrer = { notion_fahrer_id: nr, name: auName(nr), sitzt: auSitzt()[nr] || null, hatte: g };
+            pauWerte = g ? { art: g.art, betrag: String(parseFloat(g.betrag)), satz: g.prozent_satz != null ? String(parseFloat(g.prozent_satz)) : '10',
+                    schwelle: g.prozent_schwelle != null ? String(parseFloat(g.prozent_schwelle)) : '1200', ab: PAU_STICH, bis: '', grund: '' }
+                : { art: 'f12', betrag: '', satz: '10', schwelle: '1200', ab: PAU_STICH, bis: '', grund: '' };
+            auNeu = false;
+            renderAutos();
+        }
+        // Pauschale nur mitschicken, wenn sie neu ist oder sich geaendert hat
+        function auPauschaleGeaendert(g, n) {
+            if (!g) return true;
+            const z = function (x) { return x == null ? null : parseFloat(x); };
+            return g.art !== n.art || z(g.betrag) !== z(n.betrag) || z(g.prozent_satz) !== z(n.prozent_satz) ||
+                z(g.prozent_schwelle) !== z(n.prozent_schwelle) || n.gilt_ab !== PAU_STICH || !!n.gilt_bis || !!n.grund;
+        }
+        async function auNotion(autos) {
+            if (!autos || !autos.length) return;
+            const { data, error } = await getSupabase().functions.invoke('fuhrpark-notion', { body: { autos: autos } });
+            if (error || (data && data.fehler && data.fehler.length)) showReToast('Gespeichert – Notion wird automatisch nachgeholt', 'success');
+        }
+        async function auKlick(e) {
+            const t = e.target;
+            if (t.closest('[data-auneu]')) { auNeu = true; auSuche = ''; renderAutos(); const i = document.querySelector('[data-ausuche]'); if (i) i.focus(); return; }
+            if (t.closest('[data-auzu]') || t.closest('[data-pauzu]')) { auNeu = false; auFahrer = null; renderAutos(); return; }
+            const w = t.closest('[data-auwahl]');
+            if (w) { e.stopPropagation(); auFahrerWaehlen(parseInt(w.dataset.auwahl, 10)); return; }
+            const art = t.closest('[data-pauart]');
+            if (art) { pauWerteLesen(art.closest('[data-pauform]')); pauWerte.art = art.dataset.pauart; renderAutos(); return; }
+            const weg = t.closest('[data-auweg]');
+            if (weg && !auBusy) {
+                e.stopPropagation();
+                const nr = parseInt(weg.dataset.auweg, 10);
+                if (!confirm(auName(nr) + ' von diesem Auto entfernen?')) return;
+                auBusy = true;
+                try {
+                    const { data, error } = await getSupabase().rpc('auto_fahrer_entfernen', { p_nr: nr });
+                    if (error) { alert(fgFehler(error)); return; }
+                    await auNotion(data && data.autos);
+                    showReToast('Entfernt', 'success');
+                } finally { auBusy = false; await ladeAutos(); }
+                return;
+            }
+            const save = t.closest('[data-ausave]');
+            if (save && !auBusy && auFahrer) {
+                const box = save.closest('[data-pauform]'); pauWerteLesen(box);
+                const fehler = PauschalenLogik.formFehler(pauWerte, PAU_STICH);
+                if (fehler) { box.querySelector('[data-pauvorschau]').innerHTML = '<div class="fz-bank-fehler">' + esc(fehler) + '</div>'; return; }
+                const n = PauschalenLogik.eintragAus(pauWerte);
+                const mit = auPauschaleGeaendert(auFahrer.hatte, n);
+                auBusy = true; save.disabled = true;
+                try {
+                    const { data, error } = await getSupabase().rpc('auto_fahrer_setzen', {
+                        p_kennzeichen_key: auSel, p_nr: auFahrer.notion_fahrer_id,
+                        p_art: mit ? n.art : null, p_betrag: mit ? n.betrag : null,
+                        p_prozent_satz: mit && n.prozent_satz != null ? n.prozent_satz : null,
+                        p_prozent_schwelle: mit && n.prozent_schwelle != null ? n.prozent_schwelle : null,
+                        p_gilt_ab: mit ? n.gilt_ab : null, p_gilt_bis: mit ? n.gilt_bis : null, p_grund: mit ? n.grund : null });
+                    if (error) { box.querySelector('[data-pauvorschau]').innerHTML = '<div class="fz-bank-fehler">' + esc(fgFehler(error)) + '</div>'; save.disabled = false; return; }
+                    await auNotion(data && data.autos);
+                    showReToast(auFahrer.name + ' eingesetzt', 'success');
+                    auFahrer = null;
+                    await ladeAutos();
+                } finally { auBusy = false; }
+            }
+        }
+        function auEingabe(e) {
+            const t = e.target;
+            if (t.dataset && t.dataset.ausuche) {
+                auSuche = t.value;
+                const box = t.closest('.pau-form').querySelector('[data-autreffer]');
+                if (box) box.innerHTML = auTrefferHtml();
+                return;
+            }
+            const box = t.closest('[data-pauform]');
+            if (!box || !auFahrer || !pauWerte) return;
+            pauWerteLesen(box);
+            if (e.type === 'change' && t.dataset.pau === 'ab') { renderAutos(); return; }
+            box.querySelector('[data-pauvorschau]').innerHTML = pauVorschauHtml(auFahrer, pauWerte);
         }
         function fzDetailHtml(f) {
             const p = fzProbleme(f);
@@ -6237,13 +6510,19 @@
         })();
 
         /* Reiter-Gruppen: oben die Gruppe, daneben ihre Unterreiter */
+        // Autoliste (Fahrer -> Autos) ersetzt den Fuhrpark-Reiter – erst beim Scharfschalten auf true
+        // (migrations/2026-11-01-autoliste*.sql, Edge Function fuhrpark-notion).
+        const AU_AKTIV = false;
         const GRUPPEN = {
             abrechnung: [['abrechnungen', 'Übersicht'], ['abrbot', 'Upload'], ['muessenzahlen', 'Kassieren'], ['lohn', 'Löhne']],   // Kassabuch vorerst ausgeblendet (Betreiber 19.10., wird neu gebaut) – Daten bleiben
-            fahrer: [['fahrer', 'App'], ['post', 'Post']],
+            fahrer: AU_AKTIV ? [['fahrer', 'App'], ['autos', 'Autos'], ['post', 'Post']] : [['fahrer', 'App'], ['post', 'Post']],
             rechnungen: [['rechnungen']],
-            experimentell: [['api', 'API-Abrechnung'], ['fuhrpark', 'Fuhrpark'], ['verbindungen', 'Verbindungen']],
+            experimentell: AU_AKTIV ? [['api', 'API-Abrechnung'], ['verbindungen', 'Verbindungen']]
+                : [['api', 'API-Abrechnung'], ['fuhrpark', 'Fuhrpark'], ['verbindungen', 'Verbindungen']],
             protokoll: [['protokoll']]
         };
+        document.querySelectorAll('[data-menue="autos"]').forEach(function (b) { b.hidden = !AU_AKTIV; });
+        document.querySelectorAll('[data-menue="fuhrpark"]').forEach(function (b) { b.hidden = AU_AKTIV; });
         function gruppeVon(tab) {
             for (const g in GRUPPEN) if (GRUPPEN[g].some(function (r) { return r[0] === tab; })) return g;
             return 'abrechnung';
@@ -6258,9 +6537,11 @@
         function switchTab(tab) {
             menueZu();
             const inhalt = { abrechnungen: 'contentAbrechnungen', api: 'contentApi', abrbot: 'contentAbrBot', muessenzahlen: 'contentMuessenZahlen', lohn: 'contentLohn', kassabuch: 'contentKassabuch',
-                fahrer: 'contentFahrer', fuhrpark: 'contentFuhrpark', post: 'contentPost', verbindungen: 'contentVerbindungen', rechnungen: 'contentRechnungen',
+                fahrer: 'contentFahrer', fuhrpark: 'contentFuhrpark', autos: 'contentAutos', post: 'contentPost', verbindungen: 'contentVerbindungen', rechnungen: 'contentRechnungen',
                 protokoll: 'contentProtokoll' };
             if (tab === 'protokoll' && !istAdmin()) tab = 'abrechnungen';
+            if (AU_AKTIV && tab === 'fuhrpark') tab = 'autos';
+            if (!AU_AKTIV && tab === 'autos') tab = 'fuhrpark';
             if (!inhalt[tab]) tab = 'abrechnungen';
             const g = gruppeVon(tab);
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.gruppe === g));
@@ -6275,6 +6556,7 @@
             else if (tab === 'abrbot') initAbrBot();
             else if (tab === 'verbindungen') initVerbindungen();
             else if (tab === 'fuhrpark') initFuhrpark();
+            else if (tab === 'autos') initAutos();
             else if (tab === 'api') initApi();
             else if (tab === 'fahrer') initFahrer();
             else if (tab === 'post') initPost();

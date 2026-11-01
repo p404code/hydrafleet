@@ -309,8 +309,11 @@ Migration `2026-10-18-abrechnung-api-automatisch.sql`.
 - **Erster Lauf 19.10. (KW42) scheiterte an der abgelaufenen E&E-Uber-Sitzung** (`org_access_denied: session_org_missing`, abends davor
   noch gültig). Nachgeholt um 10:07: Sitzung aus `~/.hydrafleet-uber-profile-ee` neu gespeichert, `uber-sync-aufrufen.js 2026-W42`
   (erst `rate-limited`, nach 3 Min ok), dann `abrechnung_api_schreiben` + `abrechnung_auto_freigeben` von Hand. Ablauf im Notfall genauso.
-- **Statuszeile** `azStatus` oben in der Abrechnung (`abrechnung_api_status()`, letzte abgeschlossene Woche in Wien): Bolt, Uber,
-  myPOS (Auszug/CSV), Abrechnung, Freigabe – je ✓ mit Uhrzeit, „geplant“ vor dem Lauf, rot ab ca. 3 h nach 05:00.
+- **Wochenzeile** `azBlock` unter den Kennzahlen (seit 01.11.2026, Betreiber: „gehört zusammen“): EINE Zeile je gewählter Woche
+  (`renderAzKopf`) aus Freigabe (`renderFreigabe` → `FG`, Knopf freigeben rechts), Automatik-Status (`renderAzStatus`, `abrechnung_api_status()`,
+  nur für die Woche des letzten Laufs) und Abgleich (`renderAbgleich` → `ABG_KURZ`). Punkt grün = alles da, rot = fehlt/seit Freigabe geändert,
+  grau = geplant/nicht freigegeben. „Details“ klappt Bolt/Uber/myPOS/Abrechnung, „zurücknehmen“ und die Abgleich-Zeile auf.
+  myPOS-Umsatz in `settlements` ohne Kontoauszug zählt als CSV – auch nach dem Automatik-Lauf.
 - **myPOS aus dem Kontoauszug** (seit 18.10., `2026-10-18-mypos-umsaetze.sql`): `mypos_umsaetze` (Woche, Terminal, Summe, Notion-Fahrertext,
   `fahrer_id` über `mypos_fahrer_id()` – Name/`name_key`/Alias, nur eindeutig). `api_abrechnung` nimmt `mypos_summe` aus der CSV,
   sonst aus `mypos_umsaetze`; `abrechnung_api_schreiben` schreibt es mit. Quelle: myPOS-Export `account_transactions_*.xlsx`

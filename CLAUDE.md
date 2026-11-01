@@ -48,8 +48,9 @@ die Tab-Leiste; Tabellen werden dort zu 3 Spalten + aufklappbarer `detail-row`.
 **Kopfleiste seit 2026-10-03:** Abrechnung (Übersicht, Upload, Kassieren, Kassabuch, Löhne) · Fahrer (App, Post) ·
 Rechnungen · **Experimentell** (API-Abrechnung, Fuhrpark, Verbindungen — funktionieren noch nicht verlässlich,
 bewusst abgestellt). **Löhne** ist ein Reiter (`contentLohn`, JS in der Hülle `Lohn`, IDs/Klassen `lo…`);
-`lohn.html` leitet nur noch weiter. Ansicht: Tabelle der Lohnläufe (Firma/Monat) + Seitenleiste mit Lohnzetteln und Zuordnung.
-Die durchgehende Liste vom 07.10. (958c21c) wurde am 01.11. auf Wunsch des Betreibers zurückgenommen („vorher übersichtlicher“).
+**Seit 01.11.2026 wieder die eigene Seite `lohn.html` (Stand vor 03.10., aus e72b9a0^)** – Betreiber: die Reiter-Ansichten
+(03.10. Seitenleiste, 07.10. Liste) waren unübersichtlich. „Löhne“ in Kopfleiste/Menü öffnet `lohn.html` (`switchTab('lohn')` leitet um);
+der Reiter-Code (`contentLohn`, Hülle `Lohn`) liegt noch im Dashboard, wird aber nicht mehr angezeigt.
 
 **Zu-/Abschläge (seit 2026-10-03):** Posten je Fahrer und Woche in `abrechnung_posten` („Pickerl selbst
 bezahlt +70“), Eingabe im Seitenpanel der Abrechnung. Geschrieben wird nur über `posten_anlegen` /

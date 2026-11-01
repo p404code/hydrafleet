@@ -6555,7 +6555,7 @@
         // (migrations/2026-11-01-autoliste*.sql, Edge Function fuhrpark-notion).
         const AU_AKTIV = true;
         const GRUPPEN = {
-            abrechnung: [['abrechnungen', 'Übersicht'], ['abrbot', 'Upload'], ['muessenzahlen', 'Kassieren'], ['lohn', 'Löhne']],   // Kassabuch vorerst ausgeblendet (Betreiber 19.10., wird neu gebaut) – Daten bleiben
+            abrechnung: [['abrechnungen', 'Übersicht'], ['abrbot', 'Upload'], ['muessenzahlen', 'Kassieren'], ['lohn.html', 'Löhne']],   // Kassabuch vorerst ausgeblendet (Betreiber 19.10., wird neu gebaut) – Daten bleiben
             fahrer: AU_AKTIV ? [['fahrer', 'App'], ['autos', 'Autos'], ['post', 'Post']] : [['fahrer', 'App'], ['post', 'Post']],
             rechnungen: [['rechnungen']],
             experimentell: AU_AKTIV ? [['api', 'API-Abrechnung'], ['verbindungen', 'Verbindungen']]
@@ -6576,6 +6576,8 @@
             switchTab(ok ? letzter : GRUPPEN[g][0][0]);
         }
         function switchTab(tab) {
+            // Löhne wieder als eigene Seite lohn.html (Stand September; Betreiber 01.11.: Reiter-Ansichten „katastrophe“)
+            if (tab === 'lohn') { location.href = 'lohn.html'; return; }
             menueZu();
             const inhalt = { abrechnungen: 'contentAbrechnungen', api: 'contentApi', abrbot: 'contentAbrBot', muessenzahlen: 'contentMuessenZahlen', lohn: 'contentLohn', kassabuch: 'contentKassabuch',
                 fahrer: 'contentFahrer', fuhrpark: 'contentFuhrpark', autos: 'contentAutos', post: 'contentPost', verbindungen: 'contentVerbindungen', rechnungen: 'contentRechnungen',
@@ -7030,7 +7032,7 @@
         /* Restore last tab (MUST be after all let/const declarations above) */
         const savedTab = localStorage.getItem('hydralink_tab');
         if (istAdmin()) document.querySelectorAll('[data-nur-admin]').forEach(function (e) { e.hidden = false; });
-        switchTab(savedTab && savedTab !== 'kassabuch' ? savedTab : 'abrechnungen');
+        switchTab(savedTab && savedTab !== 'kassabuch' && savedTab !== 'lohn' ? savedTab : 'abrechnungen');
 
         function switchReSubTab(sub) {
             document.querySelectorAll('.re-sub-tab').forEach(b => b.classList.remove('active'));
